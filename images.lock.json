@@ -1,13 +1,13 @@
 {
   "schema": 1,
-  "tag": "v1.0.0",
-  "source": "beee053605797ecd02a31fd399a5b4043d3052d8",
-  "publish_run": "https://github.com/kungfu-systems/build-images/actions/runs/28423021368",
+  "tag": "v1.1.0",
+  "source": "40bc041fbe2bb87b51db0812675e5812a239d9b1",
+  "publish_run": "https://github.com/kungfu-systems/build-images/actions/runs/28443209246",
   "images": [
     {
       "name": "base-linux",
       "image": "ghcr.io/kungfu-systems/build-images/base-linux",
-      "digest": "sha256:afb0f3cd041812842b6a6e7174998ed347cfd819d6d90d8dd233cb502139afb8",
+      "digest": "sha256:031435a9c1d80e56f1fd7951071f50759b500d37dd130694504c9571d3aa58b2",
       "test_commands": [
         "cat /etc/os-release",
         "git --version",
@@ -15,9 +15,21 @@
       ]
     },
     {
+      "name": "kungfu-verify",
+      "image": "ghcr.io/kungfu-systems/build-images/kungfu-verify",
+      "digest": "sha256:11f0ba64267ce88174a4f73a9bf833ff4e9c59cd16ec3d08a6432a06c2be6fb1",
+      "test_commands": [
+        "git --version",
+        "fnm --version",
+        "uv --version",
+        "python3 --version",
+        "jq --version"
+      ]
+    },
+    {
       "name": "native-linux-x64",
       "image": "ghcr.io/kungfu-systems/build-images/native-linux-x64",
-      "digest": "sha256:0016b9d932cdf41203c4d66a983d439da320fa24f1eec6217a884b407a9b9c84",
+      "digest": "sha256:694214e74ebf9e1ef01b4af73c22cb2225a1fe5679e8a6a7664b2f971fe3ae49",
       "test_commands": [
         "cmake --version",
         "ninja --version",
@@ -28,7 +40,7 @@
     {
       "name": "node24-pnpm",
       "image": "ghcr.io/kungfu-systems/build-images/node24-pnpm",
-      "digest": "sha256:9485a7eb27fcbb8aacbb134f9355c49015afad0180a5b269fdf8d51babe523db",
+      "digest": "sha256:2bdc7d801683759a718427e7852937df3f3145bbc881a48232ee32064c177284",
       "test_commands": [
         "node --version",
         "corepack --version",
