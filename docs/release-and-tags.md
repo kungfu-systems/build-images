@@ -71,6 +71,14 @@ verification.
   dry build or `publish=true` for a trusted publish.
 - The workflow runs on GitHub-hosted `ubuntu-24.04` and uses `GITHUB_TOKEN` for
   GHCR writes.
+- Published GHCR packages are required to be public. The organization Packages
+  policy must allow public package creation and avoid forcing private defaults.
+  Docker push cannot declare package visibility, so the publish workflow fails
+  after push if any package is not `public` or if the tag cannot be resolved
+  through the anonymous GHCR pull path.
+- Consumer smoke intentionally pulls the locked images without GHCR login. This
+  keeps the public-consumption contract covered by CI instead of relying only on
+  package settings in the GitHub UI.
 
 ## Rollback
 

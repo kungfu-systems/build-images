@@ -72,6 +72,12 @@ jobs:
           fi
           bash scripts/build-image-family.sh "${args[@]}"
 
+      - name: Verify published packages are public
+        if: env.SHOULD_PUBLISH == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash scripts/verify-ghcr-public.sh --tag "$IMAGE_TAG"
+
       - name: Upload digest summary
         uses: actions/upload-artifact@v4
         with:
