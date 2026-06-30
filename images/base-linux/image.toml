@@ -1,0 +1,19 @@
+schema = 1
+name = "base-linux"
+contract_major = 1
+platform = "linux-x64"
+publish = true
+
+[runner]
+profile = "github-hosted-ubuntu-24.04"
+self_hosted_required = false
+
+[build]
+context = "."
+dockerfile = "Dockerfile"
+test_commands = [
+  "cat /etc/os-release",
+  "git --version",
+  "id kungfu",
+]
+

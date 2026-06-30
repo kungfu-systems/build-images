@@ -1,0 +1,23 @@
+schema = 1
+name = "native-linux-x64"
+contract_major = 1
+platform = "linux-x64"
+publish = true
+
+[base]
+image = "base-linux"
+
+[runner]
+profile = "kungfu-build-v4-linux-x64"
+self_hosted_required = false
+
+[build]
+context = "."
+dockerfile = "Dockerfile"
+test_commands = [
+  "cmake --version",
+  "ninja --version",
+  "python3 --version",
+  "ccache --version",
+]
+
