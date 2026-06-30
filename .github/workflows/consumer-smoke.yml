@@ -1,11 +1,13 @@
 name: Consumer Smoke
 
 on:
+  pull_request:
   push:
     branches:
       - main
       - "feature/**"
       - "fix/**"
+      - "chore/**"
   workflow_dispatch:
 
 permissions:
@@ -36,4 +38,3 @@ jobs:
 
       - name: Pull and smoke published images
         run: bash scripts/smoke-published-images.sh
-
