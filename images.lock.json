@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "tag": "v1.0.0-alpha.2",
+  "source": "cbdc435df456325747b429e36bdcbe9f2672fccc",
+  "publish_run": "https://github.com/kungfu-systems/build-images/actions/runs/28421650912",
+  "images": [
+    {
+      "name": "base-linux",
+      "image": "ghcr.io/kungfu-systems/build-images/base-linux",
+      "digest": "sha256:0112b84360b93baf02c21bf30e52bb0d3045f95ac4ba793b01faf524aaf05a68",
+      "test_commands": [
+        "cat /etc/os-release",
+        "git --version",
+        "id kungfu"
+      ]
+    },
+    {
+      "name": "native-linux-x64",
+      "image": "ghcr.io/kungfu-systems/build-images/native-linux-x64",
+      "digest": "sha256:4c802cc87864bd31e4abd6d799ead51fe7328a9db915fbf4ce4bb13058eb2e75",
+      "test_commands": [
+        "cmake --version",
+        "ninja --version",
+        "python3 --version",
+        "ccache --version"
+      ]
+    },
+    {
+      "name": "node24-pnpm",
+      "image": "ghcr.io/kungfu-systems/build-images/node24-pnpm",
+      "digest": "sha256:10ff89a271cd294667f638729d879d412ad414c8c7bc64a99dd82accf5c6d66a",
+      "test_commands": [
+        "node --version",
+        "corepack --version",
+        "pnpm --version"
+      ]
+    }
+  ]
+}
+

@@ -53,6 +53,11 @@ The digest summary is the rollback and audit anchor.
 The `Publish Images` workflow uploads this summary as an artifact named
 `image-digests-<tag>`.
 
+The checked-in `images.lock.json` records the latest accepted alpha image
+digests for consumer smoke. This lock file is intentionally separate from the
+publish artifact: it is a reviewed consumer input, not a byproduct of the
+publishing job.
+
 ## Publish Path
 
 Image publishing is intentionally separated from normal pull request
