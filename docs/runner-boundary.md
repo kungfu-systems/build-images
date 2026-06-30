@@ -31,3 +31,6 @@ Publish jobs should be limited to trusted triggers such as protected branch
 release paths, trusted tags, or explicit maintainer dispatches. Pull requests
 from forks should only run read-only validation.
 
+The repository implements this by keeping normal `Verify` read-only and placing
+GHCR writes in the separate `Publish Images` workflow. That workflow only runs
+on exact release tags or explicit maintainer dispatch.
