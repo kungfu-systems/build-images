@@ -17,6 +17,5 @@ dockerfile = "Dockerfile"
 test_commands = [
   "node --version",
   "corepack --version",
-  "pnpm --version",
+  "test \"$(pnpm --version)\" = \"11.7.0\"",
 ]
-
