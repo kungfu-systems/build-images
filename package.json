@@ -1,6 +1,6 @@
 {
   "name": "@kungfu-systems/build-images",
-  "version": "1.0.0-alpha.0",
+  "version": "1.0.0-alpha.1",
   "private": true,
   "repository": "https://github.com/kungfu-systems/build-images",
   "author": "Keren Dong",

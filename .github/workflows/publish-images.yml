@@ -70,7 +70,7 @@ jobs:
           if [ "$SHOULD_PUBLISH" = "true" ]; then
             args+=(--push)
           fi
-          scripts/build-image-family.sh "${args[@]}"
+          bash scripts/build-image-family.sh "${args[@]}"
 
       - name: Upload digest summary
         uses: actions/upload-artifact@v4
@@ -78,4 +78,3 @@ jobs:
           name: image-digests-${{ env.IMAGE_TAG }}
           path: ${{ runner.temp }}/image-digests.json
           if-no-files-found: error
-
