@@ -122,6 +122,9 @@ PY
   if [ "$push_images" = "true" ]; then
     docker push "$image_ref"
     digest="$(docker buildx imagetools inspect "$image_ref" --format '{{.Manifest.Digest}}')"
+    echo "::group::pull ${image_name}@${digest}"
+    docker pull "${registry}/${image_name}@${digest}"
+    echo "::endgroup::"
   else
     digest="$(docker image inspect --format '{{.Id}}' "$image_ref")"
   fi
