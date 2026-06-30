@@ -1,13 +1,13 @@
 {
   "schema": 1,
-  "tag": "v1.0.0-alpha.4",
-  "source": "1f815b27909c4cef7501af47d59089f62ecf593b",
-  "publish_run": "https://github.com/kungfu-systems/build-images/actions/runs/28422527580",
+  "tag": "v1.0.0",
+  "source": "beee053605797ecd02a31fd399a5b4043d3052d8",
+  "publish_run": "https://github.com/kungfu-systems/build-images/actions/runs/28423021368",
   "images": [
     {
       "name": "base-linux",
       "image": "ghcr.io/kungfu-systems/build-images/base-linux",
-      "digest": "sha256:24998f8b2dcee1fa2f414624ee09492f14bbea35a84e02e11dab23ea1d42b906",
+      "digest": "sha256:afb0f3cd041812842b6a6e7174998ed347cfd819d6d90d8dd233cb502139afb8",
       "test_commands": [
         "cat /etc/os-release",
         "git --version",
@@ -17,7 +17,7 @@
     {
       "name": "native-linux-x64",
       "image": "ghcr.io/kungfu-systems/build-images/native-linux-x64",
-      "digest": "sha256:e59940ef96ae2c9c149e9375920b20d49263a2368460c4cf6086ee043a6e5ddd",
+      "digest": "sha256:0016b9d932cdf41203c4d66a983d439da320fa24f1eec6217a884b407a9b9c84",
       "test_commands": [
         "cmake --version",
         "ninja --version",
@@ -28,7 +28,7 @@
     {
       "name": "node24-pnpm",
       "image": "ghcr.io/kungfu-systems/build-images/node24-pnpm",
-      "digest": "sha256:30436f75b96261a558c0ec708c3036f800e2f50af159eed5209bd7958f748f14",
+      "digest": "sha256:9485a7eb27fcbb8aacbb134f9355c49015afad0180a5b269fdf8d51babe523db",
       "test_commands": [
         "node --version",
         "corepack --version",
