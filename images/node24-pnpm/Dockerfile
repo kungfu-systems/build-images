@@ -12,8 +12,7 @@ RUN curl -fsSLO "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-
     && tar -xJf "node-v${NODE_VERSION}-linux-x64.tar.xz" -C /usr/local --strip-components=1 \
     && rm "node-v${NODE_VERSION}-linux-x64.tar.xz" \
     && corepack enable \
-    && corepack prepare "pnpm@${PNPM_VERSION}" --activate
+    && npm install -g "pnpm@${PNPM_VERSION}"
 
 USER kungfu
 WORKDIR /work
-
