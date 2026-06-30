@@ -8,9 +8,9 @@
   "type": "module",
   "packageManager": "pnpm@11.7.0",
   "scripts": {
-    "check": "python3 scripts/verify-image-manifests.py && bash scripts/check-workflows.sh",
+    "check": "python3 scripts/verify-image-manifests.py && python3 scripts/resolve-image-dag.py && bash scripts/check-workflows.sh && bash -n scripts/build-image-family.sh scripts/check-workflows.sh images/base-linux/tests/smoke.sh images/node24-pnpm/tests/smoke.sh images/native-linux-x64/tests/smoke.sh",
+    "check:dag": "python3 scripts/resolve-image-dag.py",
     "check:images": "python3 scripts/verify-image-manifests.py",
     "check:workflows": "bash scripts/check-workflows.sh"
   }
 }
-

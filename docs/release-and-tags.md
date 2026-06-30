@@ -50,9 +50,25 @@ Every publish run must produce a digest summary containing:
 
 The digest summary is the rollback and audit anchor.
 
+The `Publish Images` workflow uploads this summary as an artifact named
+`image-digests-<tag>`.
+
+## Publish Path
+
+Image publishing is intentionally separated from normal pull request
+verification.
+
+- Pull requests use the `Verify` workflow and do not receive package write
+  permission.
+- `Publish Images` runs on exact release tags such as `v1.0.0-alpha.0` or
+  `v1.0.0`.
+- Maintainers may also run `Publish Images` manually with `publish=false` for a
+  dry build or `publish=true` for a trusted publish.
+- The workflow runs on GitHub-hosted `ubuntu-24.04` and uses `GITHUB_TOKEN` for
+  GHCR writes.
+
 ## Rollback
 
 Rollback for a consumer should mean switching the consumer workflow back to the
 previous exact digest or back to its non-container build path. A consumer should
 not depend on deleting or mutating a published image tag.
-
