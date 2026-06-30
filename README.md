@@ -11,17 +11,20 @@ trusted workflows by exact tag or immutable digest.
 
 ```text
 base-linux
+  -> kungfu-verify
   -> node24-pnpm
   -> native-linux-x64
 ```
 
 - `base-linux` defines the common Linux build baseline.
+- `kungfu-verify` fixes the lightweight Kungfu CI entry tools used by
+  `kungfu-code sync`, verify jobs, and publish preparation jobs.
 - `node24-pnpm` adds Node.js 24 and pnpm for GitHub Action and JavaScript build
   surfaces.
 - `native-linux-x64` adds common native build tooling for Linux x64 consumers.
 
-Scenario images such as `libnode-linux-x64-build` should be added only after the
-base publish loop is stable.
+Native Kungfu build images should layer on top of `kungfu-verify` when their
+contract needs the same Buildchain entry tools plus C++/Conan/CMake tooling.
 
 ## Repository Contract
 
@@ -55,6 +58,7 @@ first. Exact image tags mirror exact repository tags, for example:
 
 ```text
 ghcr.io/kungfu-systems/build-images/base-linux:v1.0.0
+ghcr.io/kungfu-systems/build-images/kungfu-verify:v1.0.0
 ghcr.io/kungfu-systems/build-images/node24-pnpm:v1.0.0
 ghcr.io/kungfu-systems/build-images/native-linux-x64:v1.0.0
 ```
@@ -68,4 +72,3 @@ publish. Do not grant Docker group membership or sudo to an existing self-hosted
 GitHub Actions runner service account.
 
 See `docs/runner-boundary.md`.
-

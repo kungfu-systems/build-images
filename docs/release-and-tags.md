@@ -11,6 +11,7 @@ Exact repository tags map to exact image tags:
 ```text
 repo:  v1.0.0-alpha.0
 image: ghcr.io/kungfu-systems/build-images/base-linux:v1.0.0-alpha.0
+image: ghcr.io/kungfu-systems/build-images/kungfu-verify:v1.0.0-alpha.0
 image: ghcr.io/kungfu-systems/build-images/node24-pnpm:v1.0.0-alpha.0
 image: ghcr.io/kungfu-systems/build-images/native-linux-x64:v1.0.0-alpha.0
 ```

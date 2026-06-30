@@ -49,6 +49,7 @@ The first graph is intentionally shallow:
 
 ```text
 base-linux
+  -> kungfu-verify
   -> node24-pnpm
   -> native-linux-x64
 ```
@@ -59,4 +60,3 @@ base-linux
 present. They are not consumer release builds.
 
 Consumer repositories own their package-specific build commands.
-

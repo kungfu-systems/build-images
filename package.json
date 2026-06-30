@@ -1,6 +1,6 @@
 {
   "name": "@kungfu-systems/build-images",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "repository": "https://github.com/kungfu-systems/build-images",
   "author": "Keren Dong",
@@ -8,7 +8,7 @@
   "type": "module",
   "packageManager": "pnpm@11.7.0",
   "scripts": {
-    "check": "python3 scripts/verify-image-manifests.py && python3 scripts/resolve-image-dag.py && python3 scripts/verify-image-lock.py && bash scripts/check-workflows.sh && bash -n scripts/build-image-family.sh scripts/smoke-published-images.sh scripts/verify-ghcr-public.sh scripts/check-workflows.sh images/base-linux/tests/smoke.sh images/node24-pnpm/tests/smoke.sh images/native-linux-x64/tests/smoke.sh",
+    "check": "python3 scripts/verify-image-manifests.py && python3 scripts/resolve-image-dag.py && python3 scripts/verify-image-lock.py && bash scripts/check-workflows.sh && bash -n scripts/build-image-family.sh scripts/smoke-published-images.sh scripts/verify-ghcr-public.sh scripts/check-workflows.sh images/base-linux/tests/smoke.sh images/kungfu-verify/tests/smoke.sh images/node24-pnpm/tests/smoke.sh images/native-linux-x64/tests/smoke.sh",
     "check:dag": "python3 scripts/resolve-image-dag.py",
     "check:images": "python3 scripts/verify-image-manifests.py",
     "check:lock": "python3 scripts/verify-image-lock.py",
