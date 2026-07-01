@@ -108,6 +108,8 @@ jobs:
 
       - name: Promote Buildchain refs
         uses: kungfu-systems/buildchain/actions/promote-buildchain-ref@v2.0.13-alpha.13
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           token: ${{ secrets.BUILDCHAIN_PROMOTION_TOKEN || github.token }}
           sha: ${{ steps.target.outputs.sha }}
