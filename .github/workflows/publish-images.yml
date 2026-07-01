@@ -1,10 +1,6 @@
 name: Publish Images
 
 on:
-  push:
-    tags:
-      - "v*.*.*"
-      - "v*.*.*-alpha.*"
   workflow_dispatch:
     inputs:
       image-tag:
@@ -12,7 +8,7 @@ on:
         required: true
         type: string
       publish:
-        description: "Push images to GHCR. Manual publishes are rejected; tag pushes publish."
+        description: "Push images to GHCR. Manual publishes are rejected; Buildchain promotion publishes images."
         required: true
         default: false
         type: boolean
@@ -31,7 +27,7 @@ jobs:
     runs-on: ubuntu-24.04
     env:
       IMAGE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.image-tag || github.ref_name }}
-      SHOULD_PUBLISH: ${{ github.event_name == 'push' }}
+      SHOULD_PUBLISH: "false"
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -42,7 +38,7 @@ jobs:
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish == true }}
         run: |
           echo "::error::Manual image publishing is disabled."
-          echo "::error::Buildchain must create the exact release tag; tag push then publishes images."
+          echo "::error::Buildchain promotion publishes images inside the release transaction."
           exit 1
 
       - name: Validate image manifests
