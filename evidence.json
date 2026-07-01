@@ -1,0 +1,40 @@
+{
+  "artifacts": [
+    {
+      "digest": "sha256:086084299e1ccd9f90c4831f1628a651bc5334b0805c53c0a6edbf268cfcf346",
+      "group": "image",
+      "kind": "oci",
+      "name": "ghcr.io/kungfu-systems/build-images/base-linux",
+      "ref": "v1.1.1-alpha.6"
+    },
+    {
+      "digest": "sha256:5f1dbaa38a7d9c0623cdbddbefa02d37e082e6238d782183278e2aacfc31201a",
+      "group": "image",
+      "kind": "oci",
+      "name": "ghcr.io/kungfu-systems/build-images/kungfu-verify",
+      "ref": "v1.1.1-alpha.6"
+    },
+    {
+      "digest": "sha256:8b4eb3ab7a99847295e4bd47625177c837bc430784fcb8111c883860646f8b1a",
+      "group": "image",
+      "kind": "oci",
+      "name": "ghcr.io/kungfu-systems/build-images/native-linux-x64",
+      "ref": "v1.1.1-alpha.6"
+    },
+    {
+      "digest": "sha256:8df12b3af4247af59d0057cf3363315383f71c4be9cf865c8e4c1fd5b4d70d26",
+      "group": "image",
+      "kind": "oci",
+      "name": "ghcr.io/kungfu-systems/build-images/node24-pnpm",
+      "ref": "v1.1.1-alpha.6"
+    }
+  ],
+  "channel": "alpha",
+  "publish_tooling_sha": "1e1ed82f5a93b0ea0a14683829a6abd923f185d9",
+  "release_material_sha": "1e1ed82f5a93b0ea0a14683829a6abd923f185d9",
+  "release_sha": "1e1ed82f5a93b0ea0a14683829a6abd923f185d9",
+  "schema": 1,
+  "source_sha": "88ad1292cb5c86239e2cb3ee155f8fa73a5e61df",
+  "target_ref": "alpha/v1/v1.1",
+  "version": "1.1.1-alpha.6"
+}
