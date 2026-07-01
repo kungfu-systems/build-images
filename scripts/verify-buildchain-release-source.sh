@@ -44,7 +44,7 @@ if [ -z "$image_tag" ]; then
 fi
 
 case "$image_tag" in
-  v*.*.*|v*.*.*-alpha.*) ;;
+  v*.*.*) ;;
   *)
     echo "Refusing non-Buildchain exact release tag: $image_tag" >&2
     exit 1
