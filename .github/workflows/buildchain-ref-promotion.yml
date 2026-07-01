@@ -94,7 +94,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Promote Buildchain refs
-        uses: kungfu-systems/buildchain/actions/promote-buildchain-ref@v2
+        uses: kungfu-systems/buildchain/actions/promote-buildchain-ref@v2.0.14
         with:
           token: ${{ secrets.BUILDCHAIN_PROMOTION_TOKEN || github.token }}
           sha: ${{ steps.target.outputs.sha }}
