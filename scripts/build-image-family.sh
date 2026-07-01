@@ -6,6 +6,14 @@ registry="ghcr.io/kungfu-systems/build-images"
 image_tag=""
 push_images="false"
 summary_path="$repo_root/build/image-digests.json"
+reuse_existing_images="${BUILDCHAIN_REUSE_EXISTING_IMAGES:-false}"
+buildchain_version="${BUILDCHAIN_VERSION:-}"
+buildchain_channel="${BUILDCHAIN_CHANNEL:-}"
+buildchain_source_sha="${BUILDCHAIN_SOURCE_SHA:-${GITHUB_SHA:-local}}"
+buildchain_release_sha="${BUILDCHAIN_RELEASE_SHA:-}"
+buildchain_release_material_sha="${BUILDCHAIN_RELEASE_MATERIAL_SHA:-}"
+buildchain_publish_tooling_sha="${BUILDCHAIN_PUBLISH_TOOLING_SHA:-}"
+buildchain_target_ref="${BUILDCHAIN_TARGET_REF:-}"
 
 usage() {
   cat <<'EOF'
@@ -56,6 +64,10 @@ if ! command -v docker >/dev/null 2>&1; then
   exit 1
 fi
 
+if [ -z "$buildchain_version" ]; then
+  buildchain_version="${image_tag#v}"
+fi
+
 tmp_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_dir"' EXIT
 
@@ -90,56 +102,120 @@ PY
 )"
 
   image_ref="${registry}/${image_name}:${image_tag}"
+  image_repository="${registry}/${image_name}"
   build_args=()
   if [ -n "$base_image" ]; then
     build_args+=(--build-arg "BASE_IMAGE=${registry}/${base_image}:${image_tag}")
   fi
+  build_args+=(
+    --label "org.opencontainers.image.source=https://github.com/kungfu-systems/build-images"
+    --label "org.opencontainers.image.version=${buildchain_version}"
+    --label "org.opencontainers.image.revision=${buildchain_source_sha}"
+  )
+  if [ -n "$buildchain_channel" ]; then
+    build_args+=(--label "io.kungfu.buildchain.channel=${buildchain_channel}")
+  fi
+  if [ -n "$buildchain_release_sha" ]; then
+    build_args+=(--label "io.kungfu.buildchain.release-sha=${buildchain_release_sha}")
+  fi
+  if [ -n "$buildchain_release_material_sha" ]; then
+    build_args+=(--label "io.kungfu.buildchain.release-material-sha=${buildchain_release_material_sha}")
+  fi
+  if [ -n "$buildchain_publish_tooling_sha" ]; then
+    build_args+=(--label "io.kungfu.buildchain.publish-tooling-sha=${buildchain_publish_tooling_sha}")
+  fi
+  if [ -n "$buildchain_target_ref" ]; then
+    build_args+=(--label "io.kungfu.buildchain.target-ref=${buildchain_target_ref}")
+  fi
 
-  echo "::group::build ${image_ref}"
-  docker build "${build_args[@]}" -t "$image_ref" "$repo_root/$image_path"
-  echo "::endgroup::"
+  reused_existing="false"
+  digest=""
+  if [ "$push_images" = "true" ] && [ "$reuse_existing_images" = "true" ]; then
+    remote_digest="$(docker buildx imagetools inspect "$image_ref" --format '{{.Manifest.Digest}}' 2>/dev/null || true)"
+    if [ -n "$remote_digest" ]; then
+      echo "::group::reuse ${image_ref}"
+      docker pull "$image_ref"
+      remote_version="$(docker image inspect --format '{{ index .Config.Labels "org.opencontainers.image.version" }}' "$image_ref" 2>/dev/null || true)"
+      remote_material_sha="$(docker image inspect --format '{{ index .Config.Labels "io.kungfu.buildchain.release-material-sha" }}' "$image_ref" 2>/dev/null || true)"
+      if [ "$remote_version" != "$buildchain_version" ]; then
+        echo "Existing image tag has version label ${remote_version:-<empty>}, expected ${buildchain_version}" >&2
+        exit 1
+      fi
+      if [ -n "$buildchain_release_material_sha" ] && [ "$remote_material_sha" != "$buildchain_release_material_sha" ]; then
+        echo "Existing image tag has material label ${remote_material_sha:-<empty>}, expected ${buildchain_release_material_sha}" >&2
+        exit 1
+      fi
+      digest="$remote_digest"
+      reused_existing="true"
+      echo "Reusing existing ${image_ref}@${digest}"
+      echo "::endgroup::"
+    fi
+  fi
 
-  test_count="$(python3 - "$repo_root/$image_path/image.toml" <<'PY'
+  if [ "$reused_existing" != "true" ]; then
+    echo "::group::build ${image_ref}"
+    docker build "${build_args[@]}" -t "$image_ref" "$repo_root/$image_path"
+    echo "::endgroup::"
+
+    test_count="$(python3 - "$repo_root/$image_path/image.toml" <<'PY'
 import sys, tomllib
 data = tomllib.load(open(sys.argv[1], "rb"))
 print(len(data["build"]["test_commands"]))
 PY
 )"
-  j=0
-  while [ "$j" -lt "$test_count" ]; do
-    test_command="$(python3 - "$repo_root/$image_path/image.toml" "$j" <<'PY'
+    j=0
+    while [ "$j" -lt "$test_count" ]; do
+      test_command="$(python3 - "$repo_root/$image_path/image.toml" "$j" <<'PY'
 import sys, tomllib
 data = tomllib.load(open(sys.argv[1], "rb"))
 print(data["build"]["test_commands"][int(sys.argv[2])])
 PY
 )"
-    echo "::group::test ${image_name}: ${test_command}"
-    docker run --rm "$image_ref" sh -lc "$test_command"
-    echo "::endgroup::"
-    j=$((j + 1))
-  done
+      echo "::group::test ${image_name}: ${test_command}"
+      docker run --rm "$image_ref" sh -lc "$test_command"
+      echo "::endgroup::"
+      j=$((j + 1))
+    done
 
-  if [ "$push_images" = "true" ]; then
-    docker push "$image_ref"
-    digest="$(docker buildx imagetools inspect "$image_ref" --format '{{.Manifest.Digest}}')"
-    echo "::group::pull ${image_name}@${digest}"
-    docker pull "${registry}/${image_name}@${digest}"
-    echo "::endgroup::"
-  else
-    digest="$(docker image inspect --format '{{.Id}}' "$image_ref")"
+    if [ "$push_images" = "true" ]; then
+      docker push "$image_ref"
+      digest="$(docker buildx imagetools inspect "$image_ref" --format '{{.Manifest.Digest}}')"
+      echo "::group::pull ${image_name}@${digest}"
+      docker pull "${registry}/${image_name}@${digest}"
+      echo "::endgroup::"
+    else
+      digest="$(docker image inspect --format '{{.Id}}' "$image_ref")"
+    fi
   fi
 
-  source_sha="${GITHUB_SHA:-local}"
-  python3 - "$summary_lines" "$image_name" "$image_ref" "$image_tag" "$base_image" "$digest" "$source_sha" <<'PY'
+  python3 - "$summary_lines" "$image_name" "$image_repository" "$image_ref" "$image_tag" "$base_image" "$digest" "$buildchain_source_sha" "$buildchain_release_sha" "$buildchain_release_material_sha" "$buildchain_publish_tooling_sha" "$reused_existing" <<'PY'
 import json, sys
-path, name, ref, tag, base, digest, source = sys.argv[1:]
+(
+    path,
+    name,
+    repository,
+    ref,
+    tag,
+    base,
+    digest,
+    source,
+    release_sha,
+    release_material_sha,
+    publish_tooling_sha,
+    reused,
+) = sys.argv[1:]
 record = {
     "name": name,
+    "repository": repository,
     "image": ref,
     "tag": tag,
     "base": base or None,
     "digest": digest,
     "source": source,
+    "release_sha": release_sha or None,
+    "release_material_sha": release_material_sha or None,
+    "publish_tooling_sha": publish_tooling_sha or None,
+    "reused": reused == "true",
 }
 with open(path, "a", encoding="utf-8") as handle:
     handle.write(json.dumps(record, sort_keys=True) + "\n")
