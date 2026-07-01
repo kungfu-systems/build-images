@@ -107,7 +107,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Promote Buildchain refs
-        uses: kungfu-systems/buildchain/actions/promote-buildchain-ref@v2.0.14-alpha.4
+        uses: kungfu-systems/buildchain/actions/promote-buildchain-ref@v2.0.14
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
