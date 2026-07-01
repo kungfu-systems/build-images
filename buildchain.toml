@@ -13,3 +13,7 @@ commands = [
   "pnpm run check",
 ]
 
+[lifecycle.publish]
+commands = [
+  "bash scripts/publish-image-family.sh",
+]

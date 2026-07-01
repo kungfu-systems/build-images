@@ -11,17 +11,22 @@ land on `dev/vN/vN.M`, reviewed channel promotion moves through
 `alpha/vN/vN.M` and `release/vN/vN.M`, and Buildchain creates the exact
 version-state commits plus exact/floating tags.
 
-Image publishing is a side effect of an exact Buildchain tag. The publish
-workflow verifies that:
+Image publishing is a Buildchain publish transaction. The promotion workflow
+creates or resumes the release transaction, builds or reuses exact OCI image
+tags, writes publish evidence, and only then lets Buildchain move exact and
+floating Git refs.
 
-- the tag is an exact Buildchain release or alpha tag;
-- `package.json` version state matches the tag without the leading `v`;
-- the matching Buildchain channel branch points at the same commit as the tag;
+The publish command verifies that:
+
+- every exact image tag is either newly pushed or already present with matching
+  Buildchain version/material labels;
+- published packages are public and anonymously pullable from GHCR;
+- `BUILDCHAIN_PUBLISH_EVIDENCE` contains every image digest before public Git
+  refs move;
 - manual workflow dispatch cannot push images.
 
-This keeps image publication behind Buildchain's reviewed release fact chain
-without moving Docker credentials or Docker permissions into normal pull request
-verification.
+This keeps Docker credentials and Docker permissions inside the governed
+promotion job while preserving Buildchain's durable rerun/repair state.
 
 ## Exact Tags
 
@@ -70,8 +75,9 @@ Every publish run must produce a digest summary containing:
 
 The digest summary is the rollback and audit anchor.
 
-The `Publish Images` workflow uploads this summary as an artifact named
-`image-digests-<tag>`.
+The Buildchain publish command stores this summary next to
+`BUILDCHAIN_PUBLISH_EVIDENCE`; Buildchain persists the evidence into the durable
+release-state ref for fresh-runner reruns.
 
 The checked-in `images.lock.json` records the latest accepted alpha image
 digests for consumer smoke. This lock file is intentionally separate from the
@@ -85,14 +91,18 @@ verification.
 
 - Pull requests use the `Verify` workflow and do not receive package write
   permission.
+- Feature branches merge to the active `dev/vN/vN.M` branch first. Buildchain
+  alpha promotion is then triggered by a protected pull request from
+  `dev/vN/vN.M` to `alpha/vN/vN.M`; do not merge feature branches directly into
+  `alpha/*`.
 - Buildchain promotion creates exact release tags such as `v1.0.0-alpha.0` or
-  `v1.0.0`.
-- `Publish Images` publishes only from exact tag pushes after the Buildchain
-  release-source check passes.
+  `v1.0.0` only after image evidence validates.
+- The image publish command runs inside `Buildchain Ref Promotion` with
+  `publish-transaction: "true"`.
 - Maintainers may run `Publish Images` manually with `publish=false` for a dry
   build, but manual publishing is rejected.
-- The workflow runs on GitHub-hosted `ubuntu-24.04` and uses `GITHUB_TOKEN` for
-  GHCR writes.
+- The promotion workflow runs on GitHub-hosted `ubuntu-24.04` and uses
+  `GITHUB_TOKEN` for GHCR writes.
 - Published GHCR packages are required to be public. The organization Packages
   policy must allow public package creation and avoid forcing private defaults.
   Docker push cannot declare package visibility, so the publish workflow fails

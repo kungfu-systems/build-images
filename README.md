@@ -51,10 +51,9 @@ can use it as the protected release-line status check.
 ## Release Model
 
 The repository uses one Buildchain release version for the image family at
-first. Buildchain v2 owns channel promotion and exact release tags; image
-publishing only runs after Buildchain has produced an exact tag whose version
-state and channel branch match. Exact image tags mirror exact repository tags,
-for example:
+first. Buildchain v2 owns channel promotion, image publish transactions, durable
+publish evidence, and exact release tags. Exact image tags mirror exact
+repository tags, for example:
 
 ```text
 ghcr.io/kungfu-systems/build-images/base-linux:v1.0.0
