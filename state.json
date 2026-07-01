@@ -16,14 +16,49 @@
   "state_ref": "buildchain/release-state/1-1-1-alpha-8",
   "state_path": "/home/runner/work/build-images/build-images/.buildchain/release-state/v1.1.1-alpha.8.json",
   "evidence_path": "/home/runner/work/build-images/build-images/.buildchain/release-evidence/v1.1.1-alpha.8/evidence.json",
-  "state": "publishing",
-  "previous_state": "prepared",
+  "state": "published",
+  "previous_state": "publishing",
   "actor": "kungfu-origin",
   "run_id": "28518179937",
   "superseded_by": "",
-  "failure": "",
-  "artifacts": [],
-  "evidence": [],
+  "failure": "write EPIPE",
+  "artifacts": [
+    {
+      "group": "image",
+      "kind": "oci",
+      "name": "ghcr.io/kungfu-systems/build-images/base-linux",
+      "ref": "v1.1.1-alpha.8",
+      "digest": "sha256:2eb321b609d2b4cef726225893e4f6823d73753f9e5709721d50b38d6f838dd4",
+      "required": true
+    },
+    {
+      "group": "image",
+      "kind": "oci",
+      "name": "ghcr.io/kungfu-systems/build-images/kungfu-verify",
+      "ref": "v1.1.1-alpha.8",
+      "digest": "sha256:5335a2e4548ec76a4cd64bedc2bb288b48de238684affc032a6163ed00f7e063",
+      "required": true
+    },
+    {
+      "group": "image",
+      "kind": "oci",
+      "name": "ghcr.io/kungfu-systems/build-images/native-linux-x64",
+      "ref": "v1.1.1-alpha.8",
+      "digest": "sha256:b0a7a7fc3a0750f8fe5c643debb13e1b8c2a5ab2f9f72b03c06167a2fe74e267",
+      "required": true
+    },
+    {
+      "group": "image",
+      "kind": "oci",
+      "name": "ghcr.io/kungfu-systems/build-images/node24-pnpm",
+      "ref": "v1.1.1-alpha.8",
+      "digest": "sha256:bc2bbafbce6b3b6d9a3ae06bb32042fd93e1a97f597a968599a303022da678e2",
+      "required": true
+    }
+  ],
+  "evidence": [
+    ".buildchain/release-evidence/v1.1.1-alpha.8/evidence.json"
+  ],
   "created_at": "2026-07-01T12:40:36.180Z",
-  "updated_at": "2026-07-01T12:40:38.041Z"
+  "updated_at": "2026-07-01T12:43:50.503Z"
 }
