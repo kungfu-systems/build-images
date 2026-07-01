@@ -3,7 +3,8 @@ name: Publish Images
 on:
   push:
     tags:
-      - "v*"
+      - "v*.*.*"
+      - "v*.*.*-alpha.*"
   workflow_dispatch:
     inputs:
       image-tag:
@@ -11,7 +12,7 @@ on:
         required: true
         type: string
       publish:
-        description: "Push images to GHCR"
+        description: "Push images to GHCR. Manual publishes are rejected; tag pushes publish."
         required: true
         default: false
         type: boolean
@@ -30,10 +31,19 @@ jobs:
     runs-on: ubuntu-24.04
     env:
       IMAGE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.image-tag || github.ref_name }}
-      SHOULD_PUBLISH: ${{ github.event_name == 'push' || inputs.publish == true }}
+      SHOULD_PUBLISH: ${{ github.event_name == 'push' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Reject manual publish
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish == true }}
+        run: |
+          echo "::error::Manual image publishing is disabled."
+          echo "::error::Buildchain must create the exact release tag; tag push then publishes images."
+          exit 1
 
       - name: Validate image manifests
         run: python3 scripts/verify-image-manifests.py
@@ -51,6 +61,14 @@ jobs:
               exit 1
               ;;
           esac
+
+      - name: Verify Buildchain release source
+        if: env.SHOULD_PUBLISH == 'true'
+        run: bash scripts/verify-buildchain-release-source.sh --tag "$IMAGE_TAG" --require-channel-match
+
+      - name: Verify dry-build release version state
+        if: env.SHOULD_PUBLISH != 'true'
+        run: bash scripts/verify-buildchain-release-source.sh --tag "$IMAGE_TAG"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3

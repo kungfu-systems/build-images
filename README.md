@@ -38,23 +38,23 @@ contract needs the same Buildchain entry tools plus C++/Conan/CMake tooling.
 ## Local Verification
 
 ```bash
-python3 scripts/verify-image-manifests.py
-bash scripts/check-workflows.sh
-```
-
-Or run the repository check:
-
-```bash
 pnpm run check
 ```
 
-The default verification path does not publish images and does not require a
-self-hosted runner.
+The default verification path validates `buildchain.toml`, image manifests,
+the image lock, workflow syntax, and shell syntax. It does not publish images
+and does not require a self-hosted runner.
+
+The GitHub `Verify` workflow exposes a `check` job so Buildchain v2 promotion
+can use it as the protected release-line status check.
 
 ## Release Model
 
 The repository uses one Buildchain release version for the image family at
-first. Exact image tags mirror exact repository tags, for example:
+first. Buildchain v2 owns channel promotion and exact release tags; image
+publishing only runs after Buildchain has produced an exact tag whose version
+state and channel branch match. Exact image tags mirror exact repository tags,
+for example:
 
 ```text
 ghcr.io/kungfu-systems/build-images/base-linux:v1.0.0

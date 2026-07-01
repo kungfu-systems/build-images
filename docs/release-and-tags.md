@@ -4,6 +4,25 @@ Build images use the repository release version as the first versioning layer.
 Independent per-image semantic versions should be introduced only after usage
 proves that the image family needs separate release cadence.
 
+## Buildchain Governance
+
+Buildchain v2 is the release authority for this repository. Day-to-day changes
+land on `dev/vN/vN.M`, reviewed channel promotion moves through
+`alpha/vN/vN.M` and `release/vN/vN.M`, and Buildchain creates the exact
+version-state commits plus exact/floating tags.
+
+Image publishing is a side effect of an exact Buildchain tag. The publish
+workflow verifies that:
+
+- the tag is an exact Buildchain release or alpha tag;
+- `package.json` version state matches the tag without the leading `v`;
+- the matching Buildchain channel branch points at the same commit as the tag;
+- manual workflow dispatch cannot push images.
+
+This keeps image publication behind Buildchain's reviewed release fact chain
+without moving Docker credentials or Docker permissions into normal pull request
+verification.
+
 ## Exact Tags
 
 Exact repository tags map to exact image tags:
@@ -66,10 +85,12 @@ verification.
 
 - Pull requests use the `Verify` workflow and do not receive package write
   permission.
-- `Publish Images` runs on exact release tags such as `v1.0.0-alpha.0` or
+- Buildchain promotion creates exact release tags such as `v1.0.0-alpha.0` or
   `v1.0.0`.
-- Maintainers may also run `Publish Images` manually with `publish=false` for a
-  dry build or `publish=true` for a trusted publish.
+- `Publish Images` publishes only from exact tag pushes after the Buildchain
+  release-source check passes.
+- Maintainers may run `Publish Images` manually with `publish=false` for a dry
+  build, but manual publishing is rejected.
 - The workflow runs on GitHub-hosted `ubuntu-24.04` and uses `GITHUB_TOKEN` for
   GHCR writes.
 - Published GHCR packages are required to be public. The organization Packages
