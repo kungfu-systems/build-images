@@ -32,5 +32,8 @@ release paths, trusted tags, or explicit maintainer dispatches. Pull requests
 from forks should only run read-only validation.
 
 The repository implements this by keeping normal `Verify` read-only and placing
-GHCR writes in the separate `Publish Images` workflow. That workflow only runs
-on exact release tags or explicit maintainer dispatch.
+GHCR writes in the Buildchain promotion workflow. The promotion workflow runs
+only after protected alpha/release verification succeeds, enables
+`publish-transaction`, and writes evidence before public release refs move.
+`Publish Images` remains a manual dry-build diagnostic surface and rejects
+manual pushes.
