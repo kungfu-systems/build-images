@@ -91,6 +91,10 @@ verification.
 
 - Pull requests use the `Verify` workflow and do not receive package write
   permission.
+- Feature branches merge to the active `dev/vN/vN.M` branch first. Buildchain
+  alpha promotion is then triggered by a protected pull request from
+  `dev/vN/vN.M` to `alpha/vN/vN.M`; do not merge feature branches directly into
+  `alpha/*`.
 - Buildchain promotion creates exact release tags such as `v1.0.0-alpha.0` or
   `v1.0.0` only after image evidence validates.
 - The image publish command runs inside `Buildchain Ref Promotion` with
