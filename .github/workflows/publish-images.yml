@@ -47,6 +47,16 @@ jobs:
       - name: Resolve image DAG
         run: python3 scripts/resolve-image-dag.py --json
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v6.4.0
+        with:
+          node-version: "24"
+
+      - name: Enable pnpm
+        run: |
+          corepack enable pnpm
+          pnpm --version
+
       - name: Validate publish tag
         run: |
           set -euo pipefail
@@ -84,7 +94,23 @@ jobs:
           if [ "$SHOULD_PUBLISH" = "true" ]; then
             args+=(--push)
           fi
-          bash scripts/build-image-family.sh "${args[@]}"
+          bash scripts/buildchain-toolkit.sh span \
+            --event image.family \
+            --phase build \
+            --component build-image-family \
+            --attribute tag="$IMAGE_TAG" \
+            --attribute publish="$SHOULD_PUBLISH" \
+            -- \
+            bash scripts/build-image-family.sh "${args[@]}"
+
+      - name: Verify build observability log
+        run: |
+          bash scripts/buildchain-toolkit.sh verify observability-log .buildchain/logs/events.jsonl \
+            --min-events 2 \
+            --require-phase build \
+            --require-component build-image-family \
+            --require-event image.family.start \
+            --require-event image.family.end
 
       - name: Verify published packages are public
         if: env.SHOULD_PUBLISH == 'true'
