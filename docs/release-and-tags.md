@@ -107,3 +107,36 @@ verification.
 Rollback for a consumer should mean switching the consumer workflow back to the
 previous exact digest or back to its non-container build path. A consumer should
 not depend on deleting or mutating a published image tag.
+
+## Welded Surfaces
+
+Version verdicts for this repository follow
+[KFD-1](https://github.com/kungfu-systems/kfd/blob/dev/v1/v1.0/decisions/kfd-0001-release-versioning.md):
+breaking a registered surface forces a major; additively evolving one or
+adding one opens a minor; a change touching no registered surface is a patch
+regardless of size. The register:
+
+| ID | Surface | Kind | Where it is specified |
+|---|---|---|---|
+| `image-contracts` | per-image contract identity (`name + contract_major + platform + runner boundary + guaranteed tools`) | integration | [`image-contract.md`](image-contract.md) |
+| `image-family` | the family member set (which images exist; parent references by name) | integration | [`image-contract.md`](image-contract.md) |
+| `tag-scheme` | tag naming (exact image tags mirror exact repository tags) | integration | this document |
+| `digest-summary-schema` | the digest summary produced by every publish run | cross-time | this document |
+
+Consequences worth spelling out: refreshing image contents within a contract
+(tool patch versions, security rebuilds) is a patch; adding a new image to the
+family is a minor (floating consumers can learn from the `vX.Y` coordinate
+that the image exists on that line); changing an existing image's contract
+semantics, retiring an image, or changing the tag or digest-summary schema is
+a major. Breaking changes to one image should normally be rerouted by minting
+a new image name or `contract_major` (per `image-contract.md`), which keeps
+the family change additive.
+
+## Decision Log
+
+Line openings (minor/major), register changes, and deprecations are recorded
+here, newest first. Patches are intentionally absent.
+
+| Date | Action | Line | Faces | Class | Rationale | PR |
+|---|---|---|---|---|---|---|
+| 2026-07-02 | register | — | image-contracts, image-family, tag-scheme, digest-summary-schema | additive | Initial register established on adopting KFD-1 | — |
