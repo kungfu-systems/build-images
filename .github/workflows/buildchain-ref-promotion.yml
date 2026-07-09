@@ -124,3 +124,4 @@ jobs:
           required-status-check: "check"
           allow-repository: "kungfu-systems/build-images"
           publish-transaction: "true"
+          release-passport: "false"
