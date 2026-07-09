@@ -51,6 +51,7 @@ The first graph is intentionally shallow:
 base-linux
   -> kungfu-verify
   -> node24-pnpm
+    -> latex-pdf-builder
   -> native-linux-x64
 ```
 
@@ -60,3 +61,11 @@ base-linux
 present. They are not consumer release builds.
 
 Consumer repositories own their package-specific build commands.
+
+## First Publish Lock State
+
+`images.lock.json` normally records every published image digest. A new image may
+temporarily set `lock.status = "pending-first-publish"` in its manifest while it
+is waiting for the first Buildchain publish transaction to produce an immutable
+GHCR digest. After that release, the lock file should be updated with the
+published digest so consumer smoke can pull the new image by digest.

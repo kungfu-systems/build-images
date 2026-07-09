@@ -51,18 +51,26 @@ def main() -> int:
             errors.append(f"images.lock.json: {name} test_commands must match image.toml")
 
     missing = sorted(set(manifests) - seen)
-    if missing:
-        errors.append("images.lock.json: missing images: " + ", ".join(missing))
+    pending_first_publish = [
+        name
+        for name in missing
+        if manifests[name].get("lock", {}).get("status") == "pending-first-publish"
+    ]
+    hard_missing = [name for name in missing if name not in pending_first_publish]
+    if hard_missing:
+        errors.append("images.lock.json: missing images: " + ", ".join(hard_missing))
 
     if errors:
         for error in errors:
             print(f"error: {error}", file=sys.stderr)
         return 1
 
-    print(json.dumps(data, indent=2))
+    output = dict(data)
+    if pending_first_publish:
+        output["pending_first_publish"] = pending_first_publish
+    print(json.dumps(output, indent=2))
     return 0
 
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

@@ -13,6 +13,7 @@ trusted workflows by exact tag or immutable digest.
 base-linux
   -> kungfu-verify
   -> node24-pnpm
+    -> latex-pdf-builder
   -> native-linux-x64
 ```
 
@@ -21,6 +22,8 @@ base-linux
   `kungfu-code sync`, verify jobs, and publish preparation jobs.
 - `node24-pnpm` adds Node.js 24 and pnpm for GitHub Action and JavaScript build
   surfaces.
+- `latex-pdf-builder` adds LaTeX PDF publication tooling while preserving pnpm
+  build orchestration.
 - `native-linux-x64` adds common native build tooling for Linux x64 consumers.
 
 Native Kungfu build images should layer on top of `kungfu-verify` when their
@@ -59,6 +62,7 @@ repository tags, for example:
 ghcr.io/kungfu-systems/build-images/base-linux:v1.0.0
 ghcr.io/kungfu-systems/build-images/kungfu-verify:v1.0.0
 ghcr.io/kungfu-systems/build-images/node24-pnpm:v1.0.0
+ghcr.io/kungfu-systems/build-images/latex-pdf-builder:v1.2.0-alpha.0
 ghcr.io/kungfu-systems/build-images/native-linux-x64:v1.0.0
 ```
 

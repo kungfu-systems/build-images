@@ -27,6 +27,7 @@ def validate_manifest(image_dir: Path, data: dict, image_names: set[str], errors
     build = data.get("build", {})
     runner = data.get("runner", {})
     base = data.get("base")
+    lock = data.get("lock")
 
     require(data.get("schema") == 1, f"{rel}: schema must be 1", errors)
     require(name == image_dir.name, f"{rel}: name must match directory name", errors)
@@ -55,12 +56,21 @@ def validate_manifest(image_dir: Path, data: dict, image_names: set[str], errors
         for index, command in enumerate(test_commands):
             require(isinstance(command, str) and command.strip(), f"{rel}: test_commands[{index}] must be a non-empty string", errors)
 
+    lock_status = None
+    if lock is not None:
+        require(isinstance(lock, dict), f"{rel}: lock must be a table", errors)
+        if isinstance(lock, dict):
+            lock_status = lock.get("status")
+            require(lock_status == "pending-first-publish", f"{rel}: lock.status must be pending-first-publish when present", errors)
+            require(isinstance(lock.get("reason"), str) and lock["reason"].strip(), f"{rel}: lock.reason is required when lock.status is set", errors)
+
     return {
         "name": name,
         "contract_major": data.get("contract_major"),
         "platform": data.get("platform"),
         "base": base.get("image") if isinstance(base, dict) else None,
         "publish": data.get("publish"),
+        "lock_status": lock_status,
         "test_commands": test_commands,
     }
 
@@ -127,4 +137,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
