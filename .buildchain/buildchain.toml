@@ -17,3 +17,6 @@ commands = [
 commands = [
   "bash scripts/publish-image-family.sh",
 ]
+
+[kfd.upstream]
+auto_discover = true
