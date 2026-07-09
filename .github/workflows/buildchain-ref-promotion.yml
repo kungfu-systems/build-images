@@ -114,6 +114,8 @@ jobs:
         with:
           token: ${{ secrets.BUILDCHAIN_PROMOTION_TOKEN || github.token }}
           generated-status-check-token: ${{ github.token }}
+          generated-ref-update-token: ${{ secrets.BUILDCHAIN_PROMOTION_TOKEN || github.token }}
+          branch-protection-bypass-apps: "github-actions"
           sha: ${{ steps.target.outputs.sha }}
           target-ref: ${{ steps.target_ref.outputs.target_ref }}
           dry-run: ${{ inputs['dry-run'] || 'false' }}
