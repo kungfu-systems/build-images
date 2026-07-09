@@ -1,0 +1,92 @@
+{
+  "id": "claim:build-images-release-trust",
+  "public": true,
+  "claim": "Build Images releases are governed by declared image contracts, Buildchain version-state promotion, a locked Buildchain runtime contract, and KFD upstream evidence.",
+  "sourceBindings": [
+    {
+      "id": "readme",
+      "path": "README.md",
+      "sha256": "6d2856d8defb661856001b4705f3348dd552fe7dd696031f0b72cb0b31ab5b11"
+    },
+    {
+      "id": "image-contract",
+      "path": "docs/image-contract.md",
+      "sha256": "96d23b5bb417f94210bbf8a8858161fabe5fda8aae27b8bffdd10da7fb935e43"
+    },
+    {
+      "id": "release-and-tags",
+      "path": "docs/release-and-tags.md",
+      "sha256": "a175a8044dc10b10e01cb365621790a01a935e98003f534f30ab3b20d8e4a751"
+    },
+    {
+      "id": "image-lock",
+      "path": "images.lock.json",
+      "sha256": "bf83ec250ce5c7075d66b8ce5b502ac4dcf4e66677a222f6b374c77364200d10"
+    },
+    {
+      "id": "buildchain-config",
+      "path": ".buildchain/buildchain.toml",
+      "sha256": "03f120dfe66c40f9a662c77f087eb8bfce1abc57cf39195011b58f8f80ca23a4"
+    },
+    {
+      "id": "contract-lock",
+      "path": ".buildchain/contract-lock.json",
+      "sha256": "21d2e4e8abda821d6227376691f5b5ad57e92c848e1e40ec0f884c931ea47eee"
+    }
+  ],
+  "machineEvidence": [
+    {
+      "id": "kfd-1-contract-world-witness",
+      "path": ".buildchain/kfd-1/build-images-contract-world.witness.json",
+      "sha256": "7feb77cbe49e624a0731121306fb1f0eacd36a8aa79cd6bb9a30736d2660f5fc",
+      "contract": "kfd-1",
+      "status": "passed"
+    },
+    {
+      "id": "kfd-upstream-aggregate",
+      "path": ".buildchain/kfd-2/kfd-upstream-aggregate.json",
+      "sha256": "355877065dbf0c4a738b1ad7013bfd1d5c236be519da7ae159a27c36f1fb849b",
+      "contract": "kungfu-buildchain-kfd-upstream-aggregate",
+      "status": "passed"
+    },
+    {
+      "id": "kfd-3-surface-registry",
+      "path": ".buildchain/kfd/kfd-3-surfaces.json",
+      "sha256": "43374f51199e012eaefd9a778f0c58212fe4d728ffe1998c16020abbd54c5c82",
+      "contract": "kungfu-buildchain-kfd-3-surface-registry",
+      "status": "passed"
+    }
+  ],
+  "hashes": {
+    "kfd1WitnessSha256": "2d384e1ff912f864a82c4a0b75ecfb19e43927d201386662e52f2438852ffffe",
+    "upstreamAggregateSha256": "9a546906aa370df920d0ad6e945dd0804c2c935a878386a071ab1433bb4d7a74",
+    "sourceBindingsSha256": "9ab8d2386c116c7e9f1cc01cf8287ef8846ee764435dc7bfe95eb21a9b0ec752",
+    "machineEvidenceSha256": "05dc0231592cae83de4926ffb3760406181f4934974a7d154b8933c8904f7930"
+  },
+  "artifacts": [
+    {
+      "id": "oci-image-lock",
+      "path": "images.lock.json",
+      "sha256": "bf83ec250ce5c7075d66b8ce5b502ac4dcf4e66677a222f6b374c77364200d10"
+    },
+    {
+      "id": "publish-evidence-writer",
+      "path": "scripts/write-publish-evidence.py",
+      "sha256": "307a68c4e92e8633c76b6fad3c1a9871fe40e0f8ec764e5bc12d4be54a0d73f1"
+    }
+  ],
+  "verification": {
+    "result": "passed",
+    "method": "pnpm run check:kfd"
+  },
+  "auditBoundary": {
+    "mode": "machine-bound-release-contract",
+    "scope": "Build Images repository config, declared public surfaces, image lock, Buildchain runtime contract lock, and publish evidence writer."
+  },
+  "responsibility": {
+    "owner": "Kungfu Build Images maintainers",
+    "sourceOwner": "Kungfu Build Images maintainers",
+    "releasePassportProofOwner": "Buildchain"
+  },
+  "residualRisk": []
+}
