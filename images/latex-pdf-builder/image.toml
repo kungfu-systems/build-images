@@ -11,10 +11,6 @@ image = "node24-pnpm"
 profile = "github-hosted-ubuntu-24.04"
 self_hosted_required = false
 
-[lock]
-status = "pending-first-publish"
-reason = "First release needs Buildchain publish evidence before an immutable GHCR digest can be checked into images.lock.json."
-
 [build]
 context = "."
 dockerfile = "Dockerfile"
