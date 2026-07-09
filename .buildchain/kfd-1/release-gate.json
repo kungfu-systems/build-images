@@ -194,7 +194,7 @@
       },
       "sourceVerification": {
         "status": "passed",
-        "verifiedAt": "2026-07-09T07:21:19.027Z",
+        "verifiedAt": "1970-01-01T00:00:00.000Z",
         "required": false,
         "surfaces": [
           {
@@ -249,7 +249,7 @@
       },
       "artifactVerification": {
         "status": "passed",
-        "verifiedAt": "2026-07-09T07:21:19.027Z",
+        "verifiedAt": "1970-01-01T00:00:00.000Z",
         "surfaces": [
           {
             "name": "readme",

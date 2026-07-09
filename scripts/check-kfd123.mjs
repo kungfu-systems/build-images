@@ -28,6 +28,9 @@ import {
 const cwd = process.cwd();
 const KFD3_REGISTRY_PATH = ".buildchain/kfd/kfd-3-surfaces.json";
 const KFD3_RELEASE_ARTIFACT_NAME = "ghcr.io/kungfu-systems/build-images/base-linux";
+const STABLE_EVIDENCE_TIME = "1970-01-01T00:00:00.000Z";
+
+process.env.BUILDCHAIN_KFD3_DETECTED_AT = process.env.BUILDCHAIN_KFD3_DETECTED_AT || STABLE_EVIDENCE_TIME;
 
 function repoPath(relativePath) {
   return path.join(cwd, relativePath);
@@ -59,6 +62,23 @@ function assertPassed(condition, message) {
 function sha256RepoFile(relativePath) {
   assertFile(relativePath);
   return sha256File(repoPath(relativePath));
+}
+
+function stableGeneratedEvidence(value) {
+  if (Array.isArray(value)) {
+    return value.map((entry) => stableGeneratedEvidence(entry));
+  }
+  if (!value || typeof value !== "object") {
+    return value;
+  }
+  const next = {};
+  for (const [key, entry] of Object.entries(value)) {
+    next[key] = key === "cwd" ? "" : stableGeneratedEvidence(entry);
+  }
+  if (next.product && typeof next.product === "object" && !Array.isArray(next.product) && "version" in next.product) {
+    next.product = { ...next.product, version: "" };
+  }
+  return next;
 }
 
 function contractSurface(relativePath, id = relativePath) {
@@ -147,7 +167,12 @@ function writeKfd1Witness() {
     surfaces,
   };
   writeJson(".buildchain/kfd-1/build-images-contract-world.witness.json", witness);
-  const gate = createKfd1ReleaseGateEvidence({ cwd, artifactRoot: cwd, witnesses: [witness] });
+  const gate = createKfd1ReleaseGateEvidence({
+    cwd,
+    artifactRoot: cwd,
+    witnesses: [witness],
+    verifiedAt: STABLE_EVIDENCE_TIME,
+  });
   validateKfd1ReleaseGateEvidence(gate);
   assertPassed(gate.passportSection?.status === "passed", "KFD-1 release gate did not pass");
   writeJson(".buildchain/kfd-1/release-gate.json", gate.passportSection);
@@ -155,11 +180,11 @@ function writeKfd1Witness() {
 }
 
 function checkUpstream() {
-  const facts = collectKfdUpstreamFacts({ cwd });
+  const facts = stableGeneratedEvidence(collectKfdUpstreamFacts({ cwd }));
   const check = checkKfdUpstreamFacts(facts);
   assertPassed(check.ok, `KFD upstream check failed: ${JSON.stringify(check.issues || check, null, 2)}`);
   writeJson(".buildchain/kfd-2/kfd-upstream-aggregate.json", facts);
-  const aggregate = collectKfdAggregate({ cwd });
+  const aggregate = stableGeneratedEvidence(collectKfdAggregate({ cwd }));
   assertPassed(aggregate.upstreamCheck?.status === "passed", "KFD aggregate upstream check did not pass");
   writeJson(".buildchain/kfd-2/kfd-aggregate.json", aggregate);
   return { facts, check, aggregate };
@@ -248,7 +273,7 @@ function writeKfd3Witnesses() {
   const audit = kfd3.auditSurfaces({ cwd, registryPath });
   assertPassed(audit.ok, `KFD-3 audit failed: ${JSON.stringify(audit.issues || audit, null, 2)}`);
   assertPassed(audit.status === "passed", `KFD-3 audit status is ${audit.status}`);
-  const prebuild = kfd3.createSurfaceWitness({ cwd, registryPath, kind: "prebuild", sourceSha: "" });
+  const prebuild = stableGeneratedEvidence(kfd3.createSurfaceWitness({ cwd, registryPath, kind: "prebuild", sourceSha: "" }));
   const shippedSurfaces = prebuild.collaborationInterface.surfaces.map((surface) => ({
     ...surface,
     state: "shipped",
@@ -260,7 +285,7 @@ function writeKfd3Witnesses() {
   };
   prebuild.collaborationInterfaceDigest = `sha256:${sha256Json(prebuild.collaborationInterface)}`;
   const artifact = {
-    ...kfd3.createSurfaceWitness({ cwd, registryPath, kind: "artifact", sourceSha: "" }),
+    ...stableGeneratedEvidence(kfd3.createSurfaceWitness({ cwd, registryPath, kind: "artifact", sourceSha: "" })),
     artifact: {
       name: KFD3_RELEASE_ARTIFACT_NAME,
     },
@@ -273,6 +298,7 @@ function writeKfd3Witnesses() {
   const gate = kfd3.createReleaseGateEvidence({
     prebuildWitnesses: [prebuild],
     artifactWitnesses: [artifact],
+    verifiedAt: STABLE_EVIDENCE_TIME,
   });
   kfd3.validateReleaseGateEvidence(gate);
   writeJson(".buildchain/kfd-3/release-gate.json", gate);
