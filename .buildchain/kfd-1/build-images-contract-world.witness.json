@@ -1,0 +1,70 @@
+{
+  "id": "build-images-release-contract-world",
+  "standard": "kfd-1",
+  "source": {
+    "repo": "kungfu-systems/build-images",
+    "ref": ""
+  },
+  "contractWorld": {
+    "schemaId": "https://kfd.libkungfu.dev/schemas/kfd-1/contract-world.schema.json",
+    "digest": "sha256:cb2e655984f95cb8967a153dbd3dac271a0e581ed0197790cc1cf8b5d5ce8f10"
+  },
+  "canonicalPolicy": {
+    "path": "docs/release-and-tags.md",
+    "sha256": "a175a8044dc10b10e01cb365621790a01a935e98003f534f30ab3b20d8e4a751"
+  },
+  "registry": {
+    "path": ".buildchain/kfd/kfd-3-surfaces.json",
+    "sha256": "43374f51199e012eaefd9a778f0c58212fe4d728ffe1998c16020abbd54c5c82"
+  },
+  "surfaces": [
+    {
+      "name": "readme",
+      "sourcePath": "README.md",
+      "sourceSha256": "6d2856d8defb661856001b4705f3348dd552fe7dd696031f0b72cb0b31ab5b11",
+      "artifactPath": "README.md",
+      "expectedSha256": "6d2856d8defb661856001b4705f3348dd552fe7dd696031f0b72cb0b31ab5b11",
+      "byteForByte": true
+    },
+    {
+      "name": "image-contract",
+      "sourcePath": "docs/image-contract.md",
+      "sourceSha256": "96d23b5bb417f94210bbf8a8858161fabe5fda8aae27b8bffdd10da7fb935e43",
+      "artifactPath": "docs/image-contract.md",
+      "expectedSha256": "96d23b5bb417f94210bbf8a8858161fabe5fda8aae27b8bffdd10da7fb935e43",
+      "byteForByte": true
+    },
+    {
+      "name": "release-and-tags",
+      "sourcePath": "docs/release-and-tags.md",
+      "sourceSha256": "a175a8044dc10b10e01cb365621790a01a935e98003f534f30ab3b20d8e4a751",
+      "artifactPath": "docs/release-and-tags.md",
+      "expectedSha256": "a175a8044dc10b10e01cb365621790a01a935e98003f534f30ab3b20d8e4a751",
+      "byteForByte": true
+    },
+    {
+      "name": "runner-boundary",
+      "sourcePath": "docs/runner-boundary.md",
+      "sourceSha256": "fb91b534ef1f7c4d516fd0d81be15f61619a13f8aacd58788289da7285df0eca",
+      "artifactPath": "docs/runner-boundary.md",
+      "expectedSha256": "fb91b534ef1f7c4d516fd0d81be15f61619a13f8aacd58788289da7285df0eca",
+      "byteForByte": true
+    },
+    {
+      "name": "image-lock",
+      "sourcePath": "images.lock.json",
+      "sourceSha256": "bf83ec250ce5c7075d66b8ce5b502ac4dcf4e66677a222f6b374c77364200d10",
+      "artifactPath": "images.lock.json",
+      "expectedSha256": "bf83ec250ce5c7075d66b8ce5b502ac4dcf4e66677a222f6b374c77364200d10",
+      "byteForByte": true
+    },
+    {
+      "name": "publish-evidence-writer",
+      "sourcePath": "scripts/write-publish-evidence.py",
+      "sourceSha256": "307a68c4e92e8633c76b6fad3c1a9871fe40e0f8ec764e5bc12d4be54a0d73f1",
+      "artifactPath": "scripts/write-publish-evidence.py",
+      "expectedSha256": "307a68c4e92e8633c76b6fad3c1a9871fe40e0f8ec764e5bc12d4be54a0d73f1",
+      "byteForByte": true
+    }
+  ]
+}

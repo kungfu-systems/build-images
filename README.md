@@ -44,7 +44,8 @@ contract needs the same Buildchain entry tools plus C++/Conan/CMake tooling.
 pnpm run check
 ```
 
-The default verification path validates `buildchain.toml`, image manifests,
+The default verification path validates `.buildchain/buildchain.toml`, KFD-1/2/3
+release evidence, the Buildchain contract lock, image manifests,
 the image lock, workflow syntax, and shell syntax. It does not publish images
 and does not require a self-hosted runner.
 
