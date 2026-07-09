@@ -5,7 +5,7 @@
   "witnessKind": "artifact",
   "supportLevel": "release",
   "source": {
-    "cwd": "/Users/dkr/Worktrees/build-images/feature/kfd123-buildchain-config",
+    "cwd": "",
     "sourceSha": "",
     "registryPath": ".buildchain/kfd/kfd-3-surfaces.json",
     "registryDigest": "sha256:5b6ab8a311226fe866e5b8aa98dad016212af4ffe75fdf8ec80718c80855ee30"
@@ -15,7 +15,7 @@
     "path": ".buildchain/kfd/kfd-3-surfaces.json",
     "sha256": "43374f51199e012eaefd9a778f0c58212fe4d728ffe1998c16020abbd54c5c82"
   },
-  "collaborationInterfaceDigest": "sha256:3d5284382d163a50f215dc91ebc804cc43f4335785bbdf56b537cee2ccd126f4",
+  "collaborationInterfaceDigest": "sha256:f66e7187bed9e306934b15c31352fdcd84ce1b181c361752693d1660f913a886",
   "collaborationInterface": {
     "schemaVersion": 1,
     "contract": "kungfu-buildchain-kfd-3-surface-registry",
@@ -191,9 +191,9 @@
       "detection": {
         "schemaVersion": 1,
         "contract": "kungfu-buildchain-kfd-3-surface-detection",
-        "cwd": "/Users/dkr/Worktrees/build-images/feature/kfd123-buildchain-config",
+        "cwd": "",
         "artifactPath": "",
-        "detectedAt": "2026-07-09T07:21:19.031Z",
+        "detectedAt": "1970-01-01T00:00:00.000Z",
         "kinds": [
           "binary",
           "cli",

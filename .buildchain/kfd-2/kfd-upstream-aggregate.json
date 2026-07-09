@@ -4,7 +4,7 @@
   "product": {
     "id": "kungfu-systems-build-images",
     "name": "@kungfu-systems/build-images",
-    "version": "1.2.0-alpha.1",
+    "version": "",
     "repository": "https://github.com/kungfu-systems/build-images"
   },
   "source": {
@@ -143,7 +143,7 @@
   "ownKfd": {
     "schemaVersion": 1,
     "contract": "kungfu-buildchain-kfd-status",
-    "cwd": "/Users/dkr/Worktrees/build-images/feature/kfd123-buildchain-config",
+    "cwd": "",
     "layout": {
       "status": "current",
       "canonicalRoot": ".buildchain",

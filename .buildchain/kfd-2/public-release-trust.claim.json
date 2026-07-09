@@ -45,7 +45,7 @@
     {
       "id": "kfd-upstream-aggregate",
       "path": ".buildchain/kfd-2/kfd-upstream-aggregate.json",
-      "sha256": "355877065dbf0c4a738b1ad7013bfd1d5c236be519da7ae159a27c36f1fb849b",
+      "sha256": "8af2c8d6d5955fa9e1e77fb8dbfcbfe33dfcde840b16e0d1335dcc2ef62e405b",
       "contract": "kungfu-buildchain-kfd-upstream-aggregate",
       "status": "passed"
     },
@@ -59,9 +59,9 @@
   ],
   "hashes": {
     "kfd1WitnessSha256": "2d384e1ff912f864a82c4a0b75ecfb19e43927d201386662e52f2438852ffffe",
-    "upstreamAggregateSha256": "9a546906aa370df920d0ad6e945dd0804c2c935a878386a071ab1433bb4d7a74",
+    "upstreamAggregateSha256": "8f2b587916785827e5ea1bcab045939dc23bfb9c4f79a9f491309411ca8b078b",
     "sourceBindingsSha256": "9ab8d2386c116c7e9f1cc01cf8287ef8846ee764435dc7bfe95eb21a9b0ec752",
-    "machineEvidenceSha256": "05dc0231592cae83de4926ffb3760406181f4934974a7d154b8933c8904f7930"
+    "machineEvidenceSha256": "c885d0c9e099fa18e65f5f5b8e2b652301084f91c1f7c557dd49f36a99a49478"
   },
   "artifacts": [
     {
