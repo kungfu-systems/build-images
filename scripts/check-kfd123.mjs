@@ -26,7 +26,7 @@ import {
 } from "@kungfu-tech/buildchain/kfd-gate";
 
 const cwd = process.cwd();
-const KFD3_REGISTRY_PATH = ".buildchain/kfd/kfd-3-surfaces.json";
+const KFD3_REGISTRY_PATH = ".buildchain/kfd/kfd-3/surfaces.json";
 const KFD3_RELEASE_ARTIFACT_NAME = "ghcr.io/kungfu-systems/build-images/base-linux";
 const STABLE_EVIDENCE_TIME = "1970-01-01T00:00:00.000Z";
 
@@ -166,7 +166,7 @@ function writeKfd1Witness() {
     },
     surfaces,
   };
-  writeJson(".buildchain/kfd-1/build-images-contract-world.witness.json", witness);
+  writeJson(".buildchain/kfd/kfd-1/build-images-contract-world.witness.json", witness);
   const gate = createKfd1ReleaseGateEvidence({
     cwd,
     artifactRoot: cwd,
@@ -175,7 +175,7 @@ function writeKfd1Witness() {
   });
   validateKfd1ReleaseGateEvidence(gate);
   assertPassed(gate.passportSection?.status === "passed", "KFD-1 release gate did not pass");
-  writeJson(".buildchain/kfd-1/release-gate.json", gate.passportSection);
+  writeJson(".buildchain/kfd/kfd-1/release-gate.json", gate.passportSection);
   return { witness, gate };
 }
 
@@ -183,10 +183,10 @@ function checkUpstream() {
   const facts = stableGeneratedEvidence(collectKfdUpstreamFacts({ cwd }));
   const check = checkKfdUpstreamFacts(facts);
   assertPassed(check.ok, `KFD upstream check failed: ${JSON.stringify(check.issues || check, null, 2)}`);
-  writeJson(".buildchain/kfd-2/kfd-upstream-aggregate.json", facts);
+  writeJson(".buildchain/kfd/kfd-2/kfd-upstream-aggregate.json", facts);
   const aggregate = stableGeneratedEvidence(collectKfdAggregate({ cwd }));
   assertPassed(aggregate.upstreamCheck?.status === "passed", "KFD aggregate upstream check did not pass");
-  writeJson(".buildchain/kfd-2/kfd-aggregate.json", aggregate);
+  writeJson(".buildchain/kfd/kfd-2/kfd-aggregate.json", aggregate);
   return { facts, check, aggregate };
 }
 
@@ -202,15 +202,15 @@ function writeKfd2Claim({ kfd1Witness, upstreamFacts }) {
   const machineEvidence = [
     {
       id: "kfd-1-contract-world-witness",
-      path: ".buildchain/kfd-1/build-images-contract-world.witness.json",
-      sha256: sha256RepoFile(".buildchain/kfd-1/build-images-contract-world.witness.json"),
+      path: ".buildchain/kfd/kfd-1/build-images-contract-world.witness.json",
+      sha256: sha256RepoFile(".buildchain/kfd/kfd-1/build-images-contract-world.witness.json"),
       contract: "kfd-1",
       status: "passed",
     },
     {
       id: "kfd-upstream-aggregate",
-      path: ".buildchain/kfd-2/kfd-upstream-aggregate.json",
-      sha256: sha256RepoFile(".buildchain/kfd-2/kfd-upstream-aggregate.json"),
+      path: ".buildchain/kfd/kfd-2/kfd-upstream-aggregate.json",
+      sha256: sha256RepoFile(".buildchain/kfd/kfd-2/kfd-upstream-aggregate.json"),
       contract: "kungfu-buildchain-kfd-upstream-aggregate",
       status: "passed",
     },
@@ -254,7 +254,7 @@ function writeKfd2Claim({ kfd1Witness, upstreamFacts }) {
     residualRisk: [],
   };
   validateKfd2TrustTaxonomyEntries(claim.residualRisk, "residualRisk");
-  writeJson(".buildchain/kfd-2/public-release-trust.claim.json", claim);
+  writeJson(".buildchain/kfd/kfd-2/release-claims.json", claim);
   return claim;
 }
 
@@ -293,15 +293,15 @@ function writeKfd3Witnesses() {
     collaborationInterfaceDigest: prebuild.collaborationInterfaceDigest,
     exposedSurfaces: shippedSurfaces,
   };
-  writeJson(".buildchain/kfd-3/collaboration-interface.prebuild.json", prebuild);
-  writeJson(".buildchain/kfd-3/collaboration-interface.artifact.json", artifact);
+  writeJson(".buildchain/kfd/kfd-3/collaboration-interface.prebuild.json", prebuild);
+  writeJson(".buildchain/kfd/kfd-3/collaboration-interface.artifact.json", artifact);
   const gate = kfd3.createReleaseGateEvidence({
     prebuildWitnesses: [prebuild],
     artifactWitnesses: [artifact],
     verifiedAt: STABLE_EVIDENCE_TIME,
   });
   kfd3.validateReleaseGateEvidence(gate);
-  writeJson(".buildchain/kfd-3/release-gate.json", gate);
+  writeJson(".buildchain/kfd/kfd-3/release-gate.json", gate);
   return { audit, prebuild, artifact, gate };
 }
 
@@ -346,13 +346,13 @@ function runReleasePassportSmoke() {
       "--publish-evidence-json",
       publishEvidencePath,
       "--kfd-1-witness-json",
-      ".buildchain/kfd-1/build-images-contract-world.witness.json",
+      ".buildchain/kfd/kfd-1/build-images-contract-world.witness.json",
       "--kfd-2-claim-json",
-      ".buildchain/kfd-2/public-release-trust.claim.json",
+      ".buildchain/kfd/kfd-2/release-claims.json",
       "--kfd-3-prebuild-witness-json",
-      ".buildchain/kfd-3/collaboration-interface.prebuild.json",
+      ".buildchain/kfd/kfd-3/collaboration-interface.prebuild.json",
       "--kfd-3-artifact-witness-json",
-      ".buildchain/kfd-3/collaboration-interface.artifact.json",
+      ".buildchain/kfd/kfd-3/collaboration-interface.artifact.json",
       "--output-dir",
       outputDir,
       "--json",
@@ -402,11 +402,11 @@ function main() {
       contractDrift: Boolean(contractLock.drift),
     },
     kfd1: {
-      witness: ".buildchain/kfd-1/build-images-contract-world.witness.json",
+      witness: ".buildchain/kfd/kfd-1/build-images-contract-world.witness.json",
       surfaceCount: kfd1.witness.surfaces.length,
     },
     kfd2: {
-      claim: ".buildchain/kfd-2/public-release-trust.claim.json",
+      claim: ".buildchain/kfd/kfd-2/release-claims.json",
       upstreamCount: upstream.facts.summary?.upstreamCount ?? 0,
       claimStatus: kfd2Claim.status || "passed",
     },
@@ -414,8 +414,8 @@ function main() {
       registry: KFD3_REGISTRY_PATH,
       auditStatus: kfd3Evidence.audit.status,
       declared: kfd3Evidence.audit.summary.declared,
-      prebuildWitness: ".buildchain/kfd-3/collaboration-interface.prebuild.json",
-      artifactWitness: ".buildchain/kfd-3/collaboration-interface.artifact.json",
+      prebuildWitness: ".buildchain/kfd/kfd-3/collaboration-interface.prebuild.json",
+      artifactWitness: ".buildchain/kfd/kfd-3/collaboration-interface.artifact.json",
     },
     releasePassportSmoke,
   };

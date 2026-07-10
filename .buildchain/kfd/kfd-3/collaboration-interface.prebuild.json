@@ -7,15 +7,15 @@
   "source": {
     "cwd": "",
     "sourceSha": "",
-    "registryPath": ".buildchain/kfd/kfd-3-surfaces.json",
-    "registryDigest": "sha256:5b6ab8a311226fe866e5b8aa98dad016212af4ffe75fdf8ec80718c80855ee30"
+    "registryPath": ".buildchain/kfd/kfd-3/surfaces.json",
+    "registryDigest": "sha256:b2e32d5366fddddbecd8a07f1f4a98c973f7ebed0ccc6db559362767706194a9"
   },
   "sourceRegistry": {
     "id": "Kungfu Build Images",
-    "path": ".buildchain/kfd/kfd-3-surfaces.json",
-    "sha256": "43374f51199e012eaefd9a778f0c58212fe4d728ffe1998c16020abbd54c5c82"
+    "path": ".buildchain/kfd/kfd-3/surfaces.json",
+    "sha256": "6a7680348eaf20143ea3d90f1708f2848a54b0b3f61f9fd0c0fc4eb90edf214b"
   },
-  "collaborationInterfaceDigest": "sha256:f66e7187bed9e306934b15c31352fdcd84ce1b181c361752693d1660f913a886",
+  "collaborationInterfaceDigest": "sha256:3c3a151f2aa0c006280519b1a9a878d253ba2bcdadd9e14b8573bd949cff2365",
   "collaborationInterface": {
     "schemaVersion": 1,
     "contract": "kungfu-buildchain-kfd-3-surface-registry",
@@ -187,7 +187,7 @@
       "contract": "kungfu-buildchain-kfd-3-surface-audit",
       "ok": true,
       "status": "passed",
-      "registryPath": ".buildchain/kfd/kfd-3-surfaces.json",
+      "registryPath": ".buildchain/kfd/kfd-3/surfaces.json",
       "detection": {
         "schemaVersion": 1,
         "contract": "kungfu-buildchain-kfd-3-surface-detection",
@@ -290,7 +290,7 @@
         "product": {
           "name": "Kungfu Build Images"
         },
-        "registryPath": ".buildchain/kfd/kfd-3-surfaces.json",
+        "registryPath": ".buildchain/kfd/kfd-3/surfaces.json",
         "surfaces": [
           {
             "id": "doc:docs/image-contract.md",
