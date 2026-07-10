@@ -4,7 +4,7 @@
   "product": {
     "name": "Kungfu Build Images"
   },
-  "registryPath": ".buildchain/kfd/kfd-3-surfaces.json",
+  "registryPath": ".buildchain/kfd/kfd-3/surfaces.json",
   "surfaces": [
     {
       "id": "doc:docs/image-contract.md",

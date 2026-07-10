@@ -31,37 +31,37 @@
     {
       "id": "contract-lock",
       "path": ".buildchain/contract-lock.json",
-      "sha256": "21d2e4e8abda821d6227376691f5b5ad57e92c848e1e40ec0f884c931ea47eee"
+      "sha256": "89fa0a320125fe3c0f431e1b057d86a9d56737f03454fc15e8b906dd6207b5e9"
     }
   ],
   "machineEvidence": [
     {
       "id": "kfd-1-contract-world-witness",
-      "path": ".buildchain/kfd-1/build-images-contract-world.witness.json",
-      "sha256": "7feb77cbe49e624a0731121306fb1f0eacd36a8aa79cd6bb9a30736d2660f5fc",
+      "path": ".buildchain/kfd/kfd-1/build-images-contract-world.witness.json",
+      "sha256": "33aae50e8401a65929ebc7c75b1752b2b218c23a3543a2604a66aa3a39f68949",
       "contract": "kfd-1",
       "status": "passed"
     },
     {
       "id": "kfd-upstream-aggregate",
-      "path": ".buildchain/kfd-2/kfd-upstream-aggregate.json",
-      "sha256": "8af2c8d6d5955fa9e1e77fb8dbfcbfe33dfcde840b16e0d1335dcc2ef62e405b",
+      "path": ".buildchain/kfd/kfd-2/kfd-upstream-aggregate.json",
+      "sha256": "e503730cc06a38e543cf94bd59032887882d5e7795d2fe30b5ad150ce548589d",
       "contract": "kungfu-buildchain-kfd-upstream-aggregate",
       "status": "passed"
     },
     {
       "id": "kfd-3-surface-registry",
-      "path": ".buildchain/kfd/kfd-3-surfaces.json",
-      "sha256": "43374f51199e012eaefd9a778f0c58212fe4d728ffe1998c16020abbd54c5c82",
+      "path": ".buildchain/kfd/kfd-3/surfaces.json",
+      "sha256": "6a7680348eaf20143ea3d90f1708f2848a54b0b3f61f9fd0c0fc4eb90edf214b",
       "contract": "kungfu-buildchain-kfd-3-surface-registry",
       "status": "passed"
     }
   ],
   "hashes": {
-    "kfd1WitnessSha256": "2d384e1ff912f864a82c4a0b75ecfb19e43927d201386662e52f2438852ffffe",
-    "upstreamAggregateSha256": "8f2b587916785827e5ea1bcab045939dc23bfb9c4f79a9f491309411ca8b078b",
-    "sourceBindingsSha256": "9ab8d2386c116c7e9f1cc01cf8287ef8846ee764435dc7bfe95eb21a9b0ec752",
-    "machineEvidenceSha256": "c885d0c9e099fa18e65f5f5b8e2b652301084f91c1f7c557dd49f36a99a49478"
+    "kfd1WitnessSha256": "08d21140a8cfc70f25b50fb7333f0090802a75f2cde9013f2cf75068eeb90a04",
+    "upstreamAggregateSha256": "2e217674ab67ffffe2febd63d771301ba38dfb348e04ca2bbaac361b60d0e17e",
+    "sourceBindingsSha256": "0a6ac09dc47316ae19f711f775aae08548a8659c0e096a27c03e5155c5d3786b",
+    "machineEvidenceSha256": "bdb0b69e15c0c2a8a65444cf705e6c7157ce71c80bb4fed9eade44fe82ebf6a0"
   },
   "artifacts": [
     {
