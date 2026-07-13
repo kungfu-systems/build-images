@@ -12,6 +12,7 @@ RUN if [ -n "${APT_HTTP_PROXY}" ]; then \
     && apt-get update \
     && apt-get install -y --no-install-recommends \
       biber \
+      cm-super \
       ghostscript \
       latexmk \
       lmodern \

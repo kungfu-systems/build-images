@@ -16,7 +16,7 @@
     "check:workflows": "bash scripts/check-workflows.sh"
   },
   "devDependencies": {
-    "@kungfu-tech/buildchain": "2.11.9",
+    "@kungfu-tech/buildchain": "2.12.1",
     "@kungfu-tech/kfd": "1.0.0-alpha.21"
   }
 }
