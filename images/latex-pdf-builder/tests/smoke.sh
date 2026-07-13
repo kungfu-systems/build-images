@@ -4,6 +4,7 @@ set -eu
 latexmk -version
 biber --version
 pnpm --version
+test -n "$(kpsewhich sfrm1000.pfb)"
 
 work_dir="$(mktemp -d)"
 trap 'rm -rf "$work_dir"' EXIT

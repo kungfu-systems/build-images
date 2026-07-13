@@ -28,6 +28,8 @@ import {
 const cwd = process.cwd();
 const KFD3_REGISTRY_PATH = ".buildchain/kfd/kfd-3/surfaces.json";
 const KFD3_RELEASE_ARTIFACT_NAME = "ghcr.io/kungfu-systems/build-images/base-linux";
+const ALPHA_CONTRACT_LOCK_PATH = ".buildchain/alpha-contract-lock.json";
+const STABLE_CONTRACT_LOCK_PATH = ".buildchain/contract-lock.json";
 const STABLE_EVIDENCE_TIME = "1970-01-01T00:00:00.000Z";
 
 process.env.BUILDCHAIN_KFD3_DETECTED_AT = process.env.BUILDCHAIN_KFD3_DETECTED_AT || STABLE_EVIDENCE_TIME;
@@ -98,6 +100,7 @@ function checkLayout() {
   assertPassed(status.layout.status === "current", `Buildchain layout is not current: ${status.layout.status}`);
   assertPassed(status.paths.config.path === ".buildchain/buildchain.toml", "Buildchain config must live under .buildchain/");
   assertPassed(status.paths.contractLock.exists, "Buildchain contract lock is missing");
+  assertFile(ALPHA_CONTRACT_LOCK_PATH);
   assertPassed(status.paths.kfd3SurfaceRegistry.exists, "KFD-3 surface registry is missing");
   return status;
 }
@@ -113,23 +116,29 @@ function refreshKfd3Registry() {
   return result;
 }
 
-function checkContractLock() {
+function checkContractLocks() {
   const tmpContractPath = repoPath(".buildchain/tmp/current-buildchain-contract.json");
   fs.mkdirSync(path.dirname(tmpContractPath), { recursive: true });
   fs.writeFileSync(tmpContractPath, `${JSON.stringify(contractWorldJson, null, 2)}\n`);
   try {
     const current = readBuildchainContractWorld(tmpContractPath);
-    const lock = readBuildchainContractLock(repoPath(".buildchain/contract-lock.json"));
-    const evaluation = evaluateBuildchainContractLock({
-      lock,
+    const stableLock = readBuildchainContractLock(repoPath(STABLE_CONTRACT_LOCK_PATH));
+    const alphaLock = readBuildchainContractLock(repoPath(ALPHA_CONTRACT_LOCK_PATH));
+    const stableEvaluation = evaluateBuildchainContractLock({
+      lock: stableLock,
       current,
-      runtimeRef: lock?.buildchain?.ref || "v2",
-      runtimeSha: process.env.BUILDCHAIN_RUNTIME_SHA || lock?.buildchain?.resolvedSha || "",
+      runtimeRef: stableLock?.buildchain?.ref || "v2",
+      runtimeSha: process.env.BUILDCHAIN_RUNTIME_SHA || stableLock?.buildchain?.resolvedSha || "",
       runtimeClass: "stable",
-      compatibilityPolicy: lock?.buildchain?.compatibilityPolicy || "major-compatible",
+      compatibilityPolicy: stableLock?.buildchain?.compatibilityPolicy || "major-compatible",
     });
-    assertPassed(evaluation.ok, `Buildchain contract lock failed: ${(evaluation.reasons || []).join("; ")}`);
-    return evaluation;
+    assertPassed(stableEvaluation.ok, `Stable Buildchain contract lock failed: ${(stableEvaluation.reasons || []).join("; ")}`);
+    assertPassed(stableLock.buildchain.ref === "v2", `Stable Buildchain ref must be v2, got ${stableLock.buildchain.ref}`);
+    assertPassed(alphaLock.buildchain.ref === "v2-alpha", `Alpha Buildchain ref must be v2-alpha, got ${alphaLock.buildchain.ref}`);
+    assertPassed(alphaLock.buildchain.majorLine === stableLock.buildchain.majorLine, "Alpha and stable Buildchain locks must use the same major line");
+    assertPassed(alphaLock.buildchain.compatibilityPolicy === "major-compatible", "Alpha Buildchain lock must use major-compatible policy");
+    assertPassed(alphaLock.buildchain.compatibilityDigest === stableLock.buildchain.compatibilityDigest, "Alpha and stable Buildchain contracts are not major-compatible");
+    return { stableEvaluation, stableLock, alphaLock };
   } finally {
     fs.rmSync(repoPath(".buildchain/tmp"), { recursive: true, force: true });
   }
@@ -197,7 +206,8 @@ function writeKfd2Claim({ kfd1Witness, upstreamFacts }) {
     { id: "release-and-tags", path: "docs/release-and-tags.md", sha256: sha256RepoFile("docs/release-and-tags.md") },
     { id: "image-lock", path: "images.lock.json", sha256: sha256RepoFile("images.lock.json") },
     { id: "buildchain-config", path: ".buildchain/buildchain.toml", sha256: sha256RepoFile(".buildchain/buildchain.toml") },
-    { id: "contract-lock", path: ".buildchain/contract-lock.json", sha256: sha256RepoFile(".buildchain/contract-lock.json") },
+    { id: "alpha-contract-lock", path: ALPHA_CONTRACT_LOCK_PATH, sha256: sha256RepoFile(ALPHA_CONTRACT_LOCK_PATH) },
+    { id: "stable-contract-lock", path: STABLE_CONTRACT_LOCK_PATH, sha256: sha256RepoFile(STABLE_CONTRACT_LOCK_PATH) },
   ];
   const machineEvidence = [
     {
@@ -225,7 +235,7 @@ function writeKfd2Claim({ kfd1Witness, upstreamFacts }) {
   const claim = {
     id: "claim:build-images-release-trust",
     public: true,
-    claim: "Build Images releases are governed by declared image contracts, Buildchain version-state promotion, a locked Buildchain runtime contract, and KFD upstream evidence.",
+    claim: "Build Images releases are governed by declared image contracts, Buildchain version-state promotion, channel-specific locked Buildchain runtime contracts, and KFD upstream evidence.",
     sourceBindings,
     machineEvidence,
     hashes: {
@@ -244,7 +254,7 @@ function writeKfd2Claim({ kfd1Witness, upstreamFacts }) {
     },
     auditBoundary: {
       mode: "machine-bound-release-contract",
-      scope: "Build Images repository config, declared public surfaces, image lock, Buildchain runtime contract lock, and publish evidence writer.",
+      scope: "Build Images repository config, declared public surfaces, image lock, alpha/stable Buildchain runtime contract locks, and publish evidence writer.",
     },
     responsibility: {
       owner: "Kungfu Build Images maintainers",
@@ -386,7 +396,7 @@ function runJsonCommand(args) {
 function main() {
   refreshKfd3Registry();
   const layout = checkLayout();
-  const contractLock = checkContractLock();
+  const contractLocks = checkContractLocks();
   const upstream = checkUpstream();
   const kfd1 = writeKfd1Witness();
   const kfd2Claim = writeKfd2Claim({ kfd1Witness: kfd1.witness, upstreamFacts: upstream.facts });
@@ -398,8 +408,10 @@ function main() {
     status: "passed",
     buildchain: {
       configPath: layout.paths.config.path,
-      contractLockStatus: contractLock.status,
-      contractDrift: Boolean(contractLock.drift),
+      alphaContractLockRef: contractLocks.alphaLock.buildchain.ref,
+      stableContractLockRef: contractLocks.stableLock.buildchain.ref,
+      stableContractLockStatus: contractLocks.stableEvaluation.status,
+      stableContractDrift: Boolean(contractLocks.stableEvaluation.drift),
     },
     kfd1: {
       witness: ".buildchain/kfd/kfd-1/build-images-contract-world.witness.json",

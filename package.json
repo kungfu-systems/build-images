@@ -1,6 +1,6 @@
 {
   "name": "@kungfu-systems/build-images",
-  "version": "1.2.1-alpha.2",
+  "version": "1.2.0-alpha.1",
   "private": true,
   "repository": "https://github.com/kungfu-systems/build-images",
   "author": "Keren Dong",
@@ -16,7 +16,7 @@
     "check:workflows": "bash scripts/check-workflows.sh"
   },
   "devDependencies": {
-    "@kungfu-tech/buildchain": "2.11.9",
+    "@kungfu-tech/buildchain": "2.12.1",
     "@kungfu-tech/kfd": "1.0.0-alpha.21"
   }
 }

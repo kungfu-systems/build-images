@@ -4,8 +4,10 @@
   "status": "passed",
   "buildchain": {
     "configPath": ".buildchain/buildchain.toml",
-    "contractLockStatus": "unchanged",
-    "contractDrift": false
+    "alphaContractLockRef": "v2-alpha",
+    "stableContractLockRef": "v2",
+    "stableContractLockStatus": "unchanged",
+    "stableContractDrift": false
   },
   "kfd1": {
     "witness": ".buildchain/kfd/kfd-1/build-images-contract-world.witness.json",

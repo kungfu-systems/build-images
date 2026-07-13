@@ -1,12 +1,12 @@
 {
   "id": "claim:build-images-release-trust",
   "public": true,
-  "claim": "Build Images releases are governed by declared image contracts, Buildchain version-state promotion, a locked Buildchain runtime contract, and KFD upstream evidence.",
+  "claim": "Build Images releases are governed by declared image contracts, Buildchain version-state promotion, channel-specific locked Buildchain runtime contracts, and KFD upstream evidence.",
   "sourceBindings": [
     {
       "id": "readme",
       "path": "README.md",
-      "sha256": "6d2856d8defb661856001b4705f3348dd552fe7dd696031f0b72cb0b31ab5b11"
+      "sha256": "85dea28d965105b22b97f94f64db40ea34c747bff8ccd9b5eb5ce2ad0b905a71"
     },
     {
       "id": "image-contract",
@@ -16,7 +16,7 @@
     {
       "id": "release-and-tags",
       "path": "docs/release-and-tags.md",
-      "sha256": "a175a8044dc10b10e01cb365621790a01a935e98003f534f30ab3b20d8e4a751"
+      "sha256": "241af4bcaad773053ccb6cc0dd1005f3e230f97745b9f085f3bd844bc70a8759"
     },
     {
       "id": "image-lock",
@@ -29,39 +29,44 @@
       "sha256": "03f120dfe66c40f9a662c77f087eb8bfce1abc57cf39195011b58f8f80ca23a4"
     },
     {
-      "id": "contract-lock",
+      "id": "alpha-contract-lock",
+      "path": ".buildchain/alpha-contract-lock.json",
+      "sha256": "a27e22daf0a3dc438460926102bbfe2e0200577eddc5bf020e8e6cfb5fd37134"
+    },
+    {
+      "id": "stable-contract-lock",
       "path": ".buildchain/contract-lock.json",
-      "sha256": "5155cea5a120a88611776f4ff5432095bbf6df3a169553357d2c875d1af13ed7"
+      "sha256": "e24839f78e1f0d3df57e6464f80e94242c644449c299c4d9a57125a9f981851c"
     }
   ],
   "machineEvidence": [
     {
       "id": "kfd-1-contract-world-witness",
       "path": ".buildchain/kfd/kfd-1/build-images-contract-world.witness.json",
-      "sha256": "33aae50e8401a65929ebc7c75b1752b2b218c23a3543a2604a66aa3a39f68949",
+      "sha256": "9321df837653491d2219eb111a17dfbf6f0efc1b8d4c89e05f85075d3ca0c682",
       "contract": "kfd-1",
       "status": "passed"
     },
     {
       "id": "kfd-upstream-aggregate",
       "path": ".buildchain/kfd/kfd-2/kfd-upstream-aggregate.json",
-      "sha256": "d278c711b6dda8e3bfb41dfdedcc1d57aaa60606c051bc2d0fe43a63e06af162",
+      "sha256": "4458293a63027d67e8887c05f6d6c256c43fed1c5034ed98575b0a4ee1bbb70a",
       "contract": "kungfu-buildchain-kfd-upstream-aggregate",
       "status": "passed"
     },
     {
       "id": "kfd-3-surface-registry",
       "path": ".buildchain/kfd/kfd-3/surfaces.json",
-      "sha256": "6a7680348eaf20143ea3d90f1708f2848a54b0b3f61f9fd0c0fc4eb90edf214b",
+      "sha256": "0803566ce33b04f1cf0cc865d7b0bd40fad6586fd17053a64f9d74b607f70a6a",
       "contract": "kungfu-buildchain-kfd-3-surface-registry",
       "status": "passed"
     }
   ],
   "hashes": {
-    "kfd1WitnessSha256": "08d21140a8cfc70f25b50fb7333f0090802a75f2cde9013f2cf75068eeb90a04",
-    "upstreamAggregateSha256": "28354c048261c5001e25e1f7320f1cdd9f55e8e894f7d92db81d2c0a0c984650",
-    "sourceBindingsSha256": "6f3e11ffb0640b7cf435ba018173ecd47d9cc90f2ec9d1e678429515cba83cb0",
-    "machineEvidenceSha256": "d6742610323793b6533f9415918308bfa1e1365c4a6c4d79b5bc86d8a80d85c3"
+    "kfd1WitnessSha256": "2b5cd03e80ec6ec056b83a3d56a76fc23080a52bfc3460fc3a82668e87a0b748",
+    "upstreamAggregateSha256": "6e5f7de58ebd7fbd7f0e570b57044095d07995ba8ba257c34a68067b02af94db",
+    "sourceBindingsSha256": "96dc0bbc575dc6718260522cc3755aeb41862081d755069a0c5448aa766273e6",
+    "machineEvidenceSha256": "8820a39182125558850bda7339c38b5321f5aea5aa4ed7f34e50e4780231aea6"
   },
   "artifacts": [
     {
@@ -81,7 +86,7 @@
   },
   "auditBoundary": {
     "mode": "machine-bound-release-contract",
-    "scope": "Build Images repository config, declared public surfaces, image lock, Buildchain runtime contract lock, and publish evidence writer."
+    "scope": "Build Images repository config, declared public surfaces, image lock, alpha/stable Buildchain runtime contract locks, and publish evidence writer."
   },
   "responsibility": {
     "owner": "Kungfu Build Images maintainers",
