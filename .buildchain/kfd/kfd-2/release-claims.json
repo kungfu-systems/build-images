@@ -21,7 +21,7 @@
     {
       "id": "image-lock",
       "path": "images.lock.json",
-      "sha256": "2f8eaf6427be421e74b9032cfc72dd47a6375ec433c5408af5e506a3892edcf8"
+      "sha256": "0b0f9387a7d4cfc1fbbb2675e92f6462a3fcb577d3c2edad6abd699a5311acd5"
     },
     {
       "id": "buildchain-config",
@@ -43,7 +43,7 @@
     {
       "id": "kfd-1-contract-world-witness",
       "path": ".buildchain/kfd/kfd-1/build-images-contract-world.witness.json",
-      "sha256": "b03d99f900329114b371fa413bfac10dc9307b6c42c5e145a882cf06baccdedb",
+      "sha256": "fb950fedda1fe6dd6a3d31b7289a6af93139db86c7c072db2bf9b40c4fdf385f",
       "contract": "kfd-1",
       "status": "passed"
     },
@@ -63,16 +63,16 @@
     }
   ],
   "hashes": {
-    "kfd1WitnessSha256": "6e0e773c0959c15ef249a134bf3b3b2e09df8c56a16cf2a6d53a19501639332a",
+    "kfd1WitnessSha256": "732b85e849a4449774aadf036475cdf2d76aa74721ac3c525518b4196f9f322c",
     "upstreamAggregateSha256": "6e5f7de58ebd7fbd7f0e570b57044095d07995ba8ba257c34a68067b02af94db",
-    "sourceBindingsSha256": "87d1494d331197624bab88c30820e927dd2e4ab63c7219a7f20873b6d5ecb332",
-    "machineEvidenceSha256": "53d820897095b89bb63703c00445af57d3be4f00969dc8f16eaf8b3841d573ab"
+    "sourceBindingsSha256": "35b8721df5a7b8b4fb9320d45141470b4ee5a1047c84a824e80dddad3fd5a174",
+    "machineEvidenceSha256": "e544ed55204aea3c29cb1efbf41b71415e01e9119aad1045e3d96980cfb70d35"
   },
   "artifacts": [
     {
       "id": "oci-image-lock",
       "path": "images.lock.json",
-      "sha256": "2f8eaf6427be421e74b9032cfc72dd47a6375ec433c5408af5e506a3892edcf8"
+      "sha256": "0b0f9387a7d4cfc1fbbb2675e92f6462a3fcb577d3c2edad6abd699a5311acd5"
     },
     {
       "id": "publish-evidence-writer",
