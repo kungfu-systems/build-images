@@ -1,13 +1,13 @@
 {
   "schema": 1,
-  "tag": "v1.2.0-alpha.0",
-  "source": "83966e59e212586df48ff44b5e60f3c94449ff41",
-  "publish_run": "https://github.com/kungfu-systems/build-images/actions/runs/28993838949",
+  "tag": "v1.2.1-alpha.3",
+  "source": "031a9c927dd302df74684989831f01f81d382572",
+  "publish_run": "https://github.com/kungfu-systems/build-images/actions/runs/29233734962",
   "images": [
     {
       "name": "base-linux",
       "image": "ghcr.io/kungfu-systems/build-images/base-linux",
-      "digest": "sha256:fcdd5634d1aa087047a123abd3dea986d0caeb69d0c73f8aa2ea9241780b4572",
+      "digest": "sha256:3b2ec1707f36b7366fc0e906184c536deeb488fb9ca3cc64e0b9b08d4b89b755",
       "test_commands": [
         "cat /etc/os-release",
         "git --version",
@@ -17,7 +17,7 @@
     {
       "name": "kungfu-verify",
       "image": "ghcr.io/kungfu-systems/build-images/kungfu-verify",
-      "digest": "sha256:36ff474c3377714f954e0300cd8066d2bf5f79dfb8e6e9e3b6edc0dac33a75a9",
+      "digest": "sha256:0ddac2d69498c9a1930764d9551e146c47feca3413ec1de054edb8690f3778b2",
       "test_commands": [
         "git --version",
         "fnm --version",
@@ -29,7 +29,7 @@
     {
       "name": "native-linux-x64",
       "image": "ghcr.io/kungfu-systems/build-images/native-linux-x64",
-      "digest": "sha256:70232507f3347252f85dd4d8ce9fd7de6d90d3a8f731f28cc1d789afa5bbed82",
+      "digest": "sha256:f3697bc8b7b4ee5213f501d3bc19eb50257f43c80f9af7c79a4e67ac0194a121",
       "test_commands": [
         "cmake --version",
         "ninja --version",
@@ -40,7 +40,7 @@
     {
       "name": "node24-pnpm",
       "image": "ghcr.io/kungfu-systems/build-images/node24-pnpm",
-      "digest": "sha256:a392d1bb19de8bbc7ba689d663fd6b688980dba74540405576796900e0c2a0ac",
+      "digest": "sha256:76f708cb8ae6f681c5a035cbfb8ec751535c39fa47443a8c356c905244bdb773",
       "test_commands": [
         "node --version",
         "corepack --version",
@@ -50,11 +50,12 @@
     {
       "name": "latex-pdf-builder",
       "image": "ghcr.io/kungfu-systems/build-images/latex-pdf-builder",
-      "digest": "sha256:4d7123794fa7e3ea510dd51ab447d70be90df5df87c01675704a0a5607bf17bf",
+      "digest": "sha256:f99ff3ba5ef09b7bb5fbf00f1718003a89fec2aa12cc9403d980827890231005",
       "test_commands": [
         "latexmk -version",
         "biber --version",
         "test \"$(pnpm --version)\" = \"11.7.0\"",
+        "test -n \"$(kpsewhich sfrm1000.pfb)\"",
         "cp -R /opt/kungfu/latex-pdf-builder-smoke /tmp/latex-smoke && cd /tmp/latex-smoke && pnpm run pdf && test -s _build/main.pdf && sha256sum _build/main.pdf"
       ]
     }
