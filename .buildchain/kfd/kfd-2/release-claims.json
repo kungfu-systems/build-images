@@ -16,7 +16,7 @@
     {
       "id": "release-and-tags",
       "path": "docs/release-and-tags.md",
-      "sha256": "241af4bcaad773053ccb6cc0dd1005f3e230f97745b9f085f3bd844bc70a8759"
+      "sha256": "f84415aa3fefb32c7e941d5f321d945764382b25f50957e5e97ab3fd9182ff51"
     },
     {
       "id": "image-lock",
@@ -43,7 +43,7 @@
     {
       "id": "kfd-1-contract-world-witness",
       "path": ".buildchain/kfd/kfd-1/build-images-contract-world.witness.json",
-      "sha256": "673afc9fbe1966c7ff03cd2c538dfda791ef11b41566d60053739579d0c1472d",
+      "sha256": "2b80278c53457f6f6cf275a986c289d80690f01370c73806bdcfb86257274cbe",
       "contract": "kfd-1",
       "status": "passed"
     },
@@ -57,16 +57,16 @@
     {
       "id": "kfd-3-surface-registry",
       "path": ".buildchain/kfd/kfd-3/surfaces.json",
-      "sha256": "0803566ce33b04f1cf0cc865d7b0bd40fad6586fd17053a64f9d74b607f70a6a",
+      "sha256": "8a556c74d64d07019007522580e4888be3ccfa292b0b5a7e60c2f348acf9811f",
       "contract": "kungfu-buildchain-kfd-3-surface-registry",
       "status": "passed"
     }
   ],
   "hashes": {
-    "kfd1WitnessSha256": "5774a672044b55e6588d5d2968f038f3ec3f7784cc4deb21c1c09bda532351cb",
+    "kfd1WitnessSha256": "eb12ad5c2bcba3443a0192aabca8a17b8e85dec4e4c3554c05ec5a60df6b8f4c",
     "upstreamAggregateSha256": "6e5f7de58ebd7fbd7f0e570b57044095d07995ba8ba257c34a68067b02af94db",
-    "sourceBindingsSha256": "668f37d309b5bbbd5b8c39c332f51aabf215a3578f0b73a303bf52f01cf33b18",
-    "machineEvidenceSha256": "daac8123807c64d69023f5b8bfa0f0c6a2e21fb4ff3623b55b908cebfb1b2d67"
+    "sourceBindingsSha256": "f8ec40ddc45b40d525d0097e741fea309d901bec56011ca055f454449febcb43",
+    "machineEvidenceSha256": "ac1d6f7051192993499ca8f3f93090279458ed9f9b80ea605736a9c3042ecd5d"
   },
   "artifacts": [
     {

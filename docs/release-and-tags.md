@@ -92,6 +92,31 @@ digests for consumer smoke. This lock file is intentionally separate from the
 publish artifact: it is a reviewed consumer input, not a byproduct of the
 publishing job.
 
+## Selective Build Planner
+
+The DAG resolver can produce a fail-closed build selection from changed paths:
+
+```bash
+python3 scripts/resolve-image-dag.py --json \
+  --changed-path images/node24-pnpm/Dockerfile
+```
+
+An image context change selects that image plus its downstream closure. A base
+context change therefore selects the full family, while a LaTeX-only context
+change selects only `latex-pdf-builder`. Image manifests, Buildchain metadata,
+publisher/provenance code, workflows, image locks, empty baselines, and unknown
+paths conservatively select the full family. Every selected image includes a
+machine-readable direct, downstream, or global reason.
+
+The planner is not connected to the publish lifecycle yet. Cross-version OCI
+reuse requires Buildchain to bind post-publish family requirements and preserve
+per-artifact built/reused provenance in the release transaction and Release
+Passport. Track those contracts in
+[buildchain#1151](https://github.com/kungfu-systems/buildchain/issues/1151) and
+[buildchain#1153](https://github.com/kungfu-systems/buildchain/issues/1153).
+Until both contracts are available and locked, publication continues to build
+the full image family.
+
 ## Publish Path
 
 Image publishing is intentionally separated from normal pull request
