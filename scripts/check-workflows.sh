@@ -15,3 +15,8 @@ else
   echo "actionlint not found; skipping workflow lint"
 fi
 
+promotion_workflow="$repo_root/.github/workflows/buildchain-ref-promotion.yml"
+if ! grep -Fq 'release-passport-impact-json: ".buildchain/release-impact.json"' "$promotion_workflow"; then
+  echo "Buildchain promotion must supply the production release passport impact ledger" >&2
+  exit 1
+fi
