@@ -1,0 +1,47 @@
+{
+  "artifacts": [
+    {
+      "digest": "sha256:dbfeb364c90861cd3e70909d153c944a1ce7bbb4fdfc6e008aed7030e84a4c81",
+      "group": "image",
+      "kind": "oci",
+      "name": "ghcr.io/kungfu-systems/build-images/base-linux",
+      "ref": "v1.2.1-alpha.4"
+    },
+    {
+      "digest": "sha256:76b83c6bfed35b16e9c6ae7af45fb6abdec1e29f0633c95b6b6f846ec1304ec5",
+      "group": "image",
+      "kind": "oci",
+      "name": "ghcr.io/kungfu-systems/build-images/kungfu-verify",
+      "ref": "v1.2.1-alpha.4"
+    },
+    {
+      "digest": "sha256:47126c05efbcd403ce32105740e2134b22c078b392f7a1c31fad5644ba4bf16b",
+      "group": "image",
+      "kind": "oci",
+      "name": "ghcr.io/kungfu-systems/build-images/node24-pnpm",
+      "ref": "v1.2.1-alpha.4"
+    },
+    {
+      "digest": "sha256:606a61c4d46d29da7b924fe0ec55bbbe775881442376778c819820bcae8be205",
+      "group": "image",
+      "kind": "oci",
+      "name": "ghcr.io/kungfu-systems/build-images/latex-pdf-builder",
+      "ref": "v1.2.1-alpha.4"
+    },
+    {
+      "digest": "sha256:98318c2be482aaf4a8e3e3e1ea8587904c588fdc9d09eebdbdcfb1c29cda5f7f",
+      "group": "image",
+      "kind": "oci",
+      "name": "ghcr.io/kungfu-systems/build-images/native-linux-x64",
+      "ref": "v1.2.1-alpha.4"
+    }
+  ],
+  "channel": "alpha",
+  "publish_tooling_sha": "109146d6b7ccab2222ccc63d2f5b286f1bbfae47",
+  "release_material_sha": "109146d6b7ccab2222ccc63d2f5b286f1bbfae47",
+  "release_sha": "109146d6b7ccab2222ccc63d2f5b286f1bbfae47",
+  "schema": 1,
+  "source_sha": "eb4646dfc1042ef271de2357d6d60702a39d9edd",
+  "target_ref": "alpha/v1/v1.2",
+  "version": "1.2.1-alpha.4"
+}
