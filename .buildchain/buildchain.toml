@@ -8,6 +8,11 @@ type = "json"
 path = "package.json"
 key = "version"
 
+[[version.files]]
+type = "json"
+path = ".buildchain/release-impact.json"
+key = "release.version"
+
 [lifecycle.verify]
 commands = [
   "pnpm run check",
