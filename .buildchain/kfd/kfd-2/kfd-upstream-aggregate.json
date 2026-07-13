@@ -21,7 +21,7 @@
       "roleValid": true,
       "package": {
         "name": "@kungfu-tech/buildchain",
-        "version": "2.12.3-alpha.4"
+        "version": "2.12.4-alpha.2"
       },
       "repository": "https://github.com/kungfu-systems/buildchain",
       "kfd": {
@@ -289,7 +289,7 @@
       "kfd"
     ],
     "packageVersions": {
-      "buildchain": "2.12.3-alpha.4",
+      "buildchain": "2.12.4-alpha.2",
       "kfd": "1.0.0-alpha.21"
     },
     "status": "collected"
