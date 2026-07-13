@@ -80,6 +80,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           ref: ${{ steps.target.outputs.sha }}
+          fetch-depth: 0
           persist-credentials: false
 
       - name: Setup Node.js
@@ -95,6 +96,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Resolve exact required image artifacts
+        if: ${{ contains(steps.target_ref.outputs.target_ref, '/v1.2') }}
+        id: required_artifacts
+        run: python3 scripts/required-publish-artifacts.py --github-output "$GITHUB_OUTPUT"
+
       - name: Set up Docker Buildx
         if: ${{ github.event_name != 'workflow_dispatch' || inputs['dry-run'] != 'true' }}
         uses: docker/setup-buildx-action@v3
@@ -107,7 +113,38 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Promote Buildchain refs
+      - name: Promote Buildchain alpha refs
+        if: ${{ startsWith(steps.target_ref.outputs.target_ref, 'alpha/') }}
+        uses: kungfu-systems/buildchain/actions/promote-buildchain-ref@v2-alpha
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          token: ${{ secrets.BUILDCHAIN_PROMOTION_TOKEN || github.token }}
+          generated-status-check-token: ${{ github.token }}
+          generated-ref-update-token: ${{ secrets.BUILDCHAIN_PROMOTION_TOKEN || github.token }}
+          branch-protection-bypass-apps: "github-actions"
+          sha: ${{ steps.target.outputs.sha }}
+          target-ref: ${{ steps.target_ref.outputs.target_ref }}
+          dry-run: ${{ inputs['dry-run'] || 'false' }}
+          require-governance: "true"
+          require-version-state: "true"
+          required-status-check: "check"
+          allow-repository: "kungfu-systems/build-images"
+          publish-transaction: "true"
+          publish-required-artifacts-json: ${{ contains(steps.target_ref.outputs.target_ref, '/v1.2') && steps.required_artifacts.outputs.json || '' }}
+          release-passport: "true"
+          release-passport-product-name: "Kungfu Build Images"
+          release-passport-impact-json: ${{ contains(steps.target_ref.outputs.target_ref, '/v1.2') && '.buildchain/release-impact.json' || '' }}
+          release-passport-kfd-1-witness-jsons: ${{ contains(steps.target_ref.outputs.target_ref, '/v1.1') && '.buildchain/kfd-1/build-images-contract-world.witness.json' || '.buildchain/kfd/kfd-1/build-images-contract-world.witness.json' }}
+          release-passport-kfd-2-claim-jsons: ${{ contains(steps.target_ref.outputs.target_ref, '/v1.1') && '.buildchain/kfd-2/public-release-trust.claim.json' || '.buildchain/kfd/kfd-2/release-claims.json' }}
+          release-passport-kfd-3-prebuild-witness-jsons: ${{ contains(steps.target_ref.outputs.target_ref, '/v1.1') && '.buildchain/kfd-3/collaboration-interface.prebuild.json' || '.buildchain/kfd/kfd-3/collaboration-interface.prebuild.json' }}
+          release-passport-kfd-3-artifact-witness-jsons: ${{ contains(steps.target_ref.outputs.target_ref, '/v1.1') && '.buildchain/kfd-3/collaboration-interface.artifact.json' || '.buildchain/kfd/kfd-3/collaboration-interface.artifact.json' }}
+          github-release: "true"
+          github-release-title: "build-images ${{ steps.target_ref.outputs.target_ref }} release passport"
+          github-release-notes: "Buildchain release passport and publish evidence for Kungfu Build Images."
+
+      - name: Promote Buildchain stable refs
+        if: ${{ !startsWith(steps.target_ref.outputs.target_ref, 'alpha/') }}
         uses: kungfu-systems/buildchain/actions/promote-buildchain-ref@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -124,6 +161,7 @@ jobs:
           required-status-check: "check"
           allow-repository: "kungfu-systems/build-images"
           publish-transaction: "true"
+          publish-required-artifacts-json: ${{ contains(steps.target_ref.outputs.target_ref, '/v1.2') && steps.required_artifacts.outputs.json || '' }}
           release-passport: "true"
           release-passport-product-name: "Kungfu Build Images"
           release-passport-impact-json: ${{ contains(steps.target_ref.outputs.target_ref, '/v1.2') && '.buildchain/release-impact.json' || '' }}
