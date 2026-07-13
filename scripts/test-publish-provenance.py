@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import importlib.util
 import json
 import os
 import subprocess
@@ -136,9 +137,75 @@ def assert_git_baseline() -> None:
         cwd=ROOT,
     )
     plan = json.loads(result.stdout)
-    assert plan["baseline"]["acceptance_sha"]
     assert plan["selection"]["full_rebuild"] is True
     assert all(image["action"] == "built" for image in plan["images"])
+    if plan["baseline"]["acceptance_sha"]:
+        assert plan["baseline"]["eligible"] is True
+    else:
+        assert plan["baseline"]["eligible"] is False
+        assert plan["baseline"]["reason"].endswith("-missing")
+
+
+def git(repo: Path, *args: str) -> str:
+    return subprocess.run(
+        ["git", "-C", str(repo), *args],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+
+
+def commit_file(repo: Path, path: str, content: str, message: str) -> str:
+    target = repo / path
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(content, encoding="utf-8")
+    git(repo, "add", path)
+    git(repo, "commit", "-m", message)
+    return git(repo, "rev-parse", "HEAD")
+
+
+def assert_shallow_history_recovery() -> None:
+    spec = importlib.util.spec_from_file_location("plan_image_publish_fixture", PLAN)
+    assert spec and spec.loader
+    planner = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(planner)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        fixture_root = Path(tmp)
+        origin = fixture_root / "origin"
+        shallow = fixture_root / "shallow"
+        git(fixture_root, "init", str(origin))
+        git(origin, "config", "user.name", "Build Images Test")
+        git(origin, "config", "user.email", "build-images-test@kungfu.invalid")
+        release_sha = commit_file(origin, "release.txt", "release\n", "release")
+        acceptance_sha = commit_file(origin, "images.lock.json", "{}\n", "accept image lock")
+        current_sha = commit_file(
+            origin,
+            "images/latex-pdf-builder/Dockerfile",
+            "FROM scratch\n",
+            "change latex image",
+        )
+
+        subprocess.run(
+            ["git", "clone", "--depth", "1", f"file://{origin}", str(shallow)],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        planner.ROOT = shallow
+        paths, baseline = planner.resolve_git_changes({"source": release_sha}, current_sha)
+        assert paths == [".buildchain/untrusted-baseline"]
+        assert baseline["eligible"] is False
+        assert baseline["reason"] == "lock-source-missing"
+
+        planner.fetch_git_history(current_sha)
+        paths, baseline = planner.resolve_git_changes({"source": release_sha}, current_sha)
+        assert paths == ["images/latex-pdf-builder/Dockerfile"]
+        assert baseline == {
+            "eligible": True,
+            "reason": "reviewed-image-lock-acceptance",
+            "acceptance_sha": acceptance_sha,
+        }
 
 
 def assert_required_family() -> list[dict]:
@@ -451,11 +518,12 @@ def main() -> int:
     plan = assert_selective_plan()
     assert_fail_closed_baselines()
     assert_git_baseline()
+    assert_shallow_history_recovery()
     assert_required_family()
     assert_evidence(plan)
     assert_image_inspect_fixture()
     assert_digest_preserving_alias()
-    print("publish provenance fixtures passed: 7")
+    print("publish provenance fixtures passed: 8")
     return 0
 
 

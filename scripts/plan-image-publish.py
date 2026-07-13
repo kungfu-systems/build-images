@@ -49,6 +49,23 @@ def git_ok(*args: str) -> bool:
     ).returncode == 0
 
 
+def fetch_git_history(current_source: str) -> None:
+    if not SHA_RE.fullmatch(current_source):
+        raise ValueError("current source is not a full commit SHA")
+    if git("rev-parse", "--is-shallow-repository") != "true":
+        return
+    git(
+        "fetch",
+        "--unshallow",
+        "--filter=blob:none",
+        "--no-tags",
+        "origin",
+        current_source,
+    )
+    if git("rev-parse", "--is-shallow-repository") == "true":
+        raise RuntimeError("source checkout remains shallow after history fetch")
+
+
 def read_git_json(ref: str, path: str) -> dict:
     return json.loads(git("show", f"{ref}:{path}"))
 
@@ -270,6 +287,7 @@ def main() -> int:
     parser.add_argument("--baseline-lock", default=str(LOCK_PATH))
     parser.add_argument("--current-source", required=True)
     parser.add_argument("--changed-path", action="append", default=[])
+    parser.add_argument("--fetch-history", action="store_true")
     parser.add_argument("--output")
     args = parser.parse_args()
 
@@ -279,6 +297,8 @@ def main() -> int:
             paths = args.changed_path
             baseline = {"eligible": True, "reason": "explicit-test-paths", "acceptance_sha": ""}
         else:
+            if args.fetch_history:
+                fetch_git_history(args.current_source)
             paths, baseline = resolve_git_changes(lock, args.current_source)
         payload = build_plan(lock, paths, args.current_source, baseline)
     except (KeyError, OSError, RuntimeError, ValueError, json.JSONDecodeError) as exc:

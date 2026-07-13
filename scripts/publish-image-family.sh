@@ -35,6 +35,7 @@ python3 "$repo_root/scripts/required-publish-artifacts.py" --verify-env >/dev/nu
 python3 "$repo_root/scripts/plan-image-publish.py" \
   --baseline-lock "$repo_root/images.lock.json" \
   --current-source "$BUILDCHAIN_SOURCE_SHA" \
+  --fetch-history \
   --output "$plan_path" >/dev/null
 
 bash "$repo_root/scripts/buildchain-toolkit.sh" span \
