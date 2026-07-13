@@ -54,13 +54,13 @@
       "standard": "KFD-1",
       "standardKey": "kfd-1",
       "result": "passed",
-      "preBuildWitnessSha256": "ea9c1872cf3b5b6d884e4002326ecac148ba9e32554cfac42eee06b8f9369ce1",
+      "preBuildWitnessSha256": "27ff302616e9971af897e680189073b9ce79b55b1eb889d84c0b252658aa8632",
       "sourceHashes": {
-        "sha256": "a655b3e013c81fefa5b527ce8375d9e4be3cf17c0620ba50296f00f6df2b386f",
+        "sha256": "f8aa5f38d20f1593c60d33baebc676ff3595d8b4a9c8d8409ff19082af10bd1c",
         "surfaceCount": 6
       },
       "artifactHashes": {
-        "sha256": "b538efaebc0b7c6396477694df068e43267f0fa65cb1641e2b35ba7dc75843d6",
+        "sha256": "5f227afe118e08d8378eeb2fc94046756701ef0fa500e0f57f5cb7b1fe86a32d",
         "surfaceCount": 6
       },
       "witness": {
@@ -75,14 +75,14 @@
         },
         "contractWorld": {
           "schemaId": "https://kfd.libkungfu.dev/schemas/kfd-1/contract-world.schema.json",
-          "digest": "sha256:38e240a023341176672e0f77c3c91ff93e4205557d925c4772567c89094fb334"
+          "digest": "sha256:dcc1ec0a9c40275be07c7abb407cbc0736ffbaec8392ce5ffe68e7ab8a2c6aba"
         },
         "standardContract": {
           "id": "",
           "schemaId": "https://kfd.libkungfu.dev/schemas/kfd-1/contract-world.schema.json",
           "path": "",
           "sha256": "",
-          "digest": "sha256:38e240a023341176672e0f77c3c91ff93e4205557d925c4772567c89094fb334"
+          "digest": "sha256:dcc1ec0a9c40275be07c7abb407cbc0736ffbaec8392ce5ffe68e7ab8a2c6aba"
         },
         "selfHostingBoundary": {
           "mode": "external-contract-world",
@@ -99,11 +99,11 @@
         "sourceVerificationRequired": false,
         "canonicalPolicy": {
           "path": "docs/release-and-tags.md",
-          "sha256": "239bafca22e2ce2aa254c393c64356ed936fb4d3d8f4bb90eb21d5b5fe392d61"
+          "sha256": "241af4bcaad773053ccb6cc0dd1005f3e230f97745b9f085f3bd844bc70a8759"
         },
         "registry": {
           "path": ".buildchain/kfd/kfd-3/surfaces.json",
-          "sha256": "063d847ec2947f295daf947dd81f5c8ac1cdd91f70f4bb52447f5f50e1e07ec9"
+          "sha256": "0803566ce33b04f1cf0cc865d7b0bd40fad6586fd17053a64f9d74b607f70a6a"
         },
         "surfaces": [
           {
@@ -125,17 +125,17 @@
           {
             "name": "release-and-tags",
             "sourcePath": "docs/release-and-tags.md",
-            "sourceSha256": "239bafca22e2ce2aa254c393c64356ed936fb4d3d8f4bb90eb21d5b5fe392d61",
+            "sourceSha256": "241af4bcaad773053ccb6cc0dd1005f3e230f97745b9f085f3bd844bc70a8759",
             "artifactPath": "docs/release-and-tags.md",
-            "expectedSha256": "239bafca22e2ce2aa254c393c64356ed936fb4d3d8f4bb90eb21d5b5fe392d61",
+            "expectedSha256": "241af4bcaad773053ccb6cc0dd1005f3e230f97745b9f085f3bd844bc70a8759",
             "byteForByte": true
           },
           {
             "name": "runner-boundary",
             "sourcePath": "docs/runner-boundary.md",
-            "sourceSha256": "8bd48aa82697cf3f02e0f802b39e7192ffda01594c608e3dd0fd12bd24ccaf4e",
+            "sourceSha256": "fb91b534ef1f7c4d516fd0d81be15f61619a13f8aacd58788289da7285df0eca",
             "artifactPath": "docs/runner-boundary.md",
-            "expectedSha256": "8bd48aa82697cf3f02e0f802b39e7192ffda01594c608e3dd0fd12bd24ccaf4e",
+            "expectedSha256": "fb91b534ef1f7c4d516fd0d81be15f61619a13f8aacd58788289da7285df0eca",
             "byteForByte": true
           },
           {
@@ -178,7 +178,7 @@
         "schemaId": "https://kfd.libkungfu.dev/schemas/kfd-1/contract-world.schema.json",
         "path": "",
         "sha256": "",
-        "digest": "sha256:38e240a023341176672e0f77c3c91ff93e4205557d925c4772567c89094fb334"
+        "digest": "sha256:dcc1ec0a9c40275be07c7abb407cbc0736ffbaec8392ce5ffe68e7ab8a2c6aba"
       },
       "selfHostingBoundary": {
         "mode": "external-contract-world",
@@ -216,16 +216,16 @@
           {
             "name": "release-and-tags",
             "sourcePath": "docs/release-and-tags.md",
-            "expectedSha256": "239bafca22e2ce2aa254c393c64356ed936fb4d3d8f4bb90eb21d5b5fe392d61",
-            "actualSha256": "239bafca22e2ce2aa254c393c64356ed936fb4d3d8f4bb90eb21d5b5fe392d61",
+            "expectedSha256": "241af4bcaad773053ccb6cc0dd1005f3e230f97745b9f085f3bd844bc70a8759",
+            "actualSha256": "241af4bcaad773053ccb6cc0dd1005f3e230f97745b9f085f3bd844bc70a8759",
             "status": "passed",
             "reason": ""
           },
           {
             "name": "runner-boundary",
             "sourcePath": "docs/runner-boundary.md",
-            "expectedSha256": "8bd48aa82697cf3f02e0f802b39e7192ffda01594c608e3dd0fd12bd24ccaf4e",
-            "actualSha256": "8bd48aa82697cf3f02e0f802b39e7192ffda01594c608e3dd0fd12bd24ccaf4e",
+            "expectedSha256": "fb91b534ef1f7c4d516fd0d81be15f61619a13f8aacd58788289da7285df0eca",
+            "actualSha256": "fb91b534ef1f7c4d516fd0d81be15f61619a13f8aacd58788289da7285df0eca",
             "status": "passed",
             "reason": ""
           },
@@ -276,10 +276,10 @@
           {
             "name": "release-and-tags",
             "sourcePath": "docs/release-and-tags.md",
-            "sourceSha256": "239bafca22e2ce2aa254c393c64356ed936fb4d3d8f4bb90eb21d5b5fe392d61",
+            "sourceSha256": "241af4bcaad773053ccb6cc0dd1005f3e230f97745b9f085f3bd844bc70a8759",
             "artifactPath": "docs/release-and-tags.md",
-            "expectedSha256": "239bafca22e2ce2aa254c393c64356ed936fb4d3d8f4bb90eb21d5b5fe392d61",
-            "actualSha256": "239bafca22e2ce2aa254c393c64356ed936fb4d3d8f4bb90eb21d5b5fe392d61",
+            "expectedSha256": "241af4bcaad773053ccb6cc0dd1005f3e230f97745b9f085f3bd844bc70a8759",
+            "actualSha256": "241af4bcaad773053ccb6cc0dd1005f3e230f97745b9f085f3bd844bc70a8759",
             "byteForByte": true,
             "status": "passed",
             "reason": ""
@@ -287,10 +287,10 @@
           {
             "name": "runner-boundary",
             "sourcePath": "docs/runner-boundary.md",
-            "sourceSha256": "8bd48aa82697cf3f02e0f802b39e7192ffda01594c608e3dd0fd12bd24ccaf4e",
+            "sourceSha256": "fb91b534ef1f7c4d516fd0d81be15f61619a13f8aacd58788289da7285df0eca",
             "artifactPath": "docs/runner-boundary.md",
-            "expectedSha256": "8bd48aa82697cf3f02e0f802b39e7192ffda01594c608e3dd0fd12bd24ccaf4e",
-            "actualSha256": "8bd48aa82697cf3f02e0f802b39e7192ffda01594c608e3dd0fd12bd24ccaf4e",
+            "expectedSha256": "fb91b534ef1f7c4d516fd0d81be15f61619a13f8aacd58788289da7285df0eca",
+            "actualSha256": "fb91b534ef1f7c4d516fd0d81be15f61619a13f8aacd58788289da7285df0eca",
             "byteForByte": true,
             "status": "passed",
             "reason": ""
