@@ -26,7 +26,7 @@
     {
       "id": "buildchain-config",
       "path": ".buildchain/buildchain.toml",
-      "sha256": "03f120dfe66c40f9a662c77f087eb8bfce1abc57cf39195011b58f8f80ca23a4"
+      "sha256": "4fafeffe319a23b6771c35ef133eb9ac9cde7750c0cca33059499d66c072cfa7"
     },
     {
       "id": "alpha-contract-lock",
@@ -65,7 +65,7 @@
   "hashes": {
     "kfd1WitnessSha256": "c55783eeafc79d09d621c53203af8a5b280a10b53e4d89969811483bd26ec397",
     "upstreamAggregateSha256": "6e5f7de58ebd7fbd7f0e570b57044095d07995ba8ba257c34a68067b02af94db",
-    "sourceBindingsSha256": "406c74536a45f86622fd36eb61595b26201d9a73390be05dabbc244434831e2f",
+    "sourceBindingsSha256": "e578809cbe89ac6e57fbcf7ec25f149f1eb4e0204fc65037f1fa08de0a5ab8bd",
     "machineEvidenceSha256": "5bf79fa3d5c82c2fa397baa1e48d22b089ab48848b41287f440be365835ef538"
   },
   "artifacts": [
