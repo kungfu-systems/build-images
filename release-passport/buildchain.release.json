@@ -1,0 +1,1386 @@
+{
+  "schemaVersion": 1,
+  "contract": "kungfu-buildchain-release-passport",
+  "generatedAt": "2026-07-13T11:03:15.309Z",
+  "surfaceTimestampPolicy": {
+    "generatedAt": "2026-07-13T11:03:15.309Z",
+    "publishedAt": "2026-07-13T11:03:15.309Z",
+    "reproducible": true,
+    "timestampPolicy": "ci-injected",
+    "deterministicInputs": [
+      "release.sourceSha",
+      "release.releaseSha",
+      "release.releaseMaterialSha",
+      "artifact-evidence.json",
+      "publish evidence",
+      "release-state transaction",
+      "sourceRevision",
+      "sourceDateEpoch",
+      "package content",
+      "declared Buildchain surface manifest contract"
+    ],
+    "sourceDateEpoch": "0",
+    "sourceRevision": "b3c82f0197cc601c937517701f783feb0fc4af8e",
+    "timestampPolicyDetails": {
+      "contract": "kungfu-buildchain-surface-timestamp-policy",
+      "timestampFields": [
+        "generatedAt",
+        "publishedAt",
+        "surfaceTimestampPolicy.generatedAt",
+        "surfaceTimestampPolicy.publishedAt"
+      ],
+      "timestampFieldsParticipateInArtifactDigest": true,
+      "artifactDigestScope": "release passport JSON and release evidence bundle",
+      "note": "Human-readable timestamps are separate from reproducibility inputs; do not infer reproducibility from epoch timestamps."
+    }
+  },
+  "product": {
+    "name": "Kungfu Build Images",
+    "repository": "kungfu-systems/build-images",
+    "mechanism": "product-mechanism.json"
+  },
+  "release": {
+    "tag": "v1.2.3-alpha.1",
+    "publicTag": "v1.2.3-alpha.1",
+    "internalTag": "v1.2.3-alpha.1",
+    "internalVersion": "1.2.3-alpha.1",
+    "publishedVersion": "1.2.3-alpha.1",
+    "versionLabel": "1.2.3-alpha.1",
+    "line": "v1.2",
+    "sourceSha": "b3c82f0197cc601c937517701f783feb0fc4af8e",
+    "channel": "alpha",
+    "targetRef": "alpha/v1/v1.2",
+    "releaseSha": "821d3d638cfd02dbc437508f86edb15fc294b243",
+    "releaseMaterialSha": "821d3d638cfd02dbc437508f86edb15fc294b243",
+    "builtSourceSha": "",
+    "builtSourceTreeSha": "",
+    "promotionChannelSha": "",
+    "promotionChannelTreeSha": "",
+    "publishToolingSha": "821d3d638cfd02dbc437508f86edb15fc294b243",
+    "releaseStateRef": "refs/heads/buildchain/release-state/1-2-3-alpha-1",
+    "releaseStateSha": "",
+    "package": {
+      "name": "@kungfu-tech/buildchain",
+      "version": "1.2.3-alpha.1"
+    },
+    "exactRef": "refs/tags/v1.2.3-alpha.1"
+  },
+  "workflow": {
+    "name": "Buildchain Ref Promotion",
+    "runId": "29244430693",
+    "runAttempt": "1",
+    "url": "https://github.com/kungfu-systems/build-images/actions/runs/29244430693"
+  },
+  "runnerPolicy": {
+    "productionDefault": "github-hosted",
+    "compatibilityFixture": "self-hosted",
+    "note": "Runner facts are recorded in artifact evidence; the protocol does not require self-hosted runners."
+  },
+  "trustedPublishing": {
+    "provider": "npm",
+    "enabled": true,
+    "auth": "trusted-publishing",
+    "workflowRunId": "29244430693",
+    "workflowRunAttempt": "1",
+    "evidence": ""
+  },
+  "transaction": {
+    "id": "9aab19f8899b006f5bc0381e0458289b9d6f0fadfd8d1fe859c298c661dc983d",
+    "version": "1.2.3-alpha.1",
+    "state": "complete",
+    "previousState": "finalizing",
+    "exactTag": "v1.2.3-alpha.1",
+    "releaseSha": "821d3d638cfd02dbc437508f86edb15fc294b243",
+    "releaseMaterialSha": "821d3d638cfd02dbc437508f86edb15fc294b243",
+    "stateRef": "buildchain/release-state/1-2-3-alpha-1",
+    "statePath": "/home/runner/work/build-images/build-images/.buildchain/release-state/v1.2.3-alpha.1.json",
+    "stateSha": "",
+    "evidencePath": "/home/runner/work/build-images/build-images/.buildchain/release-evidence/v1.2.3-alpha.1/evidence.json",
+    "updatedAt": "2026-07-13T11:03:12.781Z",
+    "result": {
+      "command": "finalize",
+      "validation": {
+        "valid": true,
+        "errors": []
+      }
+    }
+  },
+  "distTagPromotion": {
+    "path": "../release-evidence/v1.2.3-alpha.1/dist-tag-evidence.json",
+    "sha256": "8afcb0e41f729bd0368f7cb4bb0e627a2e0faef5b3c1146f81c084e813c6966e",
+    "fields": {
+      "schema": 1,
+      "contract": "kungfu-buildchain-dist-tag-promotion-evidence",
+      "mode": "publish-final-version",
+      "auth": "trusted-publishing",
+      "distTag": "alpha",
+      "source": "buildchain.toml",
+      "packages": []
+    }
+  },
+  "kfd-1": {
+    "schemaVersion": 1,
+    "contract": "kungfu-buildchain-kfd-1-release-gate",
+    "status": "passed",
+    "selfContractVerification": {
+      "result": "pass",
+      "contractWorldCount": 1,
+      "selfHosted": false,
+      "responsibility": {
+        "proofOwner": "buildchain-release-passport"
+      }
+    },
+    "metadata": {
+      "standard": {
+        "key": "kfd-1",
+        "id": "KFD-1",
+        "label": "KFD-1",
+        "title": "Facts must not drift: contract worlds need one fact source",
+        "revision": 1,
+        "status": "active"
+      },
+      "schemas": {
+        "ids": {
+          "metadata": "https://kfd.libkungfu.dev/schemas/kfd-standards.schema.json",
+          "contractWorld": "https://kfd.libkungfu.dev/schemas/kfd-1/contract-world.schema.json",
+          "witness": "https://kfd.libkungfu.dev/schemas/kfd-1/witness.schema.json"
+        },
+        "paths": {
+          "metadata": "schemas/kfd-standards.schema.json",
+          "contractWorld": "schemas/kfd-1/contract-world.schema.json",
+          "witness": "schemas/kfd-1/witness.schema.json"
+        },
+        "metadata": {
+          "id": "https://kfd.libkungfu.dev/schemas/kfd-standards.schema.json",
+          "path": "schemas/kfd-standards.schema.json",
+          "version": "1"
+        }
+      },
+      "package": {
+        "name": "@kungfu-tech/kfd",
+        "version": "1.0.0-alpha.21",
+        "repository": "git+https://github.com/kungfu-systems/kfd.git"
+      }
+    },
+    "formatting": {
+      "name": "buildchain-release-evidence-json-v1",
+      "indentation": 2,
+      "trailingNewline": true,
+      "canonicalDigest": "stable-json-sha256-v1"
+    },
+    "contractWorlds": [
+      {
+        "id": "build-images-release-contract-world",
+        "standard": "KFD-1",
+        "standardKey": "kfd-1",
+        "result": "passed",
+        "preBuildWitnessSha256": "ea9c1872cf3b5b6d884e4002326ecac148ba9e32554cfac42eee06b8f9369ce1",
+        "sourceHashes": {
+          "sha256": "a655b3e013c81fefa5b527ce8375d9e4be3cf17c0620ba50296f00f6df2b386f",
+          "surfaceCount": 6
+        },
+        "artifactHashes": {
+          "sha256": "b538efaebc0b7c6396477694df068e43267f0fa65cb1641e2b35ba7dc75843d6",
+          "surfaceCount": 6
+        },
+        "witness": {
+          "schemaVersion": 1,
+          "contract": "kungfu-buildchain-kfd-1-witness-set",
+          "id": "build-images-release-contract-world",
+          "standard": "kfd-1",
+          "standardLabel": "KFD-1",
+          "source": {
+            "repo": "kungfu-systems/build-images",
+            "ref": ""
+          },
+          "contractWorld": {
+            "schemaId": "https://kfd.libkungfu.dev/schemas/kfd-1/contract-world.schema.json",
+            "digest": "sha256:38e240a023341176672e0f77c3c91ff93e4205557d925c4772567c89094fb334"
+          },
+          "standardContract": {
+            "id": "",
+            "schemaId": "https://kfd.libkungfu.dev/schemas/kfd-1/contract-world.schema.json",
+            "path": "",
+            "sha256": "",
+            "digest": "sha256:38e240a023341176672e0f77c3c91ff93e4205557d925c4772567c89094fb334"
+          },
+          "selfHostingBoundary": {
+            "mode": "external-contract-world",
+            "sourceScope": "KFD source standard metadata, schemas, package exports, and site-consumption entrypoints",
+            "artifactScope": "packaged public artifact surfaces",
+            "boundary": "source-to-artifact byte equality for declared standard-contract surfaces",
+            "residualRisk": []
+          },
+          "responsibility": {
+            "sourceContractOwner": "product",
+            "artifactVerificationOwner": "buildchain-release-passport",
+            "releasePassportProofOwner": "buildchain"
+          },
+          "sourceVerificationRequired": false,
+          "canonicalPolicy": {
+            "path": "docs/release-and-tags.md",
+            "sha256": "239bafca22e2ce2aa254c393c64356ed936fb4d3d8f4bb90eb21d5b5fe392d61"
+          },
+          "registry": {
+            "path": ".buildchain/kfd/kfd-3/surfaces.json",
+            "sha256": "063d847ec2947f295daf947dd81f5c8ac1cdd91f70f4bb52447f5f50e1e07ec9"
+          },
+          "surfaces": [
+            {
+              "name": "readme",
+              "sourcePath": "README.md",
+              "sourceSha256": "85dea28d965105b22b97f94f64db40ea34c747bff8ccd9b5eb5ce2ad0b905a71",
+              "artifactPath": "README.md",
+              "expectedSha256": "85dea28d965105b22b97f94f64db40ea34c747bff8ccd9b5eb5ce2ad0b905a71",
+              "byteForByte": true
+            },
+            {
+              "name": "image-contract",
+              "sourcePath": "docs/image-contract.md",
+              "sourceSha256": "96d23b5bb417f94210bbf8a8858161fabe5fda8aae27b8bffdd10da7fb935e43",
+              "artifactPath": "docs/image-contract.md",
+              "expectedSha256": "96d23b5bb417f94210bbf8a8858161fabe5fda8aae27b8bffdd10da7fb935e43",
+              "byteForByte": true
+            },
+            {
+              "name": "release-and-tags",
+              "sourcePath": "docs/release-and-tags.md",
+              "sourceSha256": "239bafca22e2ce2aa254c393c64356ed936fb4d3d8f4bb90eb21d5b5fe392d61",
+              "artifactPath": "docs/release-and-tags.md",
+              "expectedSha256": "239bafca22e2ce2aa254c393c64356ed936fb4d3d8f4bb90eb21d5b5fe392d61",
+              "byteForByte": true
+            },
+            {
+              "name": "runner-boundary",
+              "sourcePath": "docs/runner-boundary.md",
+              "sourceSha256": "8bd48aa82697cf3f02e0f802b39e7192ffda01594c608e3dd0fd12bd24ccaf4e",
+              "artifactPath": "docs/runner-boundary.md",
+              "expectedSha256": "8bd48aa82697cf3f02e0f802b39e7192ffda01594c608e3dd0fd12bd24ccaf4e",
+              "byteForByte": true
+            },
+            {
+              "name": "image-lock",
+              "sourcePath": "images.lock.json",
+              "sourceSha256": "0b0f9387a7d4cfc1fbbb2675e92f6462a3fcb577d3c2edad6abd699a5311acd5",
+              "artifactPath": "images.lock.json",
+              "expectedSha256": "0b0f9387a7d4cfc1fbbb2675e92f6462a3fcb577d3c2edad6abd699a5311acd5",
+              "byteForByte": true
+            },
+            {
+              "name": "publish-evidence-writer",
+              "sourcePath": "scripts/write-publish-evidence.py",
+              "sourceSha256": "307a68c4e92e8633c76b6fad3c1a9871fe40e0f8ec764e5bc12d4be54a0d73f1",
+              "artifactPath": "scripts/write-publish-evidence.py",
+              "expectedSha256": "307a68c4e92e8633c76b6fad3c1a9871fe40e0f8ec764e5bc12d4be54a0d73f1",
+              "byteForByte": true
+            }
+          ],
+          "metadata": {
+            "kfdPackage": {
+              "name": "@kungfu-tech/kfd",
+              "version": "1.0.0-alpha.21",
+              "repository": "git+https://github.com/kungfu-systems/kfd.git"
+            },
+            "schemaIds": {
+              "metadata": "https://kfd.libkungfu.dev/schemas/kfd-standards.schema.json",
+              "contractWorld": "https://kfd.libkungfu.dev/schemas/kfd-1/contract-world.schema.json",
+              "witness": "https://kfd.libkungfu.dev/schemas/kfd-1/witness.schema.json"
+            },
+            "schemaPaths": {
+              "metadata": "schemas/kfd-standards.schema.json",
+              "contractWorld": "schemas/kfd-1/contract-world.schema.json",
+              "witness": "schemas/kfd-1/witness.schema.json"
+            }
+          }
+        },
+        "standardContract": {
+          "id": "",
+          "schemaId": "https://kfd.libkungfu.dev/schemas/kfd-1/contract-world.schema.json",
+          "path": "",
+          "sha256": "",
+          "digest": "sha256:38e240a023341176672e0f77c3c91ff93e4205557d925c4772567c89094fb334"
+        },
+        "selfHostingBoundary": {
+          "mode": "external-contract-world",
+          "sourceScope": "KFD source standard metadata, schemas, package exports, and site-consumption entrypoints",
+          "artifactScope": "packaged public artifact surfaces",
+          "boundary": "source-to-artifact byte equality for declared standard-contract surfaces",
+          "residualRisk": []
+        },
+        "responsibility": {
+          "sourceContractOwner": "product",
+          "artifactVerificationOwner": "buildchain-release-passport",
+          "releasePassportProofOwner": "buildchain"
+        },
+        "sourceVerification": {
+          "status": "passed",
+          "verifiedAt": "2026-07-13T11:03:15.302Z",
+          "required": false,
+          "surfaces": [
+            {
+              "name": "readme",
+              "sourcePath": "README.md",
+              "expectedSha256": "85dea28d965105b22b97f94f64db40ea34c747bff8ccd9b5eb5ce2ad0b905a71",
+              "actualSha256": "85dea28d965105b22b97f94f64db40ea34c747bff8ccd9b5eb5ce2ad0b905a71",
+              "status": "passed",
+              "reason": ""
+            },
+            {
+              "name": "image-contract",
+              "sourcePath": "docs/image-contract.md",
+              "expectedSha256": "96d23b5bb417f94210bbf8a8858161fabe5fda8aae27b8bffdd10da7fb935e43",
+              "actualSha256": "96d23b5bb417f94210bbf8a8858161fabe5fda8aae27b8bffdd10da7fb935e43",
+              "status": "passed",
+              "reason": ""
+            },
+            {
+              "name": "release-and-tags",
+              "sourcePath": "docs/release-and-tags.md",
+              "expectedSha256": "239bafca22e2ce2aa254c393c64356ed936fb4d3d8f4bb90eb21d5b5fe392d61",
+              "actualSha256": "239bafca22e2ce2aa254c393c64356ed936fb4d3d8f4bb90eb21d5b5fe392d61",
+              "status": "passed",
+              "reason": ""
+            },
+            {
+              "name": "runner-boundary",
+              "sourcePath": "docs/runner-boundary.md",
+              "expectedSha256": "8bd48aa82697cf3f02e0f802b39e7192ffda01594c608e3dd0fd12bd24ccaf4e",
+              "actualSha256": "8bd48aa82697cf3f02e0f802b39e7192ffda01594c608e3dd0fd12bd24ccaf4e",
+              "status": "passed",
+              "reason": ""
+            },
+            {
+              "name": "image-lock",
+              "sourcePath": "images.lock.json",
+              "expectedSha256": "0b0f9387a7d4cfc1fbbb2675e92f6462a3fcb577d3c2edad6abd699a5311acd5",
+              "actualSha256": "0b0f9387a7d4cfc1fbbb2675e92f6462a3fcb577d3c2edad6abd699a5311acd5",
+              "status": "passed",
+              "reason": ""
+            },
+            {
+              "name": "publish-evidence-writer",
+              "sourcePath": "scripts/write-publish-evidence.py",
+              "expectedSha256": "307a68c4e92e8633c76b6fad3c1a9871fe40e0f8ec764e5bc12d4be54a0d73f1",
+              "actualSha256": "307a68c4e92e8633c76b6fad3c1a9871fe40e0f8ec764e5bc12d4be54a0d73f1",
+              "status": "passed",
+              "reason": ""
+            }
+          ]
+        },
+        "artifactVerification": {
+          "status": "passed",
+          "verifiedAt": "2026-07-13T11:03:15.302Z",
+          "surfaces": [
+            {
+              "name": "readme",
+              "sourcePath": "README.md",
+              "sourceSha256": "85dea28d965105b22b97f94f64db40ea34c747bff8ccd9b5eb5ce2ad0b905a71",
+              "artifactPath": "README.md",
+              "expectedSha256": "85dea28d965105b22b97f94f64db40ea34c747bff8ccd9b5eb5ce2ad0b905a71",
+              "actualSha256": "85dea28d965105b22b97f94f64db40ea34c747bff8ccd9b5eb5ce2ad0b905a71",
+              "byteForByte": true,
+              "status": "passed",
+              "reason": ""
+            },
+            {
+              "name": "image-contract",
+              "sourcePath": "docs/image-contract.md",
+              "sourceSha256": "96d23b5bb417f94210bbf8a8858161fabe5fda8aae27b8bffdd10da7fb935e43",
+              "artifactPath": "docs/image-contract.md",
+              "expectedSha256": "96d23b5bb417f94210bbf8a8858161fabe5fda8aae27b8bffdd10da7fb935e43",
+              "actualSha256": "96d23b5bb417f94210bbf8a8858161fabe5fda8aae27b8bffdd10da7fb935e43",
+              "byteForByte": true,
+              "status": "passed",
+              "reason": ""
+            },
+            {
+              "name": "release-and-tags",
+              "sourcePath": "docs/release-and-tags.md",
+              "sourceSha256": "239bafca22e2ce2aa254c393c64356ed936fb4d3d8f4bb90eb21d5b5fe392d61",
+              "artifactPath": "docs/release-and-tags.md",
+              "expectedSha256": "239bafca22e2ce2aa254c393c64356ed936fb4d3d8f4bb90eb21d5b5fe392d61",
+              "actualSha256": "239bafca22e2ce2aa254c393c64356ed936fb4d3d8f4bb90eb21d5b5fe392d61",
+              "byteForByte": true,
+              "status": "passed",
+              "reason": ""
+            },
+            {
+              "name": "runner-boundary",
+              "sourcePath": "docs/runner-boundary.md",
+              "sourceSha256": "8bd48aa82697cf3f02e0f802b39e7192ffda01594c608e3dd0fd12bd24ccaf4e",
+              "artifactPath": "docs/runner-boundary.md",
+              "expectedSha256": "8bd48aa82697cf3f02e0f802b39e7192ffda01594c608e3dd0fd12bd24ccaf4e",
+              "actualSha256": "8bd48aa82697cf3f02e0f802b39e7192ffda01594c608e3dd0fd12bd24ccaf4e",
+              "byteForByte": true,
+              "status": "passed",
+              "reason": ""
+            },
+            {
+              "name": "image-lock",
+              "sourcePath": "images.lock.json",
+              "sourceSha256": "0b0f9387a7d4cfc1fbbb2675e92f6462a3fcb577d3c2edad6abd699a5311acd5",
+              "artifactPath": "images.lock.json",
+              "expectedSha256": "0b0f9387a7d4cfc1fbbb2675e92f6462a3fcb577d3c2edad6abd699a5311acd5",
+              "actualSha256": "0b0f9387a7d4cfc1fbbb2675e92f6462a3fcb577d3c2edad6abd699a5311acd5",
+              "byteForByte": true,
+              "status": "passed",
+              "reason": ""
+            },
+            {
+              "name": "publish-evidence-writer",
+              "sourcePath": "scripts/write-publish-evidence.py",
+              "sourceSha256": "307a68c4e92e8633c76b6fad3c1a9871fe40e0f8ec764e5bc12d4be54a0d73f1",
+              "artifactPath": "scripts/write-publish-evidence.py",
+              "expectedSha256": "307a68c4e92e8633c76b6fad3c1a9871fe40e0f8ec764e5bc12d4be54a0d73f1",
+              "actualSha256": "307a68c4e92e8633c76b6fad3c1a9871fe40e0f8ec764e5bc12d4be54a0d73f1",
+              "byteForByte": true,
+              "status": "passed",
+              "reason": ""
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "kfd-2": {
+    "schemaVersion": 1,
+    "contract": "kungfu-buildchain-kfd-2-release-trust-passport-audit",
+    "status": "passed",
+    "verifiedAt": "2026-07-13T11:03:15.309Z",
+    "auditBoundary": {
+      "scope": "public release claims visible to humans or agents",
+      "policy": "public claims must bind declared sources, machine-readable evidence, hashes, artifact coordinates, verification results, audit boundaries, responsibility state, and residual risk"
+    },
+    "downgradeReasons": [],
+    "claims": [
+      {
+        "id": "kfd-1:build-images-release-contract-world",
+        "public": true,
+        "claim": "KFD-1 contract world build-images-release-contract-world is verified from declared source surfaces to packaged artifact bytes.",
+        "sourceBindings": [
+          {
+            "id": "readme",
+            "path": "README.md",
+            "sha256": "85dea28d965105b22b97f94f64db40ea34c747bff8ccd9b5eb5ce2ad0b905a71"
+          },
+          {
+            "id": "image-contract",
+            "path": "docs/image-contract.md",
+            "sha256": "96d23b5bb417f94210bbf8a8858161fabe5fda8aae27b8bffdd10da7fb935e43"
+          },
+          {
+            "id": "release-and-tags",
+            "path": "docs/release-and-tags.md",
+            "sha256": "239bafca22e2ce2aa254c393c64356ed936fb4d3d8f4bb90eb21d5b5fe392d61"
+          },
+          {
+            "id": "runner-boundary",
+            "path": "docs/runner-boundary.md",
+            "sha256": "8bd48aa82697cf3f02e0f802b39e7192ffda01594c608e3dd0fd12bd24ccaf4e"
+          },
+          {
+            "id": "image-lock",
+            "path": "images.lock.json",
+            "sha256": "0b0f9387a7d4cfc1fbbb2675e92f6462a3fcb577d3c2edad6abd699a5311acd5"
+          },
+          {
+            "id": "publish-evidence-writer",
+            "path": "scripts/write-publish-evidence.py",
+            "sha256": "307a68c4e92e8633c76b6fad3c1a9871fe40e0f8ec764e5bc12d4be54a0d73f1"
+          }
+        ],
+        "machineEvidence": [
+          {
+            "id": "kfd-1-witness",
+            "sha256": "ea9c1872cf3b5b6d884e4002326ecac148ba9e32554cfac42eee06b8f9369ce1"
+          },
+          {
+            "id": "source-verification",
+            "status": "passed"
+          },
+          {
+            "id": "artifact-verification",
+            "status": "passed"
+          }
+        ],
+        "hashes": {
+          "witnessSha256": "ea9c1872cf3b5b6d884e4002326ecac148ba9e32554cfac42eee06b8f9369ce1",
+          "sourceSha256": "a655b3e013c81fefa5b527ce8375d9e4be3cf17c0620ba50296f00f6df2b386f",
+          "artifactSha256": "b538efaebc0b7c6396477694df068e43267f0fa65cb1641e2b35ba7dc75843d6"
+        },
+        "artifacts": [
+          {
+            "id": "readme",
+            "path": "README.md",
+            "sha256": "85dea28d965105b22b97f94f64db40ea34c747bff8ccd9b5eb5ce2ad0b905a71"
+          },
+          {
+            "id": "image-contract",
+            "path": "docs/image-contract.md",
+            "sha256": "96d23b5bb417f94210bbf8a8858161fabe5fda8aae27b8bffdd10da7fb935e43"
+          },
+          {
+            "id": "release-and-tags",
+            "path": "docs/release-and-tags.md",
+            "sha256": "239bafca22e2ce2aa254c393c64356ed936fb4d3d8f4bb90eb21d5b5fe392d61"
+          },
+          {
+            "id": "runner-boundary",
+            "path": "docs/runner-boundary.md",
+            "sha256": "8bd48aa82697cf3f02e0f802b39e7192ffda01594c608e3dd0fd12bd24ccaf4e"
+          },
+          {
+            "id": "image-lock",
+            "path": "images.lock.json",
+            "sha256": "0b0f9387a7d4cfc1fbbb2675e92f6462a3fcb577d3c2edad6abd699a5311acd5"
+          },
+          {
+            "id": "publish-evidence-writer",
+            "path": "scripts/write-publish-evidence.py",
+            "sha256": "307a68c4e92e8633c76b6fad3c1a9871fe40e0f8ec764e5bc12d4be54a0d73f1"
+          }
+        ],
+        "verification": {
+          "result": "passed",
+          "source": "passed",
+          "artifact": "passed"
+        },
+        "auditBoundary": {
+          "mode": "external-contract-world",
+          "sourceScope": "KFD source standard metadata, schemas, package exports, and site-consumption entrypoints",
+          "artifactScope": "packaged public artifact surfaces",
+          "boundary": "source-to-artifact byte equality for declared standard-contract surfaces",
+          "residualRisk": []
+        },
+        "responsibility": {
+          "sourceContractOwner": "product",
+          "artifactVerificationOwner": "buildchain-release-passport",
+          "releasePassportProofOwner": "buildchain"
+        },
+        "residualRisk": [],
+        "downgradeReasons": [],
+        "proseOnly": false,
+        "missingBindings": [],
+        "status": "passed"
+      },
+      {
+        "id": "kfd-3:Kungfu Build Images",
+        "public": true,
+        "claim": "KFD-3 collaboration interface Kungfu Build Images exposes only declared public participant-facing shipped surfaces within its audit boundary.",
+        "sourceBindings": [
+          {
+            "id": "doc:docs/image-contract.md",
+            "kind": "documentation",
+            "sourcePath": "docs/image-contract.md"
+          },
+          {
+            "id": "doc:docs/release-and-tags.md",
+            "kind": "documentation",
+            "sourcePath": "docs/release-and-tags.md"
+          },
+          {
+            "id": "doc:docs/runner-boundary.md",
+            "kind": "documentation",
+            "sourcePath": "docs/runner-boundary.md"
+          },
+          {
+            "id": "doc:readme.md",
+            "kind": "documentation",
+            "sourcePath": "README.md"
+          }
+        ],
+        "machineEvidence": [
+          {
+            "id": "prebuild-witness",
+            "path": ".buildchain/kfd/kfd-3/collaboration-interface.prebuild.json",
+            "sha256": "0d6cdc05cdea21908d22b9e18244a02af466d28f80d6f18e61d77efc83a09e61",
+            "canonicalSha256": "dd86c00a4084a802ee12ccd5b4f30950d6ace8d4eb760723e196f08b7624ba91"
+          },
+          {
+            "id": "artifact-witness",
+            "path": ".buildchain/kfd/kfd-3/collaboration-interface.artifact.json",
+            "sha256": "974d24dd7e62d3eda08c8361937f1f4f7fbce5aaa4ac8779ce02d115a8fc6f01",
+            "canonicalSha256": "3e59907caf1178face56c7c72cc390a8c9222dedc3eab4b6c1d9124fd4bc8638"
+          },
+          {
+            "id": "declared-capability-verification",
+            "result": "passed"
+          },
+          {
+            "id": "reverse-audit",
+            "result": "passed"
+          }
+        ],
+        "hashes": {
+          "prebuildWitnessSha256": "dd86c00a4084a802ee12ccd5b4f30950d6ace8d4eb760723e196f08b7624ba91",
+          "artifactWitnessSha256": "3e59907caf1178face56c7c72cc390a8c9222dedc3eab4b6c1d9124fd4bc8638",
+          "prebuildCanonicalSha256": "dd86c00a4084a802ee12ccd5b4f30950d6ace8d4eb760723e196f08b7624ba91",
+          "artifactCanonicalSha256": "3e59907caf1178face56c7c72cc390a8c9222dedc3eab4b6c1d9124fd4bc8638"
+        },
+        "artifacts": [
+          {
+            "name": "ghcr.io/kungfu-systems/build-images/base-linux",
+            "path": "",
+            "digest": ""
+          }
+        ],
+        "verification": {
+          "result": "passed",
+          "declaredCapabilityVerification": "passed",
+          "reverseAudit": "passed"
+        },
+        "auditBoundary": {
+          "mode": "closed-world",
+          "scope": "KFD-3 registered product public surfaces detected by Buildchain",
+          "reachableSurfaceMode": "declared-boundary",
+          "unclassifiedPolicy": "fail",
+          "nonExhaustivelyEnumerableSurfaces": [],
+          "explicitlyExemptedSurfaces": []
+        },
+        "responsibility": {
+          "registryFactsOwner": "product",
+          "artifactVerificationOwner": "Buildchain KFD-3 surface audit",
+          "releasePassportProofOwner": "Buildchain"
+        },
+        "residualRisk": [],
+        "downgradeReasons": [],
+        "trustProof": {
+          "contract": "kungfu-buildchain-kfd-2-trust-proof",
+          "source": "kfd-3-collaboration-interface-release-gate",
+          "result": "passed",
+          "statement": "No unclassified reachable surface within the declared audit boundary.",
+          "kfd3TrustProof": {
+            "contract": "kungfu-buildchain-kfd-3-passport-trust-proof",
+            "result": "pass",
+            "releaseStatus": "enforced"
+          },
+          "witnessHashes": {
+            "prebuildWitnessSha256": "dd86c00a4084a802ee12ccd5b4f30950d6ace8d4eb760723e196f08b7624ba91",
+            "artifactWitnessSha256": "3e59907caf1178face56c7c72cc390a8c9222dedc3eab4b6c1d9124fd4bc8638",
+            "prebuildCanonicalSha256": "dd86c00a4084a802ee12ccd5b4f30950d6ace8d4eb760723e196f08b7624ba91",
+            "artifactCanonicalSha256": "3e59907caf1178face56c7c72cc390a8c9222dedc3eab4b6c1d9124fd4bc8638"
+          },
+          "declaredCapabilityVerification": {
+            "status": "passed",
+            "result": "passed",
+            "declaredCapabilityCount": 4,
+            "declaredShippedPublicSurfaceCount": 4,
+            "implementedPublicSurfaceCount": 4,
+            "missingDeclaredShipped": []
+          },
+          "reverseAudit": {
+            "status": "passed",
+            "auditBoundary": {
+              "mode": "closed-world",
+              "scope": "KFD-3 registered product public surfaces detected by Buildchain",
+              "reachableSurfaceMode": "declared-boundary",
+              "unclassifiedPolicy": "fail",
+              "nonExhaustivelyEnumerableSurfaces": [],
+              "explicitlyExemptedSurfaces": []
+            },
+            "reachablePublicSurfaceCount": 4,
+            "unclassifiedReachableSurfaces": [],
+            "explicitlyExemptedSurfaces": [],
+            "nonExhaustivelyEnumerableSurfaces": [],
+            "statement": "No unclassified reachable surface within the declared audit boundary."
+          },
+          "reverseAuditBoundary": {
+            "mode": "closed-world",
+            "scope": "KFD-3 registered product public surfaces detected by Buildchain",
+            "reachableSurfaceMode": "declared-boundary",
+            "unclassifiedPolicy": "fail",
+            "nonExhaustivelyEnumerableSurfaces": [],
+            "explicitlyExemptedSurfaces": []
+          },
+          "residualRisk": [],
+          "responsibility": {
+            "registryFactsOwner": "product",
+            "artifactVerificationOwner": "Buildchain KFD-3 surface audit",
+            "releasePassportProofOwner": "Buildchain"
+          }
+        },
+        "proseOnly": false,
+        "missingBindings": [],
+        "status": "passed"
+      },
+      {
+        "id": "claim:build-images-release-trust",
+        "public": true,
+        "claim": "Build Images releases are governed by declared image contracts, Buildchain version-state promotion, channel-specific locked Buildchain runtime contracts, and KFD upstream evidence.",
+        "sourceBindings": [
+          {
+            "id": "readme",
+            "path": "README.md",
+            "sha256": "85dea28d965105b22b97f94f64db40ea34c747bff8ccd9b5eb5ce2ad0b905a71"
+          },
+          {
+            "id": "image-contract",
+            "path": "docs/image-contract.md",
+            "sha256": "96d23b5bb417f94210bbf8a8858161fabe5fda8aae27b8bffdd10da7fb935e43"
+          },
+          {
+            "id": "release-and-tags",
+            "path": "docs/release-and-tags.md",
+            "sha256": "239bafca22e2ce2aa254c393c64356ed936fb4d3d8f4bb90eb21d5b5fe392d61"
+          },
+          {
+            "id": "image-lock",
+            "path": "images.lock.json",
+            "sha256": "0b0f9387a7d4cfc1fbbb2675e92f6462a3fcb577d3c2edad6abd699a5311acd5"
+          },
+          {
+            "id": "buildchain-config",
+            "path": ".buildchain/buildchain.toml",
+            "sha256": "4fafeffe319a23b6771c35ef133eb9ac9cde7750c0cca33059499d66c072cfa7"
+          },
+          {
+            "id": "alpha-contract-lock",
+            "path": ".buildchain/alpha-contract-lock.json",
+            "sha256": "a27e22daf0a3dc438460926102bbfe2e0200577eddc5bf020e8e6cfb5fd37134"
+          },
+          {
+            "id": "stable-contract-lock",
+            "path": ".buildchain/contract-lock.json",
+            "sha256": "e24839f78e1f0d3df57e6464f80e94242c644449c299c4d9a57125a9f981851c"
+          }
+        ],
+        "machineEvidence": [
+          {
+            "id": "kfd-1-contract-world-witness",
+            "path": ".buildchain/kfd/kfd-1/build-images-contract-world.witness.json",
+            "sha256": "fb950fedda1fe6dd6a3d31b7289a6af93139db86c7c072db2bf9b40c4fdf385f",
+            "contract": "kfd-1",
+            "status": "passed"
+          },
+          {
+            "id": "kfd-upstream-aggregate",
+            "path": ".buildchain/kfd/kfd-2/kfd-upstream-aggregate.json",
+            "sha256": "4458293a63027d67e8887c05f6d6c256c43fed1c5034ed98575b0a4ee1bbb70a",
+            "contract": "kungfu-buildchain-kfd-upstream-aggregate",
+            "status": "passed"
+          },
+          {
+            "id": "kfd-3-surface-registry",
+            "path": ".buildchain/kfd/kfd-3/surfaces.json",
+            "sha256": "063d847ec2947f295daf947dd81f5c8ac1cdd91f70f4bb52447f5f50e1e07ec9",
+            "contract": "kungfu-buildchain-kfd-3-surface-registry",
+            "status": "passed"
+          }
+        ],
+        "hashes": {
+          "kfd1WitnessSha256": "732b85e849a4449774aadf036475cdf2d76aa74721ac3c525518b4196f9f322c",
+          "upstreamAggregateSha256": "6e5f7de58ebd7fbd7f0e570b57044095d07995ba8ba257c34a68067b02af94db",
+          "sourceBindingsSha256": "35b8721df5a7b8b4fb9320d45141470b4ee5a1047c84a824e80dddad3fd5a174",
+          "machineEvidenceSha256": "e544ed55204aea3c29cb1efbf41b71415e01e9119aad1045e3d96980cfb70d35"
+        },
+        "artifacts": [
+          {
+            "id": "oci-image-lock",
+            "path": "images.lock.json",
+            "sha256": "0b0f9387a7d4cfc1fbbb2675e92f6462a3fcb577d3c2edad6abd699a5311acd5"
+          },
+          {
+            "id": "publish-evidence-writer",
+            "path": "scripts/write-publish-evidence.py",
+            "sha256": "307a68c4e92e8633c76b6fad3c1a9871fe40e0f8ec764e5bc12d4be54a0d73f1"
+          }
+        ],
+        "verification": {
+          "result": "passed",
+          "method": "pnpm run check:kfd"
+        },
+        "auditBoundary": {
+          "mode": "machine-bound-release-contract",
+          "scope": "Build Images repository config, declared public surfaces, image lock, alpha/stable Buildchain runtime contract locks, and publish evidence writer."
+        },
+        "responsibility": {
+          "owner": "Kungfu Build Images maintainers",
+          "sourceOwner": "Kungfu Build Images maintainers",
+          "releasePassportProofOwner": "Buildchain"
+        },
+        "residualRisk": [],
+        "downgradeReasons": [],
+        "proseOnly": false,
+        "missingBindings": [],
+        "status": "passed"
+      }
+    ],
+    "summary": {
+      "claimCount": 3,
+      "failed": 0,
+      "downgraded": 0,
+      "proseOnly": 0
+    }
+  },
+  "kfd-3": {
+    "schemaVersion": 1,
+    "contract": "kungfu-buildchain-kfd-3-collaboration-interface-release-gate",
+    "status": "passed",
+    "releaseStatus": "enforced",
+    "trustProof": {
+      "contract": "kungfu-buildchain-kfd-3-passport-trust-proof",
+      "result": "pass",
+      "statement": "No unclassified reachable surface within the declared audit boundary.",
+      "factSourceRole": "product-owned-registry-and-witnesses",
+      "proofOwner": "buildchain-release-passport",
+      "collaborationInterfaceCount": 1,
+      "audited": true
+    },
+    "metadata": {
+      "standard": {
+        "key": "kfd-3",
+        "id": "KFD-3",
+        "label": "KFD-3",
+        "title": "Cooperation must start from trusted value: compliance must not be coerced",
+        "revision": 1,
+        "status": "active"
+      },
+      "schemas": {
+        "ids": {
+          "metadata": "https://kfd.libkungfu.dev/schemas/kfd-standards.schema.json",
+          "collaborationInterface": "https://kfd.libkungfu.dev/schemas/kfd-3/collaboration-interface.schema.json",
+          "witness": "https://kfd.libkungfu.dev/schemas/kfd-3/witness.schema.json"
+        },
+        "paths": {
+          "metadata": "schemas/kfd-standards.schema.json",
+          "collaborationInterface": "schemas/kfd-3/collaboration-interface.schema.json",
+          "witness": "schemas/kfd-3/witness.schema.json"
+        },
+        "metadata": {
+          "id": "https://kfd.libkungfu.dev/schemas/kfd-standards.schema.json",
+          "path": "schemas/kfd-standards.schema.json",
+          "version": "1"
+        },
+        "hasCollaborationSchemas": true
+      },
+      "package": {
+        "name": "@kungfu-tech/kfd",
+        "version": "1.0.0-alpha.21",
+        "repository": "git+https://github.com/kungfu-systems/kfd.git"
+      }
+    },
+    "formatting": {
+      "name": "buildchain-release-evidence-json-v1",
+      "indentation": 2,
+      "trailingNewline": true,
+      "canonicalDigest": "stable-json-sha256-v1"
+    },
+    "collaborationInterfaces": [
+      {
+        "id": "Kungfu Build Images",
+        "standard": "KFD-3",
+        "standardKey": "kfd-3",
+        "preBuildWitnessSha256": "dd86c00a4084a802ee12ccd5b4f30950d6ace8d4eb760723e196f08b7624ba91",
+        "artifactWitnessSha256": "3e59907caf1178face56c7c72cc390a8c9222dedc3eab4b6c1d9124fd4bc8638",
+        "prebuildWitness": {
+          "schemaVersion": 1,
+          "contract": "kungfu-buildchain-kfd-3-collaboration-interface-prebuild-witness",
+          "id": "Kungfu Build Images",
+          "standard": "kfd-3",
+          "standardLabel": "KFD-3",
+          "supportLevel": "release",
+          "source": {
+            "cwd": "",
+            "sourceSha": "",
+            "registryPath": ".buildchain/kfd/kfd-3/surfaces.json",
+            "registryDigest": "sha256:b55c0d889aed86e87b9d64c27b278a1d6992f969f374a9853282fbcc74a2417b"
+          },
+          "registry": {
+            "id": "Kungfu Build Images",
+            "version": "",
+            "path": ".buildchain/kfd/kfd-3/surfaces.json",
+            "sha256": "063d847ec2947f295daf947dd81f5c8ac1cdd91f70f4bb52447f5f50e1e07ec9",
+            "digest": "sha256:063d847ec2947f295daf947dd81f5c8ac1cdd91f70f4bb52447f5f50e1e07ec9"
+          },
+          "participantProfiles": [],
+          "expectedArtifactVerification": {
+            "command": ""
+          },
+          "collaborationInterfaceDigest": "sha256:c5abf071afb3b54f48ce8717e3f8432449101e2570365fdbcd4681507fe6a5a0",
+          "auditBoundary": {
+            "mode": "closed-world",
+            "scope": "KFD-3 registered product public surfaces detected by Buildchain",
+            "reachableSurfaceMode": "declared-boundary",
+            "unclassifiedPolicy": "fail",
+            "nonExhaustivelyEnumerableSurfaces": [],
+            "explicitlyExemptedSurfaces": []
+          },
+          "residualRisk": [],
+          "extensionRequests": [],
+          "responsibility": {
+            "registryFactsOwner": "product",
+            "artifactVerificationOwner": "Buildchain KFD-3 surface audit",
+            "releasePassportProofOwner": "Buildchain"
+          },
+          "declaredSurfaces": [
+            {
+              "id": "doc:docs/image-contract.md",
+              "name": "docs/image-contract.md",
+              "kind": "documentation",
+              "participantProfile": "",
+              "availability": "shipped",
+              "visibility": "public",
+              "participantFacing": true,
+              "public": true,
+              "sourcePath": "docs/image-contract.md",
+              "evidencePath": "docs/image-contract.md"
+            },
+            {
+              "id": "doc:docs/release-and-tags.md",
+              "name": "docs/release-and-tags.md",
+              "kind": "documentation",
+              "participantProfile": "",
+              "availability": "shipped",
+              "visibility": "public",
+              "participantFacing": true,
+              "public": true,
+              "sourcePath": "docs/release-and-tags.md",
+              "evidencePath": "docs/release-and-tags.md"
+            },
+            {
+              "id": "doc:docs/runner-boundary.md",
+              "name": "docs/runner-boundary.md",
+              "kind": "documentation",
+              "participantProfile": "",
+              "availability": "shipped",
+              "visibility": "public",
+              "participantFacing": true,
+              "public": true,
+              "sourcePath": "docs/runner-boundary.md",
+              "evidencePath": "docs/runner-boundary.md"
+            },
+            {
+              "id": "doc:readme.md",
+              "name": "README.md",
+              "kind": "documentation",
+              "participantProfile": "",
+              "availability": "shipped",
+              "visibility": "public",
+              "participantFacing": true,
+              "public": true,
+              "sourcePath": "README.md",
+              "evidencePath": "README.md"
+            }
+          ],
+          "metadata": {
+            "kfdPackage": {
+              "name": "@kungfu-tech/kfd",
+              "version": "1.0.0-alpha.21",
+              "repository": "git+https://github.com/kungfu-systems/kfd.git"
+            },
+            "schemaIds": {
+              "metadata": "https://kfd.libkungfu.dev/schemas/kfd-standards.schema.json",
+              "collaborationInterface": "https://kfd.libkungfu.dev/schemas/kfd-3/collaboration-interface.schema.json",
+              "witness": "https://kfd.libkungfu.dev/schemas/kfd-3/witness.schema.json"
+            },
+            "schemaPaths": {
+              "metadata": "schemas/kfd-standards.schema.json",
+              "collaborationInterface": "schemas/kfd-3/collaboration-interface.schema.json",
+              "witness": "schemas/kfd-3/witness.schema.json"
+            },
+            "hasCollaborationSchemas": true
+          }
+        },
+        "artifactWitness": {
+          "schemaVersion": 1,
+          "contract": "kungfu-buildchain-kfd-3-collaboration-interface-artifact-witness",
+          "id": "Kungfu Build Images",
+          "standard": "kfd-3",
+          "standardLabel": "KFD-3",
+          "artifact": {
+            "name": "ghcr.io/kungfu-systems/build-images/base-linux",
+            "path": "",
+            "digest": ""
+          },
+          "registry": {
+            "id": "Kungfu Build Images",
+            "version": "",
+            "path": ".buildchain/kfd/kfd-3/surfaces.json",
+            "sha256": "063d847ec2947f295daf947dd81f5c8ac1cdd91f70f4bb52447f5f50e1e07ec9",
+            "digest": "sha256:063d847ec2947f295daf947dd81f5c8ac1cdd91f70f4bb52447f5f50e1e07ec9"
+          },
+          "collaborationInterfaceDigest": "sha256:c5abf071afb3b54f48ce8717e3f8432449101e2570365fdbcd4681507fe6a5a0",
+          "exposedSurfaces": [
+            {
+              "id": "doc:docs/image-contract.md",
+              "name": "docs/image-contract.md",
+              "kind": "documentation",
+              "participantProfile": "",
+              "availability": "shipped",
+              "visibility": "public",
+              "participantFacing": true,
+              "public": true,
+              "sourcePath": "docs/image-contract.md",
+              "evidencePath": "docs/image-contract.md"
+            },
+            {
+              "id": "doc:docs/release-and-tags.md",
+              "name": "docs/release-and-tags.md",
+              "kind": "documentation",
+              "participantProfile": "",
+              "availability": "shipped",
+              "visibility": "public",
+              "participantFacing": true,
+              "public": true,
+              "sourcePath": "docs/release-and-tags.md",
+              "evidencePath": "docs/release-and-tags.md"
+            },
+            {
+              "id": "doc:docs/runner-boundary.md",
+              "name": "docs/runner-boundary.md",
+              "kind": "documentation",
+              "participantProfile": "",
+              "availability": "shipped",
+              "visibility": "public",
+              "participantFacing": true,
+              "public": true,
+              "sourcePath": "docs/runner-boundary.md",
+              "evidencePath": "docs/runner-boundary.md"
+            },
+            {
+              "id": "doc:readme.md",
+              "name": "README.md",
+              "kind": "documentation",
+              "participantProfile": "",
+              "availability": "shipped",
+              "visibility": "public",
+              "participantFacing": true,
+              "public": true,
+              "sourcePath": "README.md",
+              "evidencePath": "README.md"
+            }
+          ],
+          "residualRisk": [],
+          "extensionRequests": [],
+          "verifier": {},
+          "metadata": {
+            "kfdPackage": {
+              "name": "@kungfu-tech/kfd",
+              "version": "1.0.0-alpha.21",
+              "repository": "git+https://github.com/kungfu-systems/kfd.git"
+            },
+            "schemaIds": {
+              "metadata": "https://kfd.libkungfu.dev/schemas/kfd-standards.schema.json",
+              "collaborationInterface": "https://kfd.libkungfu.dev/schemas/kfd-3/collaboration-interface.schema.json",
+              "witness": "https://kfd.libkungfu.dev/schemas/kfd-3/witness.schema.json"
+            },
+            "schemaPaths": {
+              "metadata": "schemas/kfd-standards.schema.json",
+              "collaborationInterface": "schemas/kfd-3/collaboration-interface.schema.json",
+              "witness": "schemas/kfd-3/witness.schema.json"
+            },
+            "hasCollaborationSchemas": true
+          }
+        },
+        "declaredSurfaces": [
+          {
+            "id": "doc:docs/image-contract.md",
+            "name": "docs/image-contract.md",
+            "kind": "documentation",
+            "participantProfile": "",
+            "availability": "shipped",
+            "visibility": "public",
+            "participantFacing": true,
+            "public": true,
+            "sourcePath": "docs/image-contract.md",
+            "evidencePath": "docs/image-contract.md"
+          },
+          {
+            "id": "doc:docs/release-and-tags.md",
+            "name": "docs/release-and-tags.md",
+            "kind": "documentation",
+            "participantProfile": "",
+            "availability": "shipped",
+            "visibility": "public",
+            "participantFacing": true,
+            "public": true,
+            "sourcePath": "docs/release-and-tags.md",
+            "evidencePath": "docs/release-and-tags.md"
+          },
+          {
+            "id": "doc:docs/runner-boundary.md",
+            "name": "docs/runner-boundary.md",
+            "kind": "documentation",
+            "participantProfile": "",
+            "availability": "shipped",
+            "visibility": "public",
+            "participantFacing": true,
+            "public": true,
+            "sourcePath": "docs/runner-boundary.md",
+            "evidencePath": "docs/runner-boundary.md"
+          },
+          {
+            "id": "doc:readme.md",
+            "name": "README.md",
+            "kind": "documentation",
+            "participantProfile": "",
+            "availability": "shipped",
+            "visibility": "public",
+            "participantFacing": true,
+            "public": true,
+            "sourcePath": "README.md",
+            "evidencePath": "README.md"
+          }
+        ],
+        "exposedSurfaces": [
+          {
+            "id": "doc:docs/image-contract.md",
+            "name": "docs/image-contract.md",
+            "kind": "documentation",
+            "participantProfile": "",
+            "availability": "shipped",
+            "visibility": "public",
+            "participantFacing": true,
+            "public": true,
+            "sourcePath": "docs/image-contract.md",
+            "evidencePath": "docs/image-contract.md"
+          },
+          {
+            "id": "doc:docs/release-and-tags.md",
+            "name": "docs/release-and-tags.md",
+            "kind": "documentation",
+            "participantProfile": "",
+            "availability": "shipped",
+            "visibility": "public",
+            "participantFacing": true,
+            "public": true,
+            "sourcePath": "docs/release-and-tags.md",
+            "evidencePath": "docs/release-and-tags.md"
+          },
+          {
+            "id": "doc:docs/runner-boundary.md",
+            "name": "docs/runner-boundary.md",
+            "kind": "documentation",
+            "participantProfile": "",
+            "availability": "shipped",
+            "visibility": "public",
+            "participantFacing": true,
+            "public": true,
+            "sourcePath": "docs/runner-boundary.md",
+            "evidencePath": "docs/runner-boundary.md"
+          },
+          {
+            "id": "doc:readme.md",
+            "name": "README.md",
+            "kind": "documentation",
+            "participantProfile": "",
+            "availability": "shipped",
+            "visibility": "public",
+            "participantFacing": true,
+            "public": true,
+            "sourcePath": "README.md",
+            "evidencePath": "README.md"
+          }
+        ],
+        "factSource": {
+          "role": "product-owned",
+          "registry": {
+            "id": "Kungfu Build Images",
+            "version": "",
+            "path": ".buildchain/kfd/kfd-3/surfaces.json",
+            "sha256": "063d847ec2947f295daf947dd81f5c8ac1cdd91f70f4bb52447f5f50e1e07ec9",
+            "digest": "sha256:063d847ec2947f295daf947dd81f5c8ac1cdd91f70f4bb52447f5f50e1e07ec9"
+          },
+          "collaborationInterfaceDigest": "sha256:c5abf071afb3b54f48ce8717e3f8432449101e2570365fdbcd4681507fe6a5a0"
+        },
+        "witnessEvidence": {
+          "prebuild": {
+            "path": ".buildchain/kfd/kfd-3/collaboration-interface.prebuild.json",
+            "sha256": "0d6cdc05cdea21908d22b9e18244a02af466d28f80d6f18e61d77efc83a09e61",
+            "canonicalSha256": "dd86c00a4084a802ee12ccd5b4f30950d6ace8d4eb760723e196f08b7624ba91"
+          },
+          "artifact": {
+            "path": ".buildchain/kfd/kfd-3/collaboration-interface.artifact.json",
+            "sha256": "974d24dd7e62d3eda08c8361937f1f4f7fbce5aaa4ac8779ce02d115a8fc6f01",
+            "canonicalSha256": "3e59907caf1178face56c7c72cc390a8c9222dedc3eab4b6c1d9124fd4bc8638"
+          },
+          "artifactVerifyCommandSha256": ""
+        },
+        "auditBoundary": {
+          "mode": "closed-world",
+          "scope": "KFD-3 registered product public surfaces detected by Buildchain",
+          "reachableSurfaceMode": "declared-boundary",
+          "unclassifiedPolicy": "fail",
+          "nonExhaustivelyEnumerableSurfaces": [],
+          "explicitlyExemptedSurfaces": []
+        },
+        "residualRisk": [],
+        "responsibility": {
+          "registryFactsOwner": "product",
+          "artifactVerificationOwner": "Buildchain KFD-3 surface audit",
+          "releasePassportProofOwner": "Buildchain"
+        },
+        "releaseStatus": "enforced",
+        "trustProof": {
+          "contract": "kungfu-buildchain-kfd-3-passport-trust-proof",
+          "result": "pass",
+          "releaseStatus": "enforced",
+          "statement": "No unclassified reachable surface within the declared audit boundary.",
+          "factSourceRole": "product-owned-registry-and-witnesses",
+          "proofOwner": "buildchain-release-passport",
+          "declaredCapabilityVerification": {
+            "status": "passed",
+            "result": "passed",
+            "declaredCapabilityCount": 4,
+            "declaredShippedPublicSurfaceCount": 4,
+            "implementedPublicSurfaceCount": 4,
+            "missingDeclaredShipped": []
+          },
+          "reverseAudit": {
+            "status": "passed",
+            "auditBoundary": {
+              "mode": "closed-world",
+              "scope": "KFD-3 registered product public surfaces detected by Buildchain",
+              "reachableSurfaceMode": "declared-boundary",
+              "unclassifiedPolicy": "fail",
+              "nonExhaustivelyEnumerableSurfaces": [],
+              "explicitlyExemptedSurfaces": []
+            },
+            "reachablePublicSurfaceCount": 4,
+            "unclassifiedReachableSurfaces": [],
+            "explicitlyExemptedSurfaces": [],
+            "nonExhaustivelyEnumerableSurfaces": [],
+            "statement": "No unclassified reachable surface within the declared audit boundary."
+          },
+          "residualRisk": [],
+          "responsibility": {
+            "registryFactsOwner": "product",
+            "artifactVerificationOwner": "Buildchain KFD-3 surface audit",
+            "releasePassportProofOwner": "Buildchain"
+          }
+        },
+        "declaredCapabilityVerification": {
+          "status": "passed",
+          "result": "passed",
+          "declaredCapabilityCount": 4,
+          "declaredShippedPublicSurfaceCount": 4,
+          "implementedPublicSurfaceCount": 4,
+          "missingDeclaredShipped": []
+        },
+        "reverseAudit": {
+          "status": "passed",
+          "auditBoundary": {
+            "mode": "closed-world",
+            "scope": "KFD-3 registered product public surfaces detected by Buildchain",
+            "reachableSurfaceMode": "declared-boundary",
+            "unclassifiedPolicy": "fail",
+            "nonExhaustivelyEnumerableSurfaces": [],
+            "explicitlyExemptedSurfaces": []
+          },
+          "reachablePublicSurfaceCount": 4,
+          "unclassifiedReachableSurfaces": [],
+          "explicitlyExemptedSurfaces": [],
+          "nonExhaustivelyEnumerableSurfaces": [],
+          "statement": "No unclassified reachable surface within the declared audit boundary."
+        },
+        "comparison": {
+          "status": "passed",
+          "verifiedAt": "2026-07-13T11:03:15.306Z",
+          "supportLevel": "release",
+          "declaredPublicSurfaceCount": 4,
+          "declaredShippedPublicSurfaceCount": 4,
+          "artifactPublicSurfaceCount": 4,
+          "missingDeclaredShipped": [],
+          "unclassifiedArtifactPublic": [],
+          "reasons": []
+        }
+      }
+    ]
+  },
+  "versionImpact": {
+    "final": "patch",
+    "source": "build-images-surface-review",
+    "rationale": "The release preserves existing image names and consumer contracts while completing Buildchain routing, package-manager, font-scaling, and release-evidence behavior."
+  },
+  "surfaceImpacts": [
+    {
+      "id": "buildchain-dual-channel-consumer",
+      "impact": "patch",
+      "class": "release-governance",
+      "rationale": "The existing v1.2 image family now uses the standard Buildchain v2.12 alpha and stable router with separate locked contracts and unchanged image identifiers.",
+      "source": ".github/workflows/verify.yml"
+    },
+    {
+      "id": "node24-pnpm-runtime",
+      "impact": "patch",
+      "class": "container-runtime",
+      "rationale": "The existing Node 24 image exposes the repository-declared pnpm toolchain through Corepack without removing or renaming an existing runtime surface.",
+      "source": "images/node24-pnpm"
+    },
+    {
+      "id": "latex-pdf-builder-font-scaling",
+      "impact": "patch",
+      "class": "container-runtime",
+      "rationale": "The existing LaTeX image adds scalable CM-Super fonts so microtype font expansion works with the default Computer Modern family while preserving existing TeX entrypoints.",
+      "source": "images/latex-pdf-builder"
+    },
+    {
+      "id": "release-passport-impact-ledger",
+      "impact": "patch",
+      "class": "release-governance",
+      "rationale": "Stable publication now supplies the required surface impact ledger to the Buildchain release passport without changing the published OCI family contract.",
+      "source": ".buildchain/release-impact.json"
+    }
+  ],
+  "artifacts": [
+    {
+      "group": "image",
+      "kind": "oci",
+      "name": "ghcr.io/kungfu-systems/build-images/base-linux",
+      "ref": "v1.2.3-alpha.1",
+      "digest": "sha256:379d54fcd6f1892ad596aa20220dca92a862113886ce217ffcead45e966ff535",
+      "evidence": "../release-evidence/v1.2.3-alpha.1/evidence.json"
+    },
+    {
+      "group": "image",
+      "kind": "oci",
+      "name": "ghcr.io/kungfu-systems/build-images/kungfu-verify",
+      "ref": "v1.2.3-alpha.1",
+      "digest": "sha256:dee4823cd40fb0043bc36fd5b3eba5d35c861350037cec87387af57282c9b235",
+      "evidence": "../release-evidence/v1.2.3-alpha.1/evidence.json"
+    },
+    {
+      "group": "image",
+      "kind": "oci",
+      "name": "ghcr.io/kungfu-systems/build-images/node24-pnpm",
+      "ref": "v1.2.3-alpha.1",
+      "digest": "sha256:bd2e469d30b6b896bd18131f69b9740db875191d147fce0dbb4fe0eaa5b02d66",
+      "evidence": "../release-evidence/v1.2.3-alpha.1/evidence.json"
+    },
+    {
+      "group": "image",
+      "kind": "oci",
+      "name": "ghcr.io/kungfu-systems/build-images/latex-pdf-builder",
+      "ref": "v1.2.3-alpha.1",
+      "digest": "sha256:c518abad06830c368539a8ecb566998c9d86fbe5637956660040c8c3e3e3d310",
+      "evidence": "../release-evidence/v1.2.3-alpha.1/evidence.json"
+    },
+    {
+      "group": "image",
+      "kind": "oci",
+      "name": "ghcr.io/kungfu-systems/build-images/native-linux-x64",
+      "ref": "v1.2.3-alpha.1",
+      "digest": "sha256:dde7ec099e08ff498ffbc49bdae00be732d5901431641dbd58535316f90e9fe4",
+      "evidence": "../release-evidence/v1.2.3-alpha.1/evidence.json"
+    }
+  ],
+  "evidence": {
+    "artifactEvidence": "artifact-evidence.json",
+    "publishEvidence": "evidence.json",
+    "transactionState": "",
+    "buildSummary": "",
+    "buildFacts": [],
+    "platformArtifactManifests": [],
+    "distTagPromotionEvidence": "../release-evidence/v1.2.3-alpha.1/dist-tag-evidence.json",
+    "kfd1": "kfd-1",
+    "kfd2": "kfd-2",
+    "kfd3": "kfd-3",
+    "impact": "impact.json",
+    "checkReport": "check-report.json",
+    "agentIndex": "agent-index.json"
+  },
+  "recovery": {
+    "rollback": "Use the previous exact release tag or previous floating channel ref.",
+    "verify": "buildchain verify release-passport buildchain.release.json"
+  }
+}
