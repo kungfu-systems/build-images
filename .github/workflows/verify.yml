@@ -46,7 +46,8 @@ jobs:
         [{"id":"linux-x64","name":"Linux x64","runner":"[\"ubuntu-24.04\"]"}]
       setup-node: true
       node-version: "24"
-      install-command: pnpm install --frozen-lockfile
+      install-command: corepack pnpm@11.7.0 install --frozen-lockfile
+      verify-command: corepack pnpm@11.7.0 run check
       require-install: true
       require-build: false
       require-verify: true

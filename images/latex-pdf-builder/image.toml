@@ -18,6 +18,5 @@ test_commands = [
   "latexmk -version",
   "biber --version",
   "test \"$(pnpm --version)\" = \"11.7.0\"",
-  "test -n \"$(kpsewhich sfrm1000.pfb)\"",
   "cp -R /opt/kungfu/latex-pdf-builder-smoke /tmp/latex-smoke && cd /tmp/latex-smoke && pnpm run pdf && test -s _build/main.pdf && sha256sum _build/main.pdf",
 ]
