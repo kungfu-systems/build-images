@@ -35,12 +35,6 @@ The publish command verifies that:
 This keeps Docker credentials and Docker permissions inside the governed
 promotion job while preserving Buildchain's durable rerun/repair state.
 
-Build execution uses a separate registry-backed BuildKit cache for each image,
-contract major, and platform. Protected promotion may update mutable
-`buildcache-*` refs, while ordinary verification only reads them. Cache
-availability never changes the full-family build, smoke, exact-tag push, digest
-summary, public pull, publish evidence, or Release Passport contract.
-
 ## Exact Tags
 
 Exact repository tags map to exact image tags:
