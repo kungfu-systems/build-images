@@ -109,6 +109,7 @@
           "schema",
           "taxonomy",
           "claims",
+          "product-claims",
           "trust-claims",
           "trust-assessment",
           "upstream"
@@ -134,6 +135,10 @@
         "contractLock": {
           "path": ".buildchain/contract-lock.json",
           "exists": true
+        },
+        "kfd2ProductClaimsRegistry": {
+          "path": ".buildchain/kfd/kfd-2/registry.json",
+          "exists": false
         },
         "kfd3SurfaceRegistry": {
           "path": ".buildchain/kfd/kfd-3/surfaces.json",
@@ -169,7 +174,7 @@
         "roleValid": true,
         "package": {
           "name": "@kungfu-tech/buildchain",
-          "version": "2.11.9"
+          "version": "2.12.1"
         },
         "repository": "https://github.com/kungfu-systems/buildchain",
         "kfd": {
@@ -185,7 +190,7 @@
           {
             "path": "dist/site/kfd-claims.json",
             "kind": "package",
-            "sha256": "sha256:d520cef3f10481ebaf4143b681602d506b03ee6c62acd3a2057f0b0852b1b028",
+            "sha256": "sha256:b815464f238b7c3c0f784ad175262110accfd1740ecafaaa58e556d89d2b38c9",
             "contract": "kungfu-buildchain-kfd-claim-registry",
             "role": "",
             "directory": false
@@ -389,6 +394,7 @@
           "schema",
           "taxonomy",
           "claims",
+          "product-claims",
           "trust-claims",
           "trust-assessment",
           "upstream"
@@ -415,6 +421,10 @@
           "path": ".buildchain/contract-lock.json",
           "exists": true
         },
+        "kfd2ProductClaimsRegistry": {
+          "path": ".buildchain/kfd/kfd-2/registry.json",
+          "exists": false
+        },
         "kfd3SurfaceRegistry": {
           "path": ".buildchain/kfd/kfd-3/surfaces.json",
           "exists": true
@@ -432,7 +442,7 @@
         "kfd"
       ],
       "packageVersions": {
-        "buildchain": "2.11.9",
+        "buildchain": "2.12.1",
         "kfd": "1.0.0-alpha.21"
       },
       "status": "collected"
