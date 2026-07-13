@@ -20,3 +20,17 @@ if ! grep -Fq 'release-passport-impact-json: ".buildchain/release-impact.json"' 
   echo "Buildchain promotion must supply the production release passport impact ledger" >&2
   exit 1
 fi
+# shellcheck disable=SC2016
+if ! grep -Fq 'publish-required-artifacts-json: ${{ steps.required_artifacts.outputs.json }}' "$promotion_workflow"; then
+  echo "Buildchain promotion must require the exact five-image OCI family" >&2
+  exit 1
+fi
+# shellcheck disable=SC2016
+if ! grep -Fq 'python3 scripts/required-publish-artifacts.py --github-output "$GITHUB_OUTPUT"' "$promotion_workflow"; then
+  echo "Buildchain promotion must resolve image requirements from repository manifests" >&2
+  exit 1
+fi
+if ! grep -Fq 'fetch-depth: 0' "$promotion_workflow"; then
+  echo "Buildchain promotion must fetch history for the trusted lock acceptance baseline" >&2
+  exit 1
+fi

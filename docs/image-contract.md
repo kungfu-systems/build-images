@@ -68,4 +68,9 @@ Consumer repositories own their package-specific build commands.
 temporarily set `lock.status = "pending-first-publish"` in its manifest while it
 is waiting for the first Buildchain publish transaction to produce an immutable
 GHCR digest. After that release, the lock file should be updated with the
-published digest so consumer smoke can pull the new image by digest.
+published digest so consumer smoke can pull the new image by digest. Once an
+image participates in selective publication, its lock entry also records the
+normalized OCI platform, contract major, parent digest, immutable content
+coordinate, current release coordinate, and exact manifest smoke commands.
+These fields form one closed family: partial provenance is rejected instead of
+being treated as reusable content.

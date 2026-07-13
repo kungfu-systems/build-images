@@ -22,6 +22,7 @@ required_env BUILDCHAIN_PUBLISH_EVIDENCE
 image_tag="v${BUILDCHAIN_VERSION}"
 evidence_dir="${BUILDCHAIN_EVIDENCE_DIR:-$(dirname "$BUILDCHAIN_PUBLISH_EVIDENCE")}"
 summary_path="${evidence_dir}/image-digests.json"
+plan_path="${evidence_dir}/image-publish-plan.json"
 log_path="${BUILDCHAIN_LOG_PATH:-${evidence_dir}/buildchain-events.jsonl}"
 log_summary_path="${evidence_dir}/buildchain-log-summary.json"
 
@@ -29,6 +30,12 @@ mkdir -p "$evidence_dir"
 
 export BUILDCHAIN_REUSE_EXISTING_IMAGES="${BUILDCHAIN_REUSE_EXISTING_IMAGES:-true}"
 export BUILDCHAIN_LOG_PATH="$log_path"
+
+python3 "$repo_root/scripts/required-publish-artifacts.py" --verify-env >/dev/null
+python3 "$repo_root/scripts/plan-image-publish.py" \
+  --baseline-lock "$repo_root/images.lock.json" \
+  --current-source "$BUILDCHAIN_SOURCE_SHA" \
+  --output "$plan_path" >/dev/null
 
 bash "$repo_root/scripts/buildchain-toolkit.sh" span \
   --event image.family \
@@ -40,6 +47,7 @@ bash "$repo_root/scripts/buildchain-toolkit.sh" span \
   bash "$repo_root/scripts/build-image-family.sh" \
   --tag "$image_tag" \
   --push \
+  --plan "$plan_path" \
   --summary "$summary_path"
 
 bash "$repo_root/scripts/verify-ghcr-public.sh" --tag "$image_tag"
