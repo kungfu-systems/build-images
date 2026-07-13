@@ -16,12 +16,24 @@ else
 fi
 
 promotion_workflow="$repo_root/.github/workflows/buildchain-ref-promotion.yml"
-if ! grep -Fq 'release-passport-impact-json: ".buildchain/release-impact.json"' "$promotion_workflow"; then
-  echo "Buildchain promotion must supply the production release passport impact ledger" >&2
+if ! grep -Fq "uses: kungfu-systems/buildchain/actions/promote-buildchain-ref@v2-alpha" "$promotion_workflow" ||
+   ! grep -Fq "uses: kungfu-systems/buildchain/actions/promote-buildchain-ref@v2" "$promotion_workflow"; then
+  echo "Buildchain promotion must route alpha and stable channels to their matching action refs" >&2
   exit 1
 fi
 # shellcheck disable=SC2016
-if ! grep -Fq 'publish-required-artifacts-json: ${{ steps.required_artifacts.outputs.json }}' "$promotion_workflow"; then
+if ! grep -Fq "if: \${{ startsWith(steps.target_ref.outputs.target_ref, 'alpha/') }}" "$promotion_workflow" ||
+   ! grep -Fq "if: \${{ !startsWith(steps.target_ref.outputs.target_ref, 'alpha/') }}" "$promotion_workflow"; then
+  echo "Buildchain promotion action refs must be selected from the resolved target channel" >&2
+  exit 1
+fi
+# shellcheck disable=SC2016
+if ! grep -Fq "release-passport-impact-json: \${{ contains(steps.target_ref.outputs.target_ref, '/v1.2') && '.buildchain/release-impact.json' || '' }}" "$promotion_workflow"; then
+  echo "Buildchain promotion must supply the v1.2 production release passport impact ledger" >&2
+  exit 1
+fi
+# shellcheck disable=SC2016
+if ! grep -Fq "publish-required-artifacts-json: \${{ contains(steps.target_ref.outputs.target_ref, '/v1.2') && steps.required_artifacts.outputs.json || '' }}" "$promotion_workflow"; then
   echo "Buildchain promotion must require the exact five-image OCI family" >&2
   exit 1
 fi
