@@ -7,39 +7,39 @@
   },
   "contractWorld": {
     "schemaId": "https://kfd.libkungfu.dev/schemas/kfd-1/contract-world.schema.json",
-    "digest": "sha256:dcc1ec0a9c40275be07c7abb407cbc0736ffbaec8392ce5ffe68e7ab8a2c6aba"
+    "digest": "sha256:6c7d70513d9b16e34804e49faea51df7da900035e4280286c11d0329a2c7408f"
   },
   "canonicalPolicy": {
     "path": "docs/release-and-tags.md",
-    "sha256": "241af4bcaad773053ccb6cc0dd1005f3e230f97745b9f085f3bd844bc70a8759"
+    "sha256": "37571935bb6e9e2a2222678dce176baa3711928299e016f2bdea7fe6c399c5d2"
   },
   "registry": {
     "path": ".buildchain/kfd/kfd-3/surfaces.json",
-    "sha256": "0803566ce33b04f1cf0cc865d7b0bd40fad6586fd17053a64f9d74b607f70a6a"
+    "sha256": "d6d5f112c1d0284253e67f1e34af6fc03d7f868ba37357817d3396abf0c63fe5"
   },
   "surfaces": [
     {
       "name": "readme",
       "sourcePath": "README.md",
-      "sourceSha256": "85dea28d965105b22b97f94f64db40ea34c747bff8ccd9b5eb5ce2ad0b905a71",
+      "sourceSha256": "c68c594481bd0b684bdb42951c115b260153ea211c4d0fdd2f554c3af81e62e0",
       "artifactPath": "README.md",
-      "expectedSha256": "85dea28d965105b22b97f94f64db40ea34c747bff8ccd9b5eb5ce2ad0b905a71",
+      "expectedSha256": "c68c594481bd0b684bdb42951c115b260153ea211c4d0fdd2f554c3af81e62e0",
       "byteForByte": true
     },
     {
       "name": "image-contract",
       "sourcePath": "docs/image-contract.md",
-      "sourceSha256": "96d23b5bb417f94210bbf8a8858161fabe5fda8aae27b8bffdd10da7fb935e43",
+      "sourceSha256": "35291fa58b2e44ced74116a52a735aca89a4c80a7ae913647f9f755295468183",
       "artifactPath": "docs/image-contract.md",
-      "expectedSha256": "96d23b5bb417f94210bbf8a8858161fabe5fda8aae27b8bffdd10da7fb935e43",
+      "expectedSha256": "35291fa58b2e44ced74116a52a735aca89a4c80a7ae913647f9f755295468183",
       "byteForByte": true
     },
     {
       "name": "release-and-tags",
       "sourcePath": "docs/release-and-tags.md",
-      "sourceSha256": "241af4bcaad773053ccb6cc0dd1005f3e230f97745b9f085f3bd844bc70a8759",
+      "sourceSha256": "37571935bb6e9e2a2222678dce176baa3711928299e016f2bdea7fe6c399c5d2",
       "artifactPath": "docs/release-and-tags.md",
-      "expectedSha256": "241af4bcaad773053ccb6cc0dd1005f3e230f97745b9f085f3bd844bc70a8759",
+      "expectedSha256": "37571935bb6e9e2a2222678dce176baa3711928299e016f2bdea7fe6c399c5d2",
       "byteForByte": true
     },
     {
@@ -61,9 +61,9 @@
     {
       "name": "publish-evidence-writer",
       "sourcePath": "scripts/write-publish-evidence.py",
-      "sourceSha256": "307a68c4e92e8633c76b6fad3c1a9871fe40e0f8ec764e5bc12d4be54a0d73f1",
+      "sourceSha256": "5a83822e234e8e7bf453b5e4a40b3c621e3f401b9ef956fda353cccfcee48272",
       "artifactPath": "scripts/write-publish-evidence.py",
-      "expectedSha256": "307a68c4e92e8633c76b6fad3c1a9871fe40e0f8ec764e5bc12d4be54a0d73f1",
+      "expectedSha256": "5a83822e234e8e7bf453b5e4a40b3c621e3f401b9ef956fda353cccfcee48272",
       "byteForByte": true
     }
   ]

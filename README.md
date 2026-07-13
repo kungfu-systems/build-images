@@ -69,6 +69,14 @@ ghcr.io/kungfu-systems/build-images/latex-pdf-builder:v1.2.0-alpha.0
 ghcr.io/kungfu-systems/build-images/native-linux-x64:v1.0.0
 ```
 
+Release publication becomes selective only after a reviewed,
+provenance-complete `images.lock.json` exists. The changed image plus its
+downstream DAG closure is built; unchanged members are retagged from immutable
+accepted digests, publicly verified, and smoked again. Missing provenance or
+any unknown/global change fails closed to a full-family build. The Release
+Passport still contains all five images and records `built` versus `reused`
+content truthfully.
+
 See `docs/release-and-tags.md` for the tag and digest contract.
 
 ## Runner Boundary
