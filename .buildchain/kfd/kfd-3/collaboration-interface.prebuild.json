@@ -8,14 +8,14 @@
     "cwd": "",
     "sourceSha": "",
     "registryPath": ".buildchain/kfd/kfd-3/surfaces.json",
-    "registryDigest": "sha256:363d7f9c7987b0fe0487e353a668791db7d729209d8842864f117477e58609c9"
+    "registryDigest": "sha256:ef5016ddfcd6732f07ebec3ad89bb01b11321feaea5868b50323d0659e454335"
   },
   "sourceRegistry": {
     "id": "Kungfu Build Images",
     "path": ".buildchain/kfd/kfd-3/surfaces.json",
-    "sha256": "d6d5f112c1d0284253e67f1e34af6fc03d7f868ba37357817d3396abf0c63fe5"
+    "sha256": "519469029a8c2122e2ba45e53b848589f0e38cc9a0511a300d325c371f2679a3"
   },
-  "collaborationInterfaceDigest": "sha256:db970b7eec053c46062a863ff43bac8d90926a0508d39ae6a0d62ab671c57b2d",
+  "collaborationInterfaceDigest": "sha256:5ac954beb2a1e8a045e8e3eecc916731e76b4bdaf9494b9d347c5b8bfcaaf221",
   "collaborationInterface": {
     "schemaVersion": 1,
     "contract": "kungfu-buildchain-kfd-3-surface-registry",
@@ -103,7 +103,7 @@
         "policy": {},
         "facts": {
           "path": "README.md",
-          "sha256": "c68c594481bd0b684bdb42951c115b260153ea211c4d0fdd2f554c3af81e62e0"
+          "sha256": "66ff769b46a83ca30ef35e06e4e34a69cc75f55b53122f38d3ebcf46252cc567"
         },
         "declaration": {
           "owner": "product",
@@ -178,7 +178,7 @@
         "policy": {},
         "facts": {
           "path": "README.md",
-          "sha256": "c68c594481bd0b684bdb42951c115b260153ea211c4d0fdd2f554c3af81e62e0"
+          "sha256": "66ff769b46a83ca30ef35e06e4e34a69cc75f55b53122f38d3ebcf46252cc567"
         }
       }
     ],
@@ -279,7 +279,7 @@
             "policy": {},
             "facts": {
               "path": "README.md",
-              "sha256": "c68c594481bd0b684bdb42951c115b260153ea211c4d0fdd2f554c3af81e62e0"
+              "sha256": "66ff769b46a83ca30ef35e06e4e34a69cc75f55b53122f38d3ebcf46252cc567"
             }
           }
         ]
@@ -369,7 +369,7 @@
             "policy": {},
             "facts": {
               "path": "README.md",
-              "sha256": "c68c594481bd0b684bdb42951c115b260153ea211c4d0fdd2f554c3af81e62e0"
+              "sha256": "66ff769b46a83ca30ef35e06e4e34a69cc75f55b53122f38d3ebcf46252cc567"
             },
             "declaration": {
               "owner": "product",
@@ -456,7 +456,7 @@
             "policy": {},
             "facts": {
               "path": "README.md",
-              "sha256": "c68c594481bd0b684bdb42951c115b260153ea211c4d0fdd2f554c3af81e62e0"
+              "sha256": "66ff769b46a83ca30ef35e06e4e34a69cc75f55b53122f38d3ebcf46252cc567"
             }
           }
         ],
@@ -538,7 +538,7 @@
             "policy": {},
             "facts": {
               "path": "README.md",
-              "sha256": "c68c594481bd0b684bdb42951c115b260153ea211c4d0fdd2f554c3af81e62e0"
+              "sha256": "66ff769b46a83ca30ef35e06e4e34a69cc75f55b53122f38d3ebcf46252cc567"
             },
             "declaration": {
               "owner": "product",

@@ -86,3 +86,10 @@ publish. Do not grant Docker group membership or sudo to an existing self-hosted
 GitHub Actions runner service account.
 
 See `docs/runner-boundary.md`.
+
+## Comparator Pilot Environments
+
+Disposable, immutable-input Aeron, ClickHouse, PostgreSQL, and fail-closed
+Kungfu comparator environments live in [`pilots/comparator`](pilots/comparator/README.md).
+They provide unscored functional and recovery-path evidence only; Docker is not
+the authority for the native performance comparison.

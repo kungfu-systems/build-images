@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "pilot": {
+    "name": "kungfu-comparator-docker-pilot",
+    "status": "unscored",
+    "performance_authority": false,
+    "purpose": "Disposable functional and recovery-path qualification only",
+    "platform": "linux/amd64"
+  },
+  "runner": {
+    "image": "ghcr.io/kungfu-systems/build-images/kungfu-verify@sha256:cb6d939d567c129903d6e3ad858e2c09a9475b3b8f81b1aad10279d0e63a920d"
+  },
+  "profiles": {
+    "aeron": {
+      "status": "ready",
+      "version": "1.52.2",
+      "base_image": "eclipse-temurin:21.0.11_10-jre-jammy@sha256:d63bd8d9b171999cbed8576f2c76e874dd4856791a358536e5c4d407e77edc13",
+      "artifact_url": "https://repo.maven.apache.org/maven2/io/aeron/aeron-all/1.52.2/aeron-all-1.52.2.jar",
+      "artifact_sha256": "f02b1cc8660ee24235f41000f3b4a7af90730cc467519f2344672208e7195a6f",
+      "source": "https://github.com/aeron-io/aeron/releases/tag/1.52.2"
+    },
+    "clickhouse": {
+      "status": "ready",
+      "version": "26.3.10.60-lts",
+      "image": "clickhouse/clickhouse-server:26.3.10.60@sha256:92098d3b31dd01ba7d176faa3278d3577de9e32d847cd4b840dae8087b8d35b4",
+      "source": "https://github.com/ClickHouse/ClickHouse/releases/tag/v26.3.10.60-lts"
+    },
+    "postgres": {
+      "status": "ready",
+      "version": "18.4",
+      "image": "postgres:18.4-bookworm@sha256:d9c83446333daec3f0588cc709adb80c26090b7f9f0f7ec8d43c243385d79818",
+      "source": "https://www.postgresql.org/docs/release/18.4/"
+    },
+    "kungfu": {
+      "status": "blocked-unpublished",
+      "version": null,
+      "artifact_url": null,
+      "artifact_sha256": null,
+      "release_evidence_url": null,
+      "blocked_reason": "No public formal Kungfu product artifact is currently available. The shifu-v4.0.0-alpha.0 launcher release and disposable ADR-0049 qualification packages are not substitutes."
+    }
+  },
+  "configuration_slots": {
+    "realistic-default": {
+      "status": "active",
+      "claim_boundary": "Default-like settings for user-path qualification; no performance claim"
+    },
+    "expert-tuned": {
+      "status": "reserved",
+      "claim_boundary": "Requires a separately reviewed, product-specific tuning record"
+    }
+  }
+}

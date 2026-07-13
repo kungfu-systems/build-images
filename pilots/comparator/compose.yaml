@@ -1,0 +1,107 @@
+name: ${COMPARATOR_PROJECT_NAME:-kungfu-comparator-pilot}
+
+services:
+  runner:
+    image: ghcr.io/kungfu-systems/build-images/kungfu-verify@sha256:cb6d939d567c129903d6e3ad858e2c09a9475b3b8f81b1aad10279d0e63a920d
+    platform: linux/amd64
+    command: ["sh", "-c", "trap 'exit 0' TERM INT; while :; do sleep 30; done"]
+    profiles: ["aeron", "clickhouse", "postgres", "kungfu"]
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m
+    security_opt:
+      - no-new-privileges:true
+    networks: [pilot]
+    mem_limit: 256m
+    cpus: 0.50
+
+  aeron:
+    build:
+      context: ./images/aeron
+    platform: linux/amd64
+    command: ["sh", "-c", "trap 'exit 0' TERM INT; while :; do sleep 30; done"]
+    profiles: ["aeron"]
+    read_only: true
+    tmpfs:
+      - /tmp:size=128m
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - aeron-data:/var/lib/aeron
+    networks: [pilot]
+    mem_limit: 1g
+    cpus: 1.00
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:26.3.10.60@sha256:92098d3b31dd01ba7d176faa3278d3577de9e32d847cd4b840dae8087b8d35b4
+    platform: linux/amd64
+    profiles: ["clickhouse"]
+    environment:
+      CLICKHOUSE_DB: pilot
+      CLICKHOUSE_USER: pilot
+      CLICKHOUSE_PASSWORD: pilot-local-only
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"
+    healthcheck:
+      test: ["CMD-SHELL", "clickhouse-client --user pilot --password pilot-local-only --query 'SELECT 1'"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - clickhouse-data:/var/lib/clickhouse
+    networks: [pilot]
+    mem_limit: 2g
+    cpus: 2.00
+
+  postgres:
+    image: postgres:18.4-bookworm@sha256:d9c83446333daec3f0588cc709adb80c26090b7f9f0f7ec8d43c243385d79818
+    platform: linux/amd64
+    profiles: ["postgres"]
+    environment:
+      POSTGRES_DB: pilot
+      POSTGRES_USER: pilot
+      POSTGRES_PASSWORD: pilot-local-only
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pilot -d pilot"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks: [pilot]
+    mem_limit: 1g
+    cpus: 1.00
+
+  kungfu:
+    build:
+      context: ./images/kungfu
+      args:
+        KUNGFU_ARTIFACT_URL: ${KUNGFU_ARTIFACT_URL:-BLOCKED_NO_FORMAL_ARTIFACT}
+        KUNGFU_ARTIFACT_SHA256: ${KUNGFU_ARTIFACT_SHA256:-BLOCKED_NO_FORMAL_ARTIFACT}
+    platform: linux/amd64
+    command: ["sh", "-c", "trap 'exit 0' TERM INT; while :; do sleep 30; done"]
+    profiles: ["kungfu"]
+    read_only: true
+    tmpfs:
+      - /tmp:size=128m
+    cap_drop: ["ALL"]
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - kungfu-data:/var/lib/kungfu
+    networks: [pilot]
+    mem_limit: 2g
+    cpus: 2.00
+
+networks:
+  pilot:
+    internal: true
+
+volumes:
+  aeron-data:
+  clickhouse-data:
+  postgres-data:
+  kungfu-data:

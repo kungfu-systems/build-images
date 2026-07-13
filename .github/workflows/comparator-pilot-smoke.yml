@@ -1,0 +1,43 @@
+name: Comparator Pilot Smoke
+
+on:
+  pull_request:
+    paths:
+      - "pilots/comparator/**"
+      - ".github/workflows/comparator-pilot-smoke.yml"
+      - "package.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: comparator-pilot-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    name: unscored-${{ matrix.profile }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [aeron, clickhouse, postgres]
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Validate locked pilot contract
+        run: python3 pilots/comparator/scripts/comparator_pilot.py validate
+
+      - name: Run disposable unscored smoke
+        run: bash pilots/comparator/scripts/pilot.sh smoke "${{ matrix.profile }}" --execute
+
+      - name: Upload unscored evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: comparator-pilot-${{ matrix.profile }}-${{ github.run_id }}
+          path: pilots/comparator/.artifacts/
+          if-no-files-found: warn
+          retention-days: 7
