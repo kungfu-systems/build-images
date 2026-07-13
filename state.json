@@ -16,8 +16,8 @@
   "state_ref": "buildchain/release-state/1-2-1-alpha-5",
   "state_path": "/home/runner/work/build-images/build-images/.buildchain/release-state/v1.2.1-alpha.5.json",
   "evidence_path": "/home/runner/work/build-images/build-images/.buildchain/release-evidence/v1.2.1-alpha.5/evidence.json",
-  "state": "prepared",
-  "previous_state": "",
+  "state": "publishing",
+  "previous_state": "prepared",
   "actor": "kungfu-origin",
   "run_id": "29235792642",
   "superseded_by": "",
@@ -25,5 +25,5 @@
   "artifacts": [],
   "evidence": [],
   "created_at": "2026-07-13T08:32:55.420Z",
-  "updated_at": "2026-07-13T08:32:55.420Z"
+  "updated_at": "2026-07-13T08:32:56.842Z"
 }
