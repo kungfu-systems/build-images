@@ -28,6 +28,7 @@ log_summary_path="${evidence_dir}/buildchain-log-summary.json"
 mkdir -p "$evidence_dir"
 
 export BUILDCHAIN_REUSE_EXISTING_IMAGES="${BUILDCHAIN_REUSE_EXISTING_IMAGES:-true}"
+export BUILDCHAIN_REGISTRY_CACHE_WRITE="${BUILDCHAIN_REGISTRY_CACHE_WRITE:-true}"
 export BUILDCHAIN_LOG_PATH="$log_path"
 
 bash "$repo_root/scripts/buildchain-toolkit.sh" span \

@@ -14,6 +14,9 @@ buildchain_release_sha="${BUILDCHAIN_RELEASE_SHA:-}"
 buildchain_release_material_sha="${BUILDCHAIN_RELEASE_MATERIAL_SHA:-}"
 buildchain_publish_tooling_sha="${BUILDCHAIN_PUBLISH_TOOLING_SHA:-}"
 buildchain_target_ref="${BUILDCHAIN_TARGET_REF:-}"
+registry_cache_mode="${BUILDCHAIN_REGISTRY_CACHE_MODE:-auto}"
+registry_cache_write="${BUILDCHAIN_REGISTRY_CACHE_WRITE:-false}"
+registry_cache_contract="${BUILDCHAIN_REGISTRY_CACHE_CONTRACT:-v1}"
 
 usage() {
   cat <<'EOF'
@@ -64,6 +67,42 @@ if ! command -v docker >/dev/null 2>&1; then
   exit 1
 fi
 
+if ! docker buildx version >/dev/null 2>&1; then
+  echo "docker buildx is required for image builds" >&2
+  exit 1
+fi
+
+case "$registry_cache_mode" in
+  auto|off) ;;
+  *)
+    echo "BUILDCHAIN_REGISTRY_CACHE_MODE must be auto or off" >&2
+    exit 2
+    ;;
+esac
+
+case "$registry_cache_write" in
+  true|false) ;;
+  *)
+    echo "BUILDCHAIN_REGISTRY_CACHE_WRITE must be true or false" >&2
+    exit 2
+    ;;
+esac
+
+case "$registry_cache_contract" in
+  [A-Za-z0-9_]*) ;;
+  *)
+    echo "BUILDCHAIN_REGISTRY_CACHE_CONTRACT must be a non-empty OCI tag component" >&2
+    exit 2
+    ;;
+esac
+
+case "$registry_cache_contract" in
+  *[!A-Za-z0-9_.-]*)
+    echo "BUILDCHAIN_REGISTRY_CACHE_CONTRACT must be a non-empty OCI tag component" >&2
+    exit 2
+    ;;
+esac
+
 if [ -z "$buildchain_version" ]; then
   buildchain_version="${image_tag#v}"
 fi
@@ -100,9 +139,30 @@ base = json.load(open(sys.argv[1], encoding="utf-8"))["images"][int(sys.argv[2])
 print(base or "")
 PY
 )"
+  contract_major="$(python3 - "$repo_root/$image_path/image.toml" <<'PY'
+import sys, tomllib
+print(tomllib.load(open(sys.argv[1], "rb"))["contract_major"])
+PY
+)"
+  manifest_platform="$(python3 - "$repo_root/$image_path/image.toml" <<'PY'
+import sys, tomllib
+print(tomllib.load(open(sys.argv[1], "rb"))["platform"])
+PY
+)"
+  case "$manifest_platform" in
+    linux-x64)
+      build_platform="linux/amd64"
+      cache_platform="linux-amd64"
+      ;;
+    *)
+      echo "Unsupported image platform for ${image_name}: ${manifest_platform}" >&2
+      exit 2
+      ;;
+  esac
 
   image_ref="${registry}/${image_name}:${image_tag}"
   image_repository="${registry}/${image_name}"
+  cache_ref="${image_repository}:buildcache-c${contract_major}-${cache_platform}-${registry_cache_contract}"
   build_args=()
   if [ -n "$base_image" ]; then
     build_args+=(--build-arg "BASE_IMAGE=${registry}/${base_image}:${image_tag}")
@@ -154,7 +214,25 @@ PY
 
   if [ "$reused_existing" != "true" ]; then
     echo "::group::build ${image_ref}"
-    docker build "${build_args[@]}" -t "$image_ref" "$repo_root/$image_path"
+    build_command=(
+      docker buildx build
+      --load
+      --platform "$build_platform"
+    )
+    if [ "$registry_cache_mode" = "auto" ]; then
+      build_command+=(--cache-from "type=registry,ref=${cache_ref}")
+      echo "Registry cache read: ${cache_ref}"
+      if [ "$push_images" = "true" ] && [ "$registry_cache_write" = "true" ]; then
+        build_command+=(--cache-to "type=registry,ref=${cache_ref},mode=max,ignore-error=true")
+        echo "Registry cache write: ${cache_ref}"
+      else
+        echo "Registry cache write: disabled"
+      fi
+    else
+      echo "Registry cache: disabled"
+    fi
+    build_command+=("${build_args[@]}" -t "$image_ref" "$repo_root/$image_path")
+    "${build_command[@]}"
     echo "::endgroup::"
 
     test_count="$(python3 - "$repo_root/$image_path/image.toml" <<'PY'
