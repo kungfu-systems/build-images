@@ -137,8 +137,13 @@ def assert_git_baseline() -> None:
         cwd=ROOT,
     )
     plan = json.loads(result.stdout)
-    assert plan["selection"]["full_rebuild"] is True
-    assert all(image["action"] == "built" for image in plan["images"])
+    selected = set(plan["selection"]["selected_images"])
+    assert all(
+        image["action"] == ("built" if image["name"] in selected else "reused")
+        for image in plan["images"]
+    )
+    if plan["selection"]["full_rebuild"]:
+        assert selected == {image["name"] for image in plan["images"]}
     if plan["baseline"]["acceptance_sha"]:
         assert plan["baseline"]["eligible"] is True
     else:
