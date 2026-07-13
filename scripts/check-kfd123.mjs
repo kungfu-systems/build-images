@@ -133,12 +133,25 @@ function checkContractLocks() {
       compatibilityPolicy: stableLock?.buildchain?.compatibilityPolicy || "major-compatible",
     });
     assertPassed(stableEvaluation.ok, `Stable Buildchain contract lock failed: ${(stableEvaluation.reasons || []).join("; ")}`);
+    const alphaEvaluation = evaluateBuildchainContractLock({
+      lock: alphaLock,
+      current,
+      runtimeRef: alphaLock?.buildchain?.ref || "v2-alpha",
+      runtimeSha: alphaLock?.buildchain?.resolvedSha || "",
+      runtimeClass: "alpha",
+      compatibilityPolicy: alphaLock?.buildchain?.compatibilityPolicy || "major-compatible",
+    });
+    assertPassed(alphaEvaluation.ok, `Alpha Buildchain contract lock failed: ${(alphaEvaluation.reasons || []).join("; ")}`);
+    assertPassed(
+      alphaLock.buildchain.contractDigest === current.contractDigest,
+      "Alpha Buildchain contract lock must match the installed Buildchain contract exactly",
+    );
     assertPassed(stableLock.buildchain.ref === "v2", `Stable Buildchain ref must be v2, got ${stableLock.buildchain.ref}`);
     assertPassed(alphaLock.buildchain.ref === "v2-alpha", `Alpha Buildchain ref must be v2-alpha, got ${alphaLock.buildchain.ref}`);
     assertPassed(alphaLock.buildchain.majorLine === stableLock.buildchain.majorLine, "Alpha and stable Buildchain locks must use the same major line");
     assertPassed(alphaLock.buildchain.compatibilityPolicy === "major-compatible", "Alpha Buildchain lock must use major-compatible policy");
     assertPassed(alphaLock.buildchain.compatibilityDigest === stableLock.buildchain.compatibilityDigest, "Alpha and stable Buildchain contracts are not major-compatible");
-    return { stableEvaluation, stableLock, alphaLock };
+    return { stableEvaluation, alphaEvaluation, stableLock, alphaLock };
   } finally {
     fs.rmSync(repoPath(".buildchain/tmp"), { recursive: true, force: true });
   }
@@ -415,9 +428,13 @@ function main() {
     buildchain: {
       configPath: layout.paths.config.path,
       alphaContractLockRef: contractLocks.alphaLock.buildchain.ref,
+      alphaContractLockStatus: contractLocks.alphaEvaluation.status,
+      alphaContractDrift: Boolean(contractLocks.alphaEvaluation.drift),
+      alphaContractDigest: contractLocks.alphaLock.buildchain.contractDigest,
       stableContractLockRef: contractLocks.stableLock.buildchain.ref,
       stableContractLockStatus: contractLocks.stableEvaluation.status,
       stableContractDrift: Boolean(contractLocks.stableEvaluation.drift),
+      stableContractDigest: contractLocks.stableLock.buildchain.contractDigest,
     },
     kfd1: {
       witness: ".buildchain/kfd/kfd-1/build-images-contract-world.witness.json",

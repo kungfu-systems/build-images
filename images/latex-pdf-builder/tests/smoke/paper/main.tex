@@ -2,6 +2,7 @@
 \usepackage[T1]{fontenc}
 \usepackage[expansion=true]{microtype}
 \usepackage{amsmath}
+\microtypesetup{activate=true, expansion=true}
 
 \title{Kungfu PDF Builder Smoke}
 \author{Kungfu Systems}
@@ -11,7 +12,8 @@
 \maketitle
 
 This fixture proves that the image can build a publication-style PDF through a
-pnpm-managed command.
+pnpm-managed command. Scalable T1 fonts keep automatic microtype expansion
+enabled throughout the document.
 
 \[
   E = mc^2

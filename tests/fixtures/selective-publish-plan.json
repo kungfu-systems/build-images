@@ -1,0 +1,107 @@
+{
+  "schema": 1,
+  "cases": [
+    {
+      "name": "latex-context-only",
+      "changed_paths": ["images/latex-pdf-builder/Dockerfile"],
+      "selected_images": ["latex-pdf-builder"],
+      "full_rebuild": false
+    },
+    {
+      "name": "node-context-propagates-to-latex",
+      "changed_paths": ["images/node24-pnpm/tests/smoke.sh"],
+      "selected_images": ["node24-pnpm", "latex-pdf-builder"],
+      "full_rebuild": false
+    },
+    {
+      "name": "native-context-only",
+      "changed_paths": ["images/native-linux-x64/Dockerfile"],
+      "selected_images": ["native-linux-x64"],
+      "full_rebuild": false
+    },
+    {
+      "name": "base-context-propagates-to-family",
+      "changed_paths": ["images/base-linux/Dockerfile"],
+      "selected_images": [
+        "base-linux",
+        "kungfu-verify",
+        "node24-pnpm",
+        "latex-pdf-builder",
+        "native-linux-x64"
+      ],
+      "full_rebuild": true
+    },
+    {
+      "name": "manifest-is-global",
+      "changed_paths": ["images/node24-pnpm/image.toml"],
+      "selected_images": [
+        "base-linux",
+        "kungfu-verify",
+        "node24-pnpm",
+        "latex-pdf-builder",
+        "native-linux-x64"
+      ],
+      "full_rebuild": true
+    },
+    {
+      "name": "dag-resolver-is-global",
+      "changed_paths": ["scripts/resolve-image-dag.py"],
+      "selected_images": [
+        "base-linux",
+        "kungfu-verify",
+        "node24-pnpm",
+        "latex-pdf-builder",
+        "native-linux-x64"
+      ],
+      "full_rebuild": true
+    },
+    {
+      "name": "publisher-is-global",
+      "changed_paths": ["scripts/publish-image-family.sh"],
+      "selected_images": [
+        "base-linux",
+        "kungfu-verify",
+        "node24-pnpm",
+        "latex-pdf-builder",
+        "native-linux-x64"
+      ],
+      "full_rebuild": true
+    },
+    {
+      "name": "buildchain-config-is-global",
+      "changed_paths": [".buildchain/buildchain.toml"],
+      "selected_images": [
+        "base-linux",
+        "kungfu-verify",
+        "node24-pnpm",
+        "latex-pdf-builder",
+        "native-linux-x64"
+      ],
+      "full_rebuild": true
+    },
+    {
+      "name": "unknown-path-is-global",
+      "changed_paths": ["docs/release-and-tags.md"],
+      "selected_images": [
+        "base-linux",
+        "kungfu-verify",
+        "node24-pnpm",
+        "latex-pdf-builder",
+        "native-linux-x64"
+      ],
+      "full_rebuild": true
+    },
+    {
+      "name": "empty-baseline-is-global",
+      "changed_paths": [],
+      "selected_images": [
+        "base-linux",
+        "kungfu-verify",
+        "node24-pnpm",
+        "latex-pdf-builder",
+        "native-linux-x64"
+      ],
+      "full_rebuild": true
+    }
+  ]
+}

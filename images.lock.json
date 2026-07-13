@@ -1,13 +1,29 @@
 {
   "schema": 1,
-  "tag": "v1.2.1-alpha.3",
-  "source": "031a9c927dd302df74684989831f01f81d382572",
-  "publish_run": "https://github.com/kungfu-systems/build-images/actions/runs/29233734962",
+  "tag": "v1.2.3-alpha.7",
+  "source": "f6ba62bc8d6cb608ac31c1fdeb51376b41b58ed4",
+  "publish_run": "https://github.com/kungfu-systems/build-images/actions/runs/29260662451",
   "images": [
     {
       "name": "base-linux",
       "image": "ghcr.io/kungfu-systems/build-images/base-linux",
-      "digest": "sha256:3b2ec1707f36b7366fc0e906184c536deeb488fb9ca3cc64e0b9b08d4b89b755",
+      "digest": "sha256:a272eba09a8f5e7936af895d29aa909af7e52bb4315731cfc94bb56b3484933b",
+      "platform": "linux/amd64",
+      "contract_major": 1,
+      "parent_digest": null,
+      "content": {
+        "material_sha": "d21ee3c0eea945dd13359d190f3adcc5c630404f",
+        "ref": "v1.2.3-alpha.6",
+        "source_sha": "d77b1dda061450e5220c223f489589d0e2e17e57",
+        "version": "1.2.3-alpha.6"
+      },
+      "release": {
+        "material_sha": "467ed6a94bef732eba7ab62d4554c7348ae208c3",
+        "ref": "v1.2.3-alpha.7",
+        "source_sha": "f6ba62bc8d6cb608ac31c1fdeb51376b41b58ed4",
+        "target_ref": "alpha/v1/v1.2",
+        "version": "1.2.3-alpha.7"
+      },
       "test_commands": [
         "cat /etc/os-release",
         "git --version",
@@ -17,7 +33,23 @@
     {
       "name": "kungfu-verify",
       "image": "ghcr.io/kungfu-systems/build-images/kungfu-verify",
-      "digest": "sha256:0ddac2d69498c9a1930764d9551e146c47feca3413ec1de054edb8690f3778b2",
+      "digest": "sha256:cb6d939d567c129903d6e3ad858e2c09a9475b3b8f81b1aad10279d0e63a920d",
+      "platform": "linux/amd64",
+      "contract_major": 1,
+      "parent_digest": "sha256:a272eba09a8f5e7936af895d29aa909af7e52bb4315731cfc94bb56b3484933b",
+      "content": {
+        "material_sha": "d21ee3c0eea945dd13359d190f3adcc5c630404f",
+        "ref": "v1.2.3-alpha.6",
+        "source_sha": "d77b1dda061450e5220c223f489589d0e2e17e57",
+        "version": "1.2.3-alpha.6"
+      },
+      "release": {
+        "material_sha": "467ed6a94bef732eba7ab62d4554c7348ae208c3",
+        "ref": "v1.2.3-alpha.7",
+        "source_sha": "f6ba62bc8d6cb608ac31c1fdeb51376b41b58ed4",
+        "target_ref": "alpha/v1/v1.2",
+        "version": "1.2.3-alpha.7"
+      },
       "test_commands": [
         "git --version",
         "fnm --version",
@@ -27,9 +59,53 @@
       ]
     },
     {
+      "name": "latex-pdf-builder",
+      "image": "ghcr.io/kungfu-systems/build-images/latex-pdf-builder",
+      "digest": "sha256:bfd554bb525316ad2ff289da029a2dd7c9d490bb0eeb63a45706df315dea8b7d",
+      "platform": "linux/amd64",
+      "contract_major": 1,
+      "parent_digest": "sha256:595a216d746970e0fbb2df0069b2b52eb58e526ad14d5b33486cbdc33757f8bb",
+      "content": {
+        "material_sha": "467ed6a94bef732eba7ab62d4554c7348ae208c3",
+        "ref": "v1.2.3-alpha.7",
+        "source_sha": "f6ba62bc8d6cb608ac31c1fdeb51376b41b58ed4",
+        "version": "1.2.3-alpha.7"
+      },
+      "release": {
+        "material_sha": "467ed6a94bef732eba7ab62d4554c7348ae208c3",
+        "ref": "v1.2.3-alpha.7",
+        "source_sha": "f6ba62bc8d6cb608ac31c1fdeb51376b41b58ed4",
+        "target_ref": "alpha/v1/v1.2",
+        "version": "1.2.3-alpha.7"
+      },
+      "test_commands": [
+        "latexmk -version",
+        "biber --version",
+        "test \"$(pnpm --version)\" = \"11.7.0\"",
+        "test -n \"$(kpsewhich sfrm1000.pfb)\"",
+        "cp -R /opt/kungfu/latex-pdf-builder-smoke /tmp/latex-smoke && cd /tmp/latex-smoke && pnpm run pdf && test -s _build/main.pdf && sha256sum _build/main.pdf"
+      ]
+    },
+    {
       "name": "native-linux-x64",
       "image": "ghcr.io/kungfu-systems/build-images/native-linux-x64",
-      "digest": "sha256:f3697bc8b7b4ee5213f501d3bc19eb50257f43c80f9af7c79a4e67ac0194a121",
+      "digest": "sha256:a9313d8911e4f81af46436784f7a6a6c436b5d0f040ac9607204cbc91634a1ba",
+      "platform": "linux/amd64",
+      "contract_major": 1,
+      "parent_digest": "sha256:a272eba09a8f5e7936af895d29aa909af7e52bb4315731cfc94bb56b3484933b",
+      "content": {
+        "material_sha": "d21ee3c0eea945dd13359d190f3adcc5c630404f",
+        "ref": "v1.2.3-alpha.6",
+        "source_sha": "d77b1dda061450e5220c223f489589d0e2e17e57",
+        "version": "1.2.3-alpha.6"
+      },
+      "release": {
+        "material_sha": "467ed6a94bef732eba7ab62d4554c7348ae208c3",
+        "ref": "v1.2.3-alpha.7",
+        "source_sha": "f6ba62bc8d6cb608ac31c1fdeb51376b41b58ed4",
+        "target_ref": "alpha/v1/v1.2",
+        "version": "1.2.3-alpha.7"
+      },
       "test_commands": [
         "cmake --version",
         "ninja --version",
@@ -40,23 +116,27 @@
     {
       "name": "node24-pnpm",
       "image": "ghcr.io/kungfu-systems/build-images/node24-pnpm",
-      "digest": "sha256:76f708cb8ae6f681c5a035cbfb8ec751535c39fa47443a8c356c905244bdb773",
+      "digest": "sha256:595a216d746970e0fbb2df0069b2b52eb58e526ad14d5b33486cbdc33757f8bb",
+      "platform": "linux/amd64",
+      "contract_major": 1,
+      "parent_digest": "sha256:a272eba09a8f5e7936af895d29aa909af7e52bb4315731cfc94bb56b3484933b",
+      "content": {
+        "material_sha": "d21ee3c0eea945dd13359d190f3adcc5c630404f",
+        "ref": "v1.2.3-alpha.6",
+        "source_sha": "d77b1dda061450e5220c223f489589d0e2e17e57",
+        "version": "1.2.3-alpha.6"
+      },
+      "release": {
+        "material_sha": "467ed6a94bef732eba7ab62d4554c7348ae208c3",
+        "ref": "v1.2.3-alpha.7",
+        "source_sha": "f6ba62bc8d6cb608ac31c1fdeb51376b41b58ed4",
+        "target_ref": "alpha/v1/v1.2",
+        "version": "1.2.3-alpha.7"
+      },
       "test_commands": [
         "node --version",
         "corepack --version",
         "test \"$(pnpm --version)\" = \"11.7.0\""
-      ]
-    },
-    {
-      "name": "latex-pdf-builder",
-      "image": "ghcr.io/kungfu-systems/build-images/latex-pdf-builder",
-      "digest": "sha256:f99ff3ba5ef09b7bb5fbf00f1718003a89fec2aa12cc9403d980827890231005",
-      "test_commands": [
-        "latexmk -version",
-        "biber --version",
-        "test \"$(pnpm --version)\" = \"11.7.0\"",
-        "test -n \"$(kpsewhich sfrm1000.pfb)\"",
-        "cp -R /opt/kungfu/latex-pdf-builder-smoke /tmp/latex-smoke && cd /tmp/latex-smoke && pnpm run pdf && test -s _build/main.pdf && sha256sum _build/main.pdf"
       ]
     }
   ]
