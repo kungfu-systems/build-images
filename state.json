@@ -16,14 +16,63 @@
   "state_ref": "buildchain/release-state/1-2-1-alpha-3",
   "state_path": "/home/runner/work/build-images/build-images/.buildchain/release-state/v1.2.1-alpha.3.json",
   "evidence_path": "/home/runner/work/build-images/build-images/.buildchain/release-evidence/v1.2.1-alpha.3/evidence.json",
-  "state": "publishing",
-  "previous_state": "prepared",
+  "state": "published",
+  "previous_state": "publishing",
   "actor": "kungfu-origin",
   "run_id": "29233734962",
   "superseded_by": "",
   "failure": "",
-  "artifacts": [],
-  "evidence": [],
+  "artifacts": [
+    {
+      "group": "image",
+      "kind": "oci",
+      "name": "ghcr.io/kungfu-systems/build-images/base-linux",
+      "ref": "v1.2.1-alpha.3",
+      "digest": "sha256:3b2ec1707f36b7366fc0e906184c536deeb488fb9ca3cc64e0b9b08d4b89b755",
+      "role": "",
+      "required": true
+    },
+    {
+      "group": "image",
+      "kind": "oci",
+      "name": "ghcr.io/kungfu-systems/build-images/kungfu-verify",
+      "ref": "v1.2.1-alpha.3",
+      "digest": "sha256:0ddac2d69498c9a1930764d9551e146c47feca3413ec1de054edb8690f3778b2",
+      "role": "",
+      "required": true
+    },
+    {
+      "group": "image",
+      "kind": "oci",
+      "name": "ghcr.io/kungfu-systems/build-images/node24-pnpm",
+      "ref": "v1.2.1-alpha.3",
+      "digest": "sha256:76f708cb8ae6f681c5a035cbfb8ec751535c39fa47443a8c356c905244bdb773",
+      "role": "",
+      "required": true
+    },
+    {
+      "group": "image",
+      "kind": "oci",
+      "name": "ghcr.io/kungfu-systems/build-images/latex-pdf-builder",
+      "ref": "v1.2.1-alpha.3",
+      "digest": "sha256:f99ff3ba5ef09b7bb5fbf00f1718003a89fec2aa12cc9403d980827890231005",
+      "role": "",
+      "required": true
+    },
+    {
+      "group": "image",
+      "kind": "oci",
+      "name": "ghcr.io/kungfu-systems/build-images/native-linux-x64",
+      "ref": "v1.2.1-alpha.3",
+      "digest": "sha256:f3697bc8b7b4ee5213f501d3bc19eb50257f43c80f9af7c79a4e67ac0194a121",
+      "role": "",
+      "required": true
+    }
+  ],
+  "evidence": [
+    ".buildchain/release-evidence/v1.2.1-alpha.3/evidence.json",
+    ".buildchain/release-evidence/v1.2.1-alpha.3/dist-tag-evidence.json"
+  ],
   "created_at": "2026-07-13T07:57:31.104Z",
-  "updated_at": "2026-07-13T07:57:32.189Z"
+  "updated_at": "2026-07-13T08:02:02.288Z"
 }
