@@ -1,13 +1,13 @@
 {
   "schema": 1,
-  "tag": "v1.2.1-alpha.3",
-  "source": "031a9c927dd302df74684989831f01f81d382572",
-  "publish_run": "https://github.com/kungfu-systems/build-images/actions/runs/29233734962",
+  "tag": "v1.2.3-alpha.0",
+  "source": "b5b1ceca32be6eebc2bc52503ac3e6b8d6909c91",
+  "publish_run": "https://github.com/kungfu-systems/build-images/actions/runs/29243481799",
   "images": [
     {
       "name": "base-linux",
       "image": "ghcr.io/kungfu-systems/build-images/base-linux",
-      "digest": "sha256:3b2ec1707f36b7366fc0e906184c536deeb488fb9ca3cc64e0b9b08d4b89b755",
+      "digest": "sha256:e1cb3e65449120793c80d2d1826583adfd1a7e294f7c4f561044535f50418e1a",
       "test_commands": [
         "cat /etc/os-release",
         "git --version",
@@ -17,7 +17,7 @@
     {
       "name": "kungfu-verify",
       "image": "ghcr.io/kungfu-systems/build-images/kungfu-verify",
-      "digest": "sha256:0ddac2d69498c9a1930764d9551e146c47feca3413ec1de054edb8690f3778b2",
+      "digest": "sha256:0e5d8c9efc864683ffed820b209937cd6e0b9f91948a6c50e6d919a5b74229df",
       "test_commands": [
         "git --version",
         "fnm --version",
@@ -29,7 +29,7 @@
     {
       "name": "native-linux-x64",
       "image": "ghcr.io/kungfu-systems/build-images/native-linux-x64",
-      "digest": "sha256:f3697bc8b7b4ee5213f501d3bc19eb50257f43c80f9af7c79a4e67ac0194a121",
+      "digest": "sha256:fdde8302a2ce9362548e92ac5319ec30c1ca11a3d6cc2c3e95921a00eb17baa0",
       "test_commands": [
         "cmake --version",
         "ninja --version",
@@ -40,7 +40,7 @@
     {
       "name": "node24-pnpm",
       "image": "ghcr.io/kungfu-systems/build-images/node24-pnpm",
-      "digest": "sha256:76f708cb8ae6f681c5a035cbfb8ec751535c39fa47443a8c356c905244bdb773",
+      "digest": "sha256:62e5c451c82b7d52c62c9ae6629bb31cb7933bd794bd320a00ccdb8a0ada951b",
       "test_commands": [
         "node --version",
         "corepack --version",
@@ -50,7 +50,7 @@
     {
       "name": "latex-pdf-builder",
       "image": "ghcr.io/kungfu-systems/build-images/latex-pdf-builder",
-      "digest": "sha256:f99ff3ba5ef09b7bb5fbf00f1718003a89fec2aa12cc9403d980827890231005",
+      "digest": "sha256:7b673e110d50e9cc2c59f4c07db602066105ccd41622c2606dbbae2b055f36a9",
       "test_commands": [
         "latexmk -version",
         "biber --version",
