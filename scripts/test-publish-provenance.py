@@ -219,6 +219,31 @@ def assert_required_family() -> list[dict]:
     artifacts = json.loads(result.stdout)
     assert len(artifacts) == 5
     assert {artifact["ref_template"] for artifact in artifacts} == {"v{version}"}
+    buildchain_resolution = """
+import { pathToFileURL } from 'node:url';
+const { resolvePublishArtifactRequirements } = await import(pathToFileURL(process.argv[1]).href);
+const artifacts = JSON.parse(process.argv[2]);
+process.stdout.write(JSON.stringify(resolvePublishArtifactRequirements(artifacts, {
+  version: '1.2.3-alpha.4',
+})));
+"""
+    buildchain_result = subprocess.run(
+        [
+            "node",
+            "--input-type=module",
+            "--eval",
+            buildchain_resolution,
+            str(BUILDCHAIN_PUBLISH_TRANSACTION),
+            json.dumps(artifacts),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+        cwd=ROOT,
+    )
+    buildchain_artifacts = json.loads(buildchain_result.stdout)
+    assert {artifact["ref"] for artifact in buildchain_artifacts} == {"v1.2.3-alpha.4"}
+    assert all("ref_template" not in artifact for artifact in buildchain_artifacts)
     resolved = [
         {**{key: value for key, value in artifact.items() if key != "ref_template"}, "ref": "v1.2.3-alpha.4"}
         for artifact in artifacts
