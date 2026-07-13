@@ -5,7 +5,9 @@ Pinned LaTeX PDF builder for Kungfu publication-artifact repositories.
 This image extends `node24-pnpm`, which extends the Kungfu `base-linux` image.
 The inherited toolchain provides the non-root `kungfu` user, Node.js 24, and
 `pnpm@11.7.0`. This layer adds `latexmk`, `biber`, Ghostscript, and a practical
-TeX Live package set for paper-style PDF builds.
+TeX Live package set for paper-style PDF builds. CM-Super provides scalable
+Type 1 defaults for T1-encoded documents so microtype font expansion works
+without requiring a document-level font substitution.
 
 ## Usage
 

@@ -11,6 +11,13 @@ land on `dev/vN/vN.M`, reviewed channel promotion moves through
 `alpha/vN/vN.M` and `release/vN/vN.M`, and Buildchain creates the exact
 version-state commits plus exact/floating tags.
 
+The `Verify` workflow uses the stable `build.yml@v2` router with
+`buildchain-channel: auto`. Pull requests, development branches, and alpha
+promotion select `v2-alpha` plus `.buildchain/alpha-contract-lock.json`;
+release promotion selects stable `v2` plus `.buildchain/contract-lock.json`.
+Both locks use the `major-compatible` policy, so additive runtime movement is
+reported while incompatible contract drift fails before lifecycle work.
+
 Image publishing is a Buildchain publish transaction. The promotion workflow
 creates or resumes the release transaction, builds or reuses exact OCI image
 tags, writes publish evidence, and only then lets Buildchain move exact and
@@ -90,8 +97,9 @@ publishing job.
 Image publishing is intentionally separated from normal pull request
 verification.
 
-- Pull requests use the `Verify` workflow and do not receive package write
-  permission.
+- Pull requests use the reusable Buildchain `Verify` workflow and do not
+  receive package write permission. The final `check` job preserves the status
+  context required by protected channel branches.
 - Feature branches merge to the active `dev/vN/vN.M` branch first. Buildchain
   alpha promotion is then triggered by a protected pull request from
   `dev/vN/vN.M` to `alpha/vN/vN.M`; do not merge feature branches directly into

@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "contract": "kungfu-buildchain-kfd-3-surface-registry",
+  "product": {
+    "name": "Kungfu Build Images"
+  },
+  "registryPath": ".buildchain/kfd/kfd-3/surfaces.json",
+  "surfaces": [
+    {
+      "id": "doc:docs/image-contract.md",
+      "kind": "documentation",
+      "name": "docs/image-contract.md",
+      "visibility": "public",
+      "participantFacing": true,
+      "state": "declared",
+      "sourcePath": "docs/image-contract.md",
+      "artifactPath": "docs/image-contract.md",
+      "evidencePath": "docs/image-contract.md",
+      "detectionMethod": "documentation-scan",
+      "policy": {},
+      "facts": {
+        "path": "docs/image-contract.md",
+        "sha256": "96d23b5bb417f94210bbf8a8858161fabe5fda8aae27b8bffdd10da7fb935e43"
+      },
+      "declaration": {
+        "owner": "product",
+        "source": "buildchain kfd 3 register"
+      }
+    },
+    {
+      "id": "doc:docs/release-and-tags.md",
+      "kind": "documentation",
+      "name": "docs/release-and-tags.md",
+      "visibility": "public",
+      "participantFacing": true,
+      "state": "declared",
+      "sourcePath": "docs/release-and-tags.md",
+      "artifactPath": "docs/release-and-tags.md",
+      "evidencePath": "docs/release-and-tags.md",
+      "detectionMethod": "documentation-scan",
+      "policy": {},
+      "facts": {
+        "path": "docs/release-and-tags.md",
+        "sha256": "241af4bcaad773053ccb6cc0dd1005f3e230f97745b9f085f3bd844bc70a8759"
+      },
+      "declaration": {
+        "owner": "product",
+        "source": "buildchain kfd 3 register"
+      }
+    },
+    {
+      "id": "doc:docs/runner-boundary.md",
+      "kind": "documentation",
+      "name": "docs/runner-boundary.md",
+      "visibility": "public",
+      "participantFacing": true,
+      "state": "declared",
+      "sourcePath": "docs/runner-boundary.md",
+      "artifactPath": "docs/runner-boundary.md",
+      "evidencePath": "docs/runner-boundary.md",
+      "detectionMethod": "documentation-scan",
+      "policy": {},
+      "facts": {
+        "path": "docs/runner-boundary.md",
+        "sha256": "fb91b534ef1f7c4d516fd0d81be15f61619a13f8aacd58788289da7285df0eca"
+      },
+      "declaration": {
+        "owner": "product",
+        "source": "buildchain kfd 3 register"
+      }
+    },
+    {
+      "id": "doc:readme.md",
+      "kind": "documentation",
+      "name": "README.md",
+      "visibility": "public",
+      "participantFacing": true,
+      "state": "declared",
+      "sourcePath": "README.md",
+      "artifactPath": "README.md",
+      "evidencePath": "README.md",
+      "detectionMethod": "documentation-scan",
+      "policy": {},
+      "facts": {
+        "path": "README.md",
+        "sha256": "85dea28d965105b22b97f94f64db40ea34c747bff8ccd9b5eb5ce2ad0b905a71"
+      },
+      "declaration": {
+        "owner": "product",
+        "source": "buildchain kfd 3 register"
+      }
+    }
+  ],
+  "policy": {
+    "detectedButUnregistered": "warn",
+    "declaredButMissing": "fail"
+  }
+}

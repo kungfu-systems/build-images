@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "contract": "kungfu-build-images-kfd123-check",
+  "status": "passed",
+  "buildchain": {
+    "configPath": ".buildchain/buildchain.toml",
+    "alphaContractLockRef": "v2-alpha",
+    "stableContractLockRef": "v2",
+    "stableContractLockStatus": "unchanged",
+    "stableContractDrift": false
+  },
+  "kfd1": {
+    "witness": ".buildchain/kfd/kfd-1/build-images-contract-world.witness.json",
+    "surfaceCount": 6
+  },
+  "kfd2": {
+    "claim": ".buildchain/kfd/kfd-2/release-claims.json",
+    "upstreamCount": 2,
+    "claimStatus": "passed"
+  },
+  "kfd3": {
+    "registry": ".buildchain/kfd/kfd-3/surfaces.json",
+    "auditStatus": "passed",
+    "declared": 4,
+    "prebuildWitness": ".buildchain/kfd/kfd-3/collaboration-interface.prebuild.json",
+    "artifactWitness": ".buildchain/kfd/kfd-3/collaboration-interface.artifact.json"
+  },
+  "releasePassportSmoke": {
+    "ok": true
+  }
+}

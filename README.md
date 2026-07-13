@@ -44,9 +44,12 @@ contract needs the same Buildchain entry tools plus C++/Conan/CMake tooling.
 pnpm run check
 ```
 
-The default verification path validates `buildchain.toml`, image manifests,
-the image lock, workflow syntax, and shell syntax. It does not publish images
-and does not require a self-hosted runner.
+The default verification path calls Buildchain's `build.yml@v2` channel router
+with `buildchain-channel: auto`. Development and prerelease work uses
+`v2-alpha` with `.buildchain/alpha-contract-lock.json`; stable release work uses
+`v2` with `.buildchain/contract-lock.json`. The lifecycle validates KFD-1/2/3
+release evidence, image manifests, the image lock, workflow syntax, and shell
+syntax. It does not publish images and does not require a self-hosted runner.
 
 The GitHub `Verify` workflow exposes a `check` job so Buildchain v2 promotion
 can use it as the protected release-line status check.
