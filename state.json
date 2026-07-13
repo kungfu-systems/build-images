@@ -16,14 +16,63 @@
   "state_ref": "buildchain/release-state/1-2-2",
   "state_path": "/home/runner/work/build-images/build-images/.buildchain/release-state/v1.2.2.json",
   "evidence_path": "/home/runner/work/build-images/build-images/.buildchain/release-evidence/v1.2.2/evidence.json",
-  "state": "publishing",
-  "previous_state": "prepared",
+  "state": "published",
+  "previous_state": "publishing",
   "actor": "kungfu-origin",
   "run_id": "29239679300",
   "superseded_by": "",
   "failure": "",
-  "artifacts": [],
-  "evidence": [],
+  "artifacts": [
+    {
+      "group": "image",
+      "kind": "oci",
+      "name": "ghcr.io/kungfu-systems/build-images/base-linux",
+      "ref": "v1.2.2",
+      "digest": "sha256:1cf242e01991b46e3675686be54116cc4ee124ca2eff9ceb22b77c7c75a6a8c8",
+      "role": "",
+      "required": true
+    },
+    {
+      "group": "image",
+      "kind": "oci",
+      "name": "ghcr.io/kungfu-systems/build-images/kungfu-verify",
+      "ref": "v1.2.2",
+      "digest": "sha256:89f08db34cd20ea7dc1830ac6b62960e6e005bbff42c05b9c6af7734b322724a",
+      "role": "",
+      "required": true
+    },
+    {
+      "group": "image",
+      "kind": "oci",
+      "name": "ghcr.io/kungfu-systems/build-images/node24-pnpm",
+      "ref": "v1.2.2",
+      "digest": "sha256:5979b4fae7ee914d3694319543a978c8877343aa70654e6206d698fa68c047a8",
+      "role": "",
+      "required": true
+    },
+    {
+      "group": "image",
+      "kind": "oci",
+      "name": "ghcr.io/kungfu-systems/build-images/latex-pdf-builder",
+      "ref": "v1.2.2",
+      "digest": "sha256:15b3cded35b4950c79fe6652eed8ca8a5061b91cbc6821f509475b03ab74aa6a",
+      "role": "",
+      "required": true
+    },
+    {
+      "group": "image",
+      "kind": "oci",
+      "name": "ghcr.io/kungfu-systems/build-images/native-linux-x64",
+      "ref": "v1.2.2",
+      "digest": "sha256:b7a203c189c0c2b2feee7aeb55836361ac44c1f3b1b3478d65182d7e3979b93d",
+      "role": "",
+      "required": true
+    }
+  ],
+  "evidence": [
+    ".buildchain/release-evidence/v1.2.2/evidence.json",
+    ".buildchain/release-evidence/v1.2.2/dist-tag-evidence.json"
+  ],
   "created_at": "2026-07-13T09:35:47.923Z",
-  "updated_at": "2026-07-13T09:35:49.721Z"
+  "updated_at": "2026-07-13T09:41:32.684Z"
 }
