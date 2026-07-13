@@ -126,6 +126,7 @@ jobs:
           publish-transaction: "true"
           release-passport: "true"
           release-passport-product-name: "Kungfu Build Images"
+          release-passport-impact-json: ${{ contains(steps.target_ref.outputs.target_ref, '/v1.2') && '.buildchain/release-impact.json' || '' }}
           release-passport-kfd-1-witness-jsons: ${{ contains(steps.target_ref.outputs.target_ref, '/v1.1') && '.buildchain/kfd-1/build-images-contract-world.witness.json' || '.buildchain/kfd/kfd-1/build-images-contract-world.witness.json' }}
           release-passport-kfd-2-claim-jsons: ${{ contains(steps.target_ref.outputs.target_ref, '/v1.1') && '.buildchain/kfd-2/public-release-trust.claim.json' || '.buildchain/kfd/kfd-2/release-claims.json' }}
           release-passport-kfd-3-prebuild-witness-jsons: ${{ contains(steps.target_ref.outputs.target_ref, '/v1.1') && '.buildchain/kfd-3/collaboration-interface.prebuild.json' || '.buildchain/kfd/kfd-3/collaboration-interface.prebuild.json' }}
