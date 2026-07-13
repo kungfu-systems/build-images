@@ -5,9 +5,13 @@
   "buildchain": {
     "configPath": ".buildchain/buildchain.toml",
     "alphaContractLockRef": "v2-alpha",
+    "alphaContractLockStatus": "unchanged",
+    "alphaContractDrift": false,
+    "alphaContractDigest": "sha256:5ee7c348a981c062fe8feb5defed0899a2bc4614dd2cc2a14f000a824b53be11",
     "stableContractLockRef": "v2",
-    "stableContractLockStatus": "unchanged",
-    "stableContractDrift": false
+    "stableContractLockStatus": "compatible-drift",
+    "stableContractDrift": true,
+    "stableContractDigest": "sha256:db57a57a03db285dc2d3970c3ef2dc00e72bd95a3fd2791df8990c49d847aa3f"
   },
   "kfd1": {
     "witness": ".buildchain/kfd/kfd-1/build-images-contract-world.witness.json",

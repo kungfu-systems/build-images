@@ -6,17 +6,17 @@
     {
       "id": "readme",
       "path": "README.md",
-      "sha256": "85dea28d965105b22b97f94f64db40ea34c747bff8ccd9b5eb5ce2ad0b905a71"
+      "sha256": "c68c594481bd0b684bdb42951c115b260153ea211c4d0fdd2f554c3af81e62e0"
     },
     {
       "id": "image-contract",
       "path": "docs/image-contract.md",
-      "sha256": "96d23b5bb417f94210bbf8a8858161fabe5fda8aae27b8bffdd10da7fb935e43"
+      "sha256": "35291fa58b2e44ced74116a52a735aca89a4c80a7ae913647f9f755295468183"
     },
     {
       "id": "release-and-tags",
       "path": "docs/release-and-tags.md",
-      "sha256": "f84415aa3fefb32c7e941d5f321d945764382b25f50957e5e97ab3fd9182ff51"
+      "sha256": "37571935bb6e9e2a2222678dce176baa3711928299e016f2bdea7fe6c399c5d2"
     },
     {
       "id": "image-lock",
@@ -31,42 +31,42 @@
     {
       "id": "alpha-contract-lock",
       "path": ".buildchain/alpha-contract-lock.json",
-      "sha256": "a27e22daf0a3dc438460926102bbfe2e0200577eddc5bf020e8e6cfb5fd37134"
+      "sha256": "e22494968caee67e86805e16e39e06d4f17226719a25dd71519eb45c4b2bab2e"
     },
     {
       "id": "stable-contract-lock",
       "path": ".buildchain/contract-lock.json",
-      "sha256": "e24839f78e1f0d3df57e6464f80e94242c644449c299c4d9a57125a9f981851c"
+      "sha256": "898752771f61d982a057abd1479a929c237075127d8ac6c3cd24c113cbadfb4e"
     }
   ],
   "machineEvidence": [
     {
       "id": "kfd-1-contract-world-witness",
       "path": ".buildchain/kfd/kfd-1/build-images-contract-world.witness.json",
-      "sha256": "2b80278c53457f6f6cf275a986c289d80690f01370c73806bdcfb86257274cbe",
+      "sha256": "066a7388730a6e05a104e5f7504d0136b82b0b85be2306411cd9704856c4bf2a",
       "contract": "kfd-1",
       "status": "passed"
     },
     {
       "id": "kfd-upstream-aggregate",
       "path": ".buildchain/kfd/kfd-2/kfd-upstream-aggregate.json",
-      "sha256": "4458293a63027d67e8887c05f6d6c256c43fed1c5034ed98575b0a4ee1bbb70a",
+      "sha256": "f736c33d7c3f3369d1bf7d05cb76bc258dfe1d1aa239d47ecdcbcd26d7d91956",
       "contract": "kungfu-buildchain-kfd-upstream-aggregate",
       "status": "passed"
     },
     {
       "id": "kfd-3-surface-registry",
       "path": ".buildchain/kfd/kfd-3/surfaces.json",
-      "sha256": "8a556c74d64d07019007522580e4888be3ccfa292b0b5a7e60c2f348acf9811f",
+      "sha256": "d6d5f112c1d0284253e67f1e34af6fc03d7f868ba37357817d3396abf0c63fe5",
       "contract": "kungfu-buildchain-kfd-3-surface-registry",
       "status": "passed"
     }
   ],
   "hashes": {
-    "kfd1WitnessSha256": "eb12ad5c2bcba3443a0192aabca8a17b8e85dec4e4c3554c05ec5a60df6b8f4c",
-    "upstreamAggregateSha256": "6e5f7de58ebd7fbd7f0e570b57044095d07995ba8ba257c34a68067b02af94db",
-    "sourceBindingsSha256": "f8ec40ddc45b40d525d0097e741fea309d901bec56011ca055f454449febcb43",
-    "machineEvidenceSha256": "ac1d6f7051192993499ca8f3f93090279458ed9f9b80ea605736a9c3042ecd5d"
+    "kfd1WitnessSha256": "4ee75f96317b0d35f9f1f37c4f9cd78ed031f130cc86e0b03fa28d663ddee797",
+    "upstreamAggregateSha256": "8282769f109c7198d9a757d52f5ab0b1ee0955cb0a324c29ba966235969eb40b",
+    "sourceBindingsSha256": "da03b1022f5a2dec5f651972dd13cecb6546c85ad448e529b4e09f969043d785",
+    "machineEvidenceSha256": "ef9c9fa94757c8bb8a9f40d08dd31963f209f49482f0ff96686a80563d7c0845"
   },
   "artifacts": [
     {
@@ -77,7 +77,7 @@
     {
       "id": "publish-evidence-writer",
       "path": "scripts/write-publish-evidence.py",
-      "sha256": "307a68c4e92e8633c76b6fad3c1a9871fe40e0f8ec764e5bc12d4be54a0d73f1"
+      "sha256": "5a83822e234e8e7bf453b5e4a40b3c621e3f401b9ef956fda353cccfcee48272"
     }
   ],
   "verification": {

@@ -23,6 +23,12 @@ creates or resumes the release transaction, builds or reuses exact OCI image
 tags, writes publish evidence, and only then lets Buildchain move exact and
 floating Git refs.
 
+Before the lifecycle runs, the workflow declares all five OCI repositories with
+the constrained `v{version}` exact-ref template. Buildchain resolves that
+template only after selecting or resuming the exact release version and exports
+the result through `BUILDCHAIN_REQUIRED_ARTIFACTS`. The publisher compares that
+resolved family with the image manifests before any registry side effect.
+
 The publish command verifies that:
 
 - every exact image tag is either newly pushed or already present with matching
@@ -81,16 +87,41 @@ Every publish run must produce a digest summary containing:
 - source commit;
 - Buildchain release tag.
 
+Each image record also distinguishes immutable content provenance from the
+current release binding:
+
+- `action` is `built` or `reused`;
+- `content` identifies the version, exact ref, source SHA, and material SHA that
+  produced the image bytes;
+- `release` identifies the current version, exact ref, target ref, source SHA,
+  and material SHA that publishes those bytes in the current family;
+- `verification` binds the anonymous public manifest digest, normalized OCI
+  platform, contract major, parent digest, and passed manifest smoke policy.
+
 The digest summary is the rollback and audit anchor.
 
 The Buildchain publish command stores this summary next to
 `BUILDCHAIN_PUBLISH_EVIDENCE`; Buildchain persists the evidence into the durable
 release-state ref for fresh-runner reruns.
 
-The checked-in `images.lock.json` records the latest accepted alpha image
-digests for consumer smoke. This lock file is intentionally separate from the
-publish artifact: it is a reviewed consumer input, not a byproduct of the
-publishing job.
+The checked-in `images.lock.json` records the latest accepted alpha family,
+including every digest plus its content and release coordinates. It remains a
+reviewed consumer input, not an automatic publishing byproduct. Buildchain
+uploads the transaction `evidence.json` as a GitHub Release asset; each image's
+manifest and smoke evidence points back into that durable asset with a JSON
+Pointer. After reviewing the release and its workflow run, maintainers can
+project the public evidence without depending on the runner-local digest
+summary or inventing fields:
+
+```bash
+python3 scripts/accept-image-summary.py \
+  --evidence evidence.json \
+  --publish-run https://github.com/kungfu-systems/build-images/actions/runs/RUN_ID \
+  --output images.lock.json
+```
+
+`--summary image-digests.json` remains available for pre-release inspection,
+but a reviewed lock update should use the GitHub Release `evidence.json` asset.
 
 ## Selective Build Planner
 
@@ -108,14 +139,26 @@ publisher/provenance code, workflows, image locks, empty baselines, and unknown
 paths conservatively select the full family. Every selected image includes a
 machine-readable direct, downstream, or global reason.
 
-The planner is not connected to the publish lifecycle yet. Cross-version OCI
-reuse requires Buildchain to bind post-publish family requirements and preserve
-per-artifact built/reused provenance in the release transaction and Release
-Passport. Track those contracts in
-[buildchain#1151](https://github.com/kungfu-systems/buildchain/issues/1151) and
-[buildchain#1153](https://github.com/kungfu-systems/buildchain/issues/1153).
-Until both contracts are available and locked, publication continues to build
-the full image family.
+The publish lifecycle uses the last commit that changed `images.lock.json` as
+the reviewed baseline. It proves that the lock's release source is an ancestor,
+allows only generated version-state and KFD/lock acceptance changes between the
+release source and that review point, then plans changes from the review point
+to the current source. Version-only changes in `package.json` and the Buildchain
+impact ledger do not rebuild image content; any other unknown path remains a
+global invalidator.
+
+Selected images and their downstream closure are built. Every other image is
+reused only when the lock has a complete public digest, platform, contract
+major, parent digest, smoke policy, content coordinate, and release coordinate.
+An incomplete or inconsistent baseline converts the whole plan to a full build.
+Reuse verifies the previous accepted exact tag and digest anonymously, refuses
+to overwrite a conflicting current exact tag, creates an immutable digest alias,
+then reruns the image smoke policy by digest. Built and reused members are both
+verified from the public current tag before evidence is written.
+
+The first release after publisher/provenance code changes is intentionally a
+full-family build because those files are global invalidators. A later
+image-scoped release is the selective canary.
 
 ## Publish Path
 
