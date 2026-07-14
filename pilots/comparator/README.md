@@ -104,7 +104,8 @@ Compose environment. It does not relabel ordinary smoke output. A production
 plan must pin the charter, fixture set, `compose.yaml`, environment lock, runner
 image, configuration slot, ordered scenario steps, oracles, repetition count,
 timeouts, retained artifacts, and an allowlisted workload adapter by registry,
-version, entrypoint, artifact SHA-256, fixture SHA-256, and job/tier mapping.
+version, entrypoint, artifact SHA-256, semantics SHA-256, answer-free execution
+fixture SHA-256, verifier-only oracle SHA-256, and job/tier mapping.
 
 The comparator program outside this repository owns the frozen charter,
 product-advocate review, report, scoring, and Phase B join. build-images owns
@@ -136,13 +137,19 @@ missing artifacts, and digest mismatches fail closed.
 Each repetition retains step timing, process status, cleanup status, oracle
 results, service logs, Docker/Compose and kernel facts, Compose resource
 limits, container inspect data, CPU/memory observations, and SHA-256 records
-for every raw artifact. The self-contained bundle also retains the exact
-Compose file, environment lock, pilot adapter, qualification runner, workload
-adapter registry, adapter artifact, fixture, and their digests. Every run binds
-the scenario, declared job, tier, action, and adapter digest into a SHA-256
-receipt. The offline verifier rejects relabelled job/tier evidence and copied
-adapter tampering. The bundle-level manifest becomes authoritative for
-containerized user outcomes only after all required repetitions verify offline.
+for every raw artifact. Every tier event is followed by the same job-specific
+facts query; the exact query result, tier postcondition, and derived verdict are
+retained separately. The execution fixture contains no expected outcome. The
+self-contained bundle also retains the exact Compose file, environment lock,
+pilot adapter, qualification runner, workload adapter registry, adapter
+artifact, semantic evaluator, execution fixture, verifier-only oracle, and
+their digests. Every run binds the scenario, declared job, tier, action,
+adapter inputs, observed facts, and tier evidence into SHA-256 receipts. The
+offline verifier rejects relabelled evidence, adapter tampering, answer-key
+fields, verdicts that cannot be recomputed from observations, and derived
+verdicts that disagree with the independently retained oracle. The bundle-level
+manifest becomes authoritative for containerized user outcomes only after all
+required repetitions verify offline.
 Individual repetitions never carry that authority, and production runs require
 a clean tracked checkout so the source SHA remains meaningful.
 

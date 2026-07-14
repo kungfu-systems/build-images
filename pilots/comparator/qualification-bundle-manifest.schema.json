@@ -64,11 +64,13 @@
         "workload_adapter": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["registry", "artifact", "fixture", "identity", "registry_sha256"],
+          "required": ["registry", "artifact", "semantics", "fixture", "oracle", "identity", "registry_sha256"],
           "properties": {
             "registry": { "$ref": "#/$defs/fileRecord" },
             "artifact": { "$ref": "#/$defs/fileRecord" },
+            "semantics": { "$ref": "#/$defs/fileRecord" },
             "fixture": { "$ref": "#/$defs/fileRecord" },
+            "oracle": { "$ref": "#/$defs/fileRecord" },
             "identity": { "type": "object" },
             "registry_sha256": { "pattern": "^[0-9a-f]{64}$" }
           }

@@ -111,7 +111,7 @@
             "additionalProperties": false,
             "required": [
               "id", "version", "entrypoint", "artifact", "artifact_sha256",
-              "fixture", "registry_sha256", "binding_sha256", "receipt_path"
+              "semantics", "fixture", "oracle", "registry_sha256", "binding_sha256", "receipt_path"
             ],
             "properties": {
               "id": { "type": "string", "minLength": 1 },
@@ -119,7 +119,9 @@
               "entrypoint": { "type": "string", "minLength": 1 },
               "artifact": { "type": "string", "minLength": 1 },
               "artifact_sha256": { "pattern": "^[0-9a-f]{64}$" },
+              "semantics": { "type": "object" },
               "fixture": { "type": "object" },
+              "oracle": { "type": "object" },
               "registry_sha256": { "pattern": "^[0-9a-f]{64}$" },
               "binding_sha256": { "pattern": "^[0-9a-f]{64}$" },
               "receipt_path": { "const": "adapter-receipt.json" }
