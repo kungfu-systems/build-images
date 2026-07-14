@@ -60,6 +60,7 @@
         "runner_image",
         "pilot_script_sha256",
         "qualification_runner_sha256",
+        "image_preparation_sha256",
         "subject",
         "subject_sha256",
         "workload_adapter"
@@ -74,6 +75,7 @@
         "runner_image": { "pattern": "@sha256:[0-9a-f]{64}$" },
         "pilot_script_sha256": { "pattern": "^[0-9a-f]{64}$" },
         "qualification_runner_sha256": { "pattern": "^[0-9a-f]{64}$" },
+        "image_preparation_sha256": { "pattern": "^[0-9a-f]{64}$" },
         "subject": { "type": "object" },
         "subject_sha256": { "pattern": "^[0-9a-f]{64}$" },
         "workload_adapter": {

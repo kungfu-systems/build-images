@@ -265,6 +265,85 @@ class QualificationExecutionTests(unittest.TestCase):
             environment = qualification.controlled_environment()
         self.assertEqual(environment, {"PATH": "/usr/bin", "HOME": "/tmp/home"})
 
+    def test_counted_compose_up_forces_pull_never(self) -> None:
+        completed = mock.Mock(returncode=0, stdout="", stderr="")
+        with tempfile.TemporaryDirectory() as temporary:
+            project = postgres_adapter.ComposeProject(
+                "kf-qual-postgres-pull-never",
+                pathlib.Path(temporary),
+            )
+            with mock.patch.object(postgres_adapter.subprocess, "run", return_value=completed) as run:
+                project.up()
+            up_command = run.call_args_list[1].args[0]
+            self.assertIn(["--pull", "never"], [up_command[index:index + 2] for index in range(len(up_command) - 1)])
+            with self.assertRaisesRegex(postgres_adapter.AdapterError, "--pull never"):
+                project.command("up", "-d")
+
+    def test_cold_host_pull_retry_finishes_before_all_63_formal_steps(self) -> None:
+        plan, resolved = qualification.resolve_plan(PRODUCTION_PLAN)
+        self.assertEqual(
+            plan["repetitions"] * sum(len(scenario["steps"]) for scenario in plan["scenarios"]),
+            63,
+        )
+        locked_subject = resolved["subject"]["image"]
+        runner_image = resolved["runner_image"]
+        config = json.dumps(
+            {
+                "services": {
+                    "postgres": {"image": locked_subject, "platform": "linux/amd64"},
+                    "runner": {"image": runner_image, "platform": "linux/amd64"},
+                }
+            }
+        )
+        local_image = lambda image, fill: json.dumps(  # noqa: E731
+            {"Id": f"sha256:{fill * 64}", "RepoDigests": [image]}
+        )
+        docker_results = iter(
+            [
+                subprocess.CompletedProcess([], 0, config, ""),
+                subprocess.CompletedProcess([], 1, "", "connection reset by peer"),
+                subprocess.CompletedProcess([], 0, "pulled\n", ""),
+                subprocess.CompletedProcess([], 0, local_image(locked_subject, "a"), ""),
+                subprocess.CompletedProcess([], 0, "pulled\n", ""),
+                subprocess.CompletedProcess([], 0, local_image(runner_image, "b"), ""),
+            ]
+        )
+        formal_steps: list[tuple[int, str]] = []
+
+        def execute(*args: object, **kwargs: object) -> dict[str, object]:
+            self.assertEqual(sleep.call_args_list, [mock.call(2)])
+            formal_steps.append((int(args[4]), str(args[5]["id"])))
+            return {"passed": True}
+
+        with tempfile.TemporaryDirectory() as temporary:
+            isolated_resolved = copy.deepcopy(resolved)
+            isolated_resolved["artifact_destination"] = temporary
+            with (
+                mock.patch.object(qualification, "resolve_plan", return_value=(plan, isolated_resolved)),
+                mock.patch.object(qualification, "require_clean_source"),
+                mock.patch.object(qualification, "preflight_compose_environment"),
+                mock.patch.object(qualification, "runtime_facts", return_value={}),
+                mock.patch.object(qualification.subprocess, "run", side_effect=docker_results),
+                mock.patch.object(qualification.time, "sleep") as sleep,
+                mock.patch.object(qualification, "execute_step", side_effect=execute),
+                mock.patch.object(
+                    qualification,
+                    "retention_results",
+                    return_value=[{"pattern": "synthetic", "matches": ["synthetic"], "passed": True}],
+                ),
+                mock.patch.object(qualification, "verify_bundle"),
+            ):
+                bundle_dir = qualification.run_plan(PRODUCTION_PLAN)
+                preparation = qualification.load_json(
+                    bundle_dir / "preparation" / "image-preparation.json"
+                )
+
+        self.assertEqual(len(formal_steps), 63)
+        self.assertEqual(sleep.call_args_list, [mock.call(2)])
+        self.assertEqual(preparation["status"], "passed")
+        self.assertTrue(preparation["unscored"])
+        self.assertEqual([attempt["exit_code"] for attempt in preparation["images"][0]["attempts"]], [1, 0])
+
     def test_timeout_still_runs_project_scoped_cleanup(self) -> None:
         scenario = {"id": "timeout-scenario", "job_id": "timeout-job"}
         step = {
@@ -339,6 +418,102 @@ class QualificationBundleTests(unittest.TestCase):
         )
         self.build_sha = "c" * 40
         self.bundle_id = "synthetic-offline-verification"
+        preparation_dir = self.bundle_dir / "preparation"
+        preparation_dir.mkdir()
+
+        def preparation_log(name: str, content: str) -> dict[str, object]:
+            path = preparation_dir / name
+            path.write_text(content, encoding="utf-8")
+            return qualification.preparation_file_record(preparation_dir, path)
+
+        services = [
+            {"service": "postgres", "image": locked_subject["image"], "platform": "linux/amd64"},
+            {"service": "runner", "image": fixture_plan["environment"]["runner_image"], "platform": "linux/amd64"},
+        ]
+        discovery_output = json.dumps(
+            {
+                "services": {
+                    service["service"]: {
+                        "image": service["image"],
+                        "platform": service["platform"],
+                    }
+                    for service in services
+                }
+            }
+        )
+        images = []
+        for image_index, service in enumerate(services, start=1):
+            image = service["image"]
+            images.append(
+                {
+                    **service,
+                    "expected_digest": image.rsplit("@", 1)[1],
+                    "attempts": [
+                        {
+                            "attempt": 1,
+                            "command": ["docker", "pull", "--platform", service["platform"], image],
+                            "started_at": "2026-07-14T00:00:00Z",
+                            "finished_at": "2026-07-14T00:00:01Z",
+                            "duration_seconds": 1.0,
+                            "timed_out": False,
+                            "exit_code": 0,
+                            "retryable": False,
+                            "stdout": preparation_log(f"image-{image_index:02d}.pull-01.stdout.log", "pulled\n"),
+                            "stderr": preparation_log(f"image-{image_index:02d}.pull-01.stderr.log", ""),
+                        }
+                    ],
+                    "final_status": "passed",
+                    "local": {
+                        "command": ["docker", "image", "inspect", image, "--format", "{{json .}}"],
+                        "exit_code": 0,
+                        "stdout": preparation_log(
+                            f"image-{image_index:02d}.inspect.stdout.log",
+                            json.dumps({"Id": f"sha256:{str(image_index) * 64}", "RepoDigests": [image]}),
+                        ),
+                        "stderr": preparation_log(f"image-{image_index:02d}.inspect.stderr.log", ""),
+                        "id": f"sha256:{str(image_index) * 64}",
+                        "repo_digests": [image],
+                    },
+                }
+            )
+        preparation_manifest = {
+            "schema": qualification.IMAGE_PREPARATION_SCHEMA,
+            "status": "passed",
+            "unscored": True,
+            "profile": "postgres",
+            "project": qualification.qualification_project_names(
+                fixture_plan,
+                "postgres",
+                self.bundle_id,
+            )[0],
+            "started_at": "2026-07-14T00:00:00Z",
+            "finished_at": "2026-07-14T00:00:02Z",
+            "duration_seconds": 2.0,
+            "max_attempts": qualification.PULL_MAX_ATTEMPTS,
+            "retry_delays_seconds": list(qualification.PULL_RETRY_DELAYS_SECONDS),
+            "discovery": {
+                "command": [
+                    "docker", "compose", "-f", str(qualification.COMPOSE_PATH),
+                    "--project-name", qualification.qualification_project_names(
+                        fixture_plan,
+                        "postgres",
+                        self.bundle_id,
+                    )[0],
+                    "--profile", "postgres", "config", "--format", "json",
+                ],
+                "exit_code": 0,
+                "stdout": preparation_log("discovery.stdout.log", discovery_output),
+                "stderr": preparation_log("discovery.stderr.log", ""),
+                "services": services,
+            },
+            "images": images,
+        }
+        preparation_path = preparation_dir / "image-preparation.json"
+        qualification.write_json(preparation_path, preparation_manifest)
+        self.preparation = {
+            "path": preparation_path.relative_to(self.bundle_dir).as_posix(),
+            "sha256": qualification.sha256_file(preparation_path),
+        }
         self.run_records = []
         scenario = fixture_plan["scenarios"][0]
         step = scenario["steps"][0]
@@ -454,6 +629,7 @@ class QualificationBundleTests(unittest.TestCase):
                     "runner_image": fixture_plan["environment"]["runner_image"],
                     "pilot_script_sha256": self.bundle_inputs["pilot_script"]["sha256"],
                     "qualification_runner_sha256": self.bundle_inputs["qualification_runner"]["sha256"],
+                    "image_preparation_sha256": self.preparation["sha256"],
                     "subject": locked_subject,
                     "subject_sha256": qualification.sha256_json(locked_subject),
                     "workload_adapter": workload_adapter,
@@ -539,6 +715,7 @@ class QualificationBundleTests(unittest.TestCase):
             "build_images_git_sha": self.build_sha,
             "inputs": self.bundle_inputs,
             "plan": {"path": self.plan_path.name, "sha256": self.plan_sha},
+            "preparation": self.preparation,
             "expected_repetitions": 3,
             "completed_repetitions": 3,
             "contracts": self.contracts,
@@ -578,6 +755,12 @@ class QualificationBundleTests(unittest.TestCase):
         target = self.bundle_dir / "inputs" / "compose.yaml"
         target.write_text(target.read_text(encoding="utf-8") + "\n# tampered\n", encoding="utf-8")
         with self.assertRaisesRegex(qualification.QualificationError, "bundle input digest mismatch"):
+            qualification.verify_bundle(self.bundle_dir)
+
+    def test_offline_verification_rejects_altered_preparation_evidence(self) -> None:
+        target = self.bundle_dir / "preparation" / "image-01.pull-01.stderr.log"
+        target.write_text("tampered\n", encoding="utf-8")
+        with self.assertRaisesRegex(qualification.QualificationError, "preparation artifact integrity"):
             qualification.verify_bundle(self.bundle_dir)
 
     def test_offline_verification_rejects_rebound_subject(self) -> None:

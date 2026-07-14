@@ -141,6 +141,15 @@ change by execution and project-scoped cleanup. One `compose config --quiet`
 preflight against the locked file fails the whole run before any service starts,
 instead of repeating a deterministic environment or project-name error.
 
+Before repetition 1, a separate unscored preparation phase resolves every
+service in the selected Compose profile and pulls each image by its exact locked
+digest and platform. Transient registry failures receive at most three attempts
+with fixed 2-second and 5-second delays. The bundle retains each command,
+attempt, timing, stdout/stderr digest, local image ID, and repository digest.
+Exhausted or non-transient failures stop the run before any formal step. Every
+counted `compose up` uses `--pull never`, so registry work and image identity
+changes cannot enter a measured step.
+
 Each repetition retains step timing, process status, cleanup status, oracle
 results, service logs, Docker/Compose and kernel facts, Compose resource
 limits, container inspect data, CPU/memory observations, and SHA-256 records
@@ -150,7 +159,9 @@ retained separately. The execution fixture contains no expected outcome. The
 self-contained bundle also retains the exact Compose file, environment lock,
 pilot adapter, qualification runner, workload adapter registry, adapter
 artifact, semantic evaluator, execution fixture, verifier-only oracle, and
-their digests. Every run binds the scenario, declared job, tier, action,
+their digests. It also binds the verified image-preparation manifest and its raw
+logs; the offline verifier rejects missing, altered, or extra preparation
+artifacts. Every run binds the scenario, declared job, tier, action,
 adapter inputs, observed facts, and tier evidence into SHA-256 receipts. The
 offline verifier rejects relabelled evidence, adapter tampering, answer-key
 fields, verdicts that cannot be recomputed from observations, and derived

@@ -22,7 +22,7 @@ from postgres_phase_a_semantics import (
 )
 
 ADAPTER_ID = "postgres-phase-a-v1"
-ADAPTER_VERSION = "1.1.0"
+ADAPTER_VERSION = "1.2.0"
 ENTRYPOINT = "postgres-phase-a-v1"
 ACTION = "workload-adapter"
 SCRIPT_PATH = pathlib.Path(__file__).resolve()
@@ -175,6 +175,10 @@ class ComposeProject:
         check: bool = True,
         record: bool = True,
     ) -> subprocess.CompletedProcess[str]:
+        if arguments and arguments[0] == "up":
+            pull_index = arguments.index("--pull") if "--pull" in arguments else -1
+            if pull_index < 0 or pull_index + 1 >= len(arguments) or arguments[pull_index + 1] != "never":
+                raise AdapterError("counted Compose up commands must use --pull never")
         command = [
             "docker", "compose", "-f", str(COMPOSE_PATH),
             "--project-name", self.project, "--profile", "postgres", *arguments,
@@ -205,9 +209,9 @@ class ComposeProject:
             raise AdapterError(f"fixed Compose command failed ({process.returncode}): {' '.join(arguments)}")
         return process
 
-    def up(self) -> None:
+    def up(self, *services: str) -> None:
         self.command("config", "--quiet")
-        self.command("up", "-d", "--wait", "runner", "postgres")
+        self.command("up", "-d", "--wait", "--pull", "never", *(services or ("runner", "postgres")))
 
     def psql(self, sql: str, *, application_name: str = "phase-a-adapter") -> str:
         process = self.command(
@@ -261,7 +265,7 @@ def exercise_tier(project: ComposeProject, job_id: str, tier: str, facts: dict[s
         return {"operation": "two-agent-concurrent-write", "observed_rows": int(observed), "writers": 2}
     if tier == "crash-recovery":
         project.command("kill", "-s", "SIGKILL", "postgres")
-        project.command("up", "-d", "--wait", "postgres")
+        project.up("postgres")
         observed = project.psql("SELECT count(*) FROM qualification_facts;")
         return {"operation": "sigkill-restart-query", "observed_rows": int(observed)}
     if tier == "whole-root-restore":
