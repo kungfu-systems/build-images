@@ -896,9 +896,8 @@ def inspect_prepared_image(
             normalize_timeout_output(error.stdout),
             normalize_timeout_output(error.stderr) + "\nlocal image inspection timed out\n",
         )
-    prefix = preparation_dir / f"image-{image_index:02d}.inspect"
-    stdout_path = prefix.with_suffix(".stdout.log")
-    stderr_path = prefix.with_suffix(".stderr.log")
+    stdout_path = preparation_dir / f"image-{image_index:02d}.inspect.stdout.log"
+    stderr_path = preparation_dir / f"image-{image_index:02d}.inspect.stderr.log"
     stdout_path.write_text(process.stdout, encoding="utf-8")
     stderr_path.write_text(process.stderr, encoding="utf-8")
     record = {
@@ -986,9 +985,12 @@ def prepare_exact_images(profile: str, project: str, preparation_dir: pathlib.Pa
                         normalize_timeout_output(error.stdout),
                         normalize_timeout_output(error.stderr) + "\nexact image pull timed out\n",
                     )
-                prefix = preparation_dir / f"image-{image_index:02d}.pull-{attempt:02d}"
-                stdout_path = prefix.with_suffix(".stdout.log")
-                stderr_path = prefix.with_suffix(".stderr.log")
+                stdout_path = preparation_dir / (
+                    f"image-{image_index:02d}.pull-{attempt:02d}.stdout.log"
+                )
+                stderr_path = preparation_dir / (
+                    f"image-{image_index:02d}.pull-{attempt:02d}.stderr.log"
+                )
                 stdout_path.write_text(process.stdout, encoding="utf-8")
                 stderr_path.write_text(process.stderr, encoding="utf-8")
                 retryable = timed_out or TRANSIENT_PULL_ERROR.search(
