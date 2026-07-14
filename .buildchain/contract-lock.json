@@ -3,13 +3,13 @@
   "contract": "kungfu-buildchain-contract-lock",
   "buildchain": {
     "ref": "v2",
-    "resolvedSha": "a6145efc210a961da0e5c63d7024d42061550f60",
+    "resolvedSha": "7c1b0059f239a6a8ab784dbaea926f9f9ab22294",
     "contract": "kungfu-buildchain-runtime-contract-world",
-    "contractDigest": "sha256:ef9eb9323b4e14b9d02d51c9b974b27d8c38daf6754c1249783c0eaa7510a645",
-    "compatibilityDigest": "sha256:2090784977bc7d54fc647215ef73532b9db26147a0b40ec3f56c31d611d806cc",
+    "contractDigest": "sha256:4c369ecd3bf25e43dc44f42c8cdd00924e8585e90c5300cba51b483054effd9d",
+    "compatibilityDigest": "sha256:2520207c5d6d6a737dd32251a42be9c5299644d9aebf690a8402ead1724ed495",
     "majorLine": "v2",
     "compatibilityPolicy": "major-compatible",
-    "acceptedAt": "2026-07-13T15:17:50.000Z",
+    "acceptedAt": "2026-07-14T04:28:41.000Z",
     "surfaces": [
       {
         "id": "reusable-build",
@@ -85,6 +85,51 @@
         "id": "node-api-registry",
         "kind": "site-contract",
         "breakingDigest": "sha256:48f925608d3e2131d90936b07dc2a30341204cae3e6e785c0f77d61ad755c945"
+      },
+      {
+        "id": "controller:source-check",
+        "kind": "controller",
+        "breakingDigest": "sha256:d4bd0f2a1921bfed71a4d9104d45934555bde74a5c189f93ad79f37074c02b87"
+      },
+      {
+        "id": "controller:build-lifecycle",
+        "kind": "controller",
+        "breakingDigest": "sha256:e264a79f9f399038c2fcfd21e4168c68c2e1485ee5c651c02242a02b622ac2be"
+      },
+      {
+        "id": "controller:build-channel-router",
+        "kind": "controller",
+        "breakingDigest": "sha256:d40dd05d7e07473d4b2dc1b62fbb0ed6f06449b4d3a7c44a2e8014313e3c0273"
+      },
+      {
+        "id": "controller:shifu-gate-profile-envelope",
+        "kind": "controller",
+        "breakingDigest": "sha256:5f1868478b7ccd9fb79aea76bc771289d2ca6bd2dccd1abf57575426f1eae5fb"
+      },
+      {
+        "id": "controller:web-surface",
+        "kind": "controller",
+        "breakingDigest": "sha256:b48566da2325d9a6a603fbd444a8cc7deb8abed3e6c70a984259208fb0ed513c"
+      },
+      {
+        "id": "controller:publication-artifact",
+        "kind": "controller",
+        "breakingDigest": "sha256:3f76502666069c2727d23efcfdb08fb80f89ced1955a69e29f11525ae88aca1d"
+      },
+      {
+        "id": "controller:paper-release",
+        "kind": "controller",
+        "breakingDigest": "sha256:18ed432e8f3dd55a80c7e94dadacc09ab0508f6226a882029ce582d590ac214b"
+      },
+      {
+        "id": "controller:release-candidate-promotion",
+        "kind": "controller",
+        "breakingDigest": "sha256:63e4340f090bce35f5ab64f38fe16767725a39819498ed4d24c5c16de4083c23"
+      },
+      {
+        "id": "controller:release-propagation",
+        "kind": "controller",
+        "breakingDigest": "sha256:d7a1f15990ce8bd13149474888232c7d4451dd2a49bebf4d4ce1336695da430e"
       }
     ]
   }
