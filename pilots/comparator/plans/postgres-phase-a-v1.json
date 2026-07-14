@@ -1,0 +1,921 @@
+{
+  "plan_schema": "urn:kungfu-systems:build-images:comparator-qualification-plan:v1",
+  "schema_version": 1,
+  "test_only": false,
+  "evidence_class": "containerized-user-outcome-qualification",
+  "charter": {
+    "id": "kungfu-agent-work-user-outcome-v1",
+    "version": "1.0.0",
+    "sha256": "93a270dace9db3dbb0167a3b56087583b754a8b79aaa7d91544a16fc3883fc7c"
+  },
+  "fixture_set": {
+    "id": "kungfu-agent-work-charter-pilot-v1",
+    "sha256": "e1c401462a7a0c623df1ec8bac60ce0b4a9b64407d8a7866f77dc388d73627a0"
+  },
+  "profile": "postgres",
+  "configuration_slot": "realistic-default",
+  "environment": {
+    "compose_path": "compose.yaml",
+    "compose_sha256": "7b50d657773295f3b534bf0809da5c7c4e726251c034b1e7f8e7c08396fe8aaf",
+    "environment_lock_path": "environment.lock.json",
+    "environment_lock_sha256": "d729ac7393e1a485ed20c33231ccd95c507cb6f8c6a57aba362d9c99d2fa4cad",
+    "runner_image": "ghcr.io/kungfu-systems/build-images/kungfu-verify@sha256:cb6d939d567c129903d6e3ad858e2c09a9475b3b8f81b1aad10279d0e63a920d"
+  },
+  "adapter_registry": {
+    "path": "workload-adapters/registry.json",
+    "sha256": "cad56684f3f566ca5fcc95c77b3f7a843f5fd34e5d46a72157a562a0880061c2"
+  },
+  "workload_adapter": {
+    "id": "postgres-phase-a-v1",
+    "version": "1.0.0",
+    "artifact": "workload-adapters/postgres_phase_a_v1.py",
+    "sha256": "837f65b0f1aa37985d82a2a1fdbcb52ca28500463f32497e915a839f430905c8",
+    "entrypoint": "postgres-phase-a-v1",
+    "profiles": [
+      "postgres"
+    ],
+    "fixture": {
+      "path": "workload-adapters/fixtures/postgres-phase-a-v1.json",
+      "sha256": "cb678b60df2ea564b8d5afc00301a424dc25bb4446b0e9a3a137ec8cd36806a5"
+    },
+    "mappings": [
+      {
+        "job_id": "J1-multi-session-progress-triage",
+        "tiers": [
+          "normal",
+          "concurrent",
+          "crash-recovery",
+          "whole-root-restore",
+          "historical-query",
+          "schema-evolution",
+          "new-agent-takeover"
+        ]
+      },
+      {
+        "job_id": "J2-cross-repo-delivery-trust",
+        "tiers": [
+          "normal",
+          "concurrent",
+          "crash-recovery",
+          "whole-root-restore",
+          "historical-query",
+          "schema-evolution",
+          "new-agent-takeover"
+        ]
+      },
+      {
+        "job_id": "J3-interrupted-go-recovery-handoff",
+        "tiers": [
+          "normal",
+          "concurrent",
+          "crash-recovery",
+          "whole-root-restore",
+          "historical-query",
+          "schema-evolution",
+          "new-agent-takeover"
+        ]
+      }
+    ]
+  },
+  "repetitions": 3,
+  "scenarios": [
+    {
+      "id": "j1-normal",
+      "job_id": "J1-multi-session-progress-triage",
+      "tier": "normal",
+      "steps": [
+        {
+          "id": "execute",
+          "action": "workload-adapter",
+          "adapter_id": "postgres-phase-a-v1",
+          "timeout_seconds": 1800,
+          "oracles": [
+            {
+              "type": "exit-code",
+              "expected": 0
+            },
+            {
+              "type": "artifact-exists",
+              "path": "adapter-receipt.json",
+              "expected": true
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "adapter-receipt.json",
+              "expected": "\"job_id\": \"J1-multi-session-progress-triage\""
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "tier-evidence.json",
+              "expected": "\"tier\": \"normal\""
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "j1-decision-receipt.json",
+              "expected": "\"state\": \"mixed-action-required\""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "j1-concurrent",
+      "job_id": "J1-multi-session-progress-triage",
+      "tier": "concurrent",
+      "steps": [
+        {
+          "id": "execute",
+          "action": "workload-adapter",
+          "adapter_id": "postgres-phase-a-v1",
+          "timeout_seconds": 1800,
+          "oracles": [
+            {
+              "type": "exit-code",
+              "expected": 0
+            },
+            {
+              "type": "artifact-exists",
+              "path": "adapter-receipt.json",
+              "expected": true
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "adapter-receipt.json",
+              "expected": "\"job_id\": \"J1-multi-session-progress-triage\""
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "tier-evidence.json",
+              "expected": "\"tier\": \"concurrent\""
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "j1-decision-receipt.json",
+              "expected": "\"state\": \"mixed-action-required\""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "j1-crash-recovery",
+      "job_id": "J1-multi-session-progress-triage",
+      "tier": "crash-recovery",
+      "steps": [
+        {
+          "id": "execute",
+          "action": "workload-adapter",
+          "adapter_id": "postgres-phase-a-v1",
+          "timeout_seconds": 1800,
+          "oracles": [
+            {
+              "type": "exit-code",
+              "expected": 0
+            },
+            {
+              "type": "artifact-exists",
+              "path": "adapter-receipt.json",
+              "expected": true
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "adapter-receipt.json",
+              "expected": "\"job_id\": \"J1-multi-session-progress-triage\""
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "tier-evidence.json",
+              "expected": "\"tier\": \"crash-recovery\""
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "j1-decision-receipt.json",
+              "expected": "\"state\": \"mixed-action-required\""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "j1-whole-root-restore",
+      "job_id": "J1-multi-session-progress-triage",
+      "tier": "whole-root-restore",
+      "steps": [
+        {
+          "id": "execute",
+          "action": "workload-adapter",
+          "adapter_id": "postgres-phase-a-v1",
+          "timeout_seconds": 1800,
+          "oracles": [
+            {
+              "type": "exit-code",
+              "expected": 0
+            },
+            {
+              "type": "artifact-exists",
+              "path": "adapter-receipt.json",
+              "expected": true
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "adapter-receipt.json",
+              "expected": "\"job_id\": \"J1-multi-session-progress-triage\""
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "tier-evidence.json",
+              "expected": "\"tier\": \"whole-root-restore\""
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "j1-decision-receipt.json",
+              "expected": "\"state\": \"mixed-action-required\""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "j1-historical-query",
+      "job_id": "J1-multi-session-progress-triage",
+      "tier": "historical-query",
+      "steps": [
+        {
+          "id": "execute",
+          "action": "workload-adapter",
+          "adapter_id": "postgres-phase-a-v1",
+          "timeout_seconds": 1800,
+          "oracles": [
+            {
+              "type": "exit-code",
+              "expected": 0
+            },
+            {
+              "type": "artifact-exists",
+              "path": "adapter-receipt.json",
+              "expected": true
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "adapter-receipt.json",
+              "expected": "\"job_id\": \"J1-multi-session-progress-triage\""
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "tier-evidence.json",
+              "expected": "\"tier\": \"historical-query\""
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "j1-decision-receipt.json",
+              "expected": "\"state\": \"mixed-action-required\""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "j1-schema-evolution",
+      "job_id": "J1-multi-session-progress-triage",
+      "tier": "schema-evolution",
+      "steps": [
+        {
+          "id": "execute",
+          "action": "workload-adapter",
+          "adapter_id": "postgres-phase-a-v1",
+          "timeout_seconds": 1800,
+          "oracles": [
+            {
+              "type": "exit-code",
+              "expected": 0
+            },
+            {
+              "type": "artifact-exists",
+              "path": "adapter-receipt.json",
+              "expected": true
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "adapter-receipt.json",
+              "expected": "\"job_id\": \"J1-multi-session-progress-triage\""
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "tier-evidence.json",
+              "expected": "\"tier\": \"schema-evolution\""
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "j1-decision-receipt.json",
+              "expected": "\"state\": \"mixed-action-required\""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "j1-new-agent-takeover",
+      "job_id": "J1-multi-session-progress-triage",
+      "tier": "new-agent-takeover",
+      "steps": [
+        {
+          "id": "execute",
+          "action": "workload-adapter",
+          "adapter_id": "postgres-phase-a-v1",
+          "timeout_seconds": 1800,
+          "oracles": [
+            {
+              "type": "exit-code",
+              "expected": 0
+            },
+            {
+              "type": "artifact-exists",
+              "path": "adapter-receipt.json",
+              "expected": true
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "adapter-receipt.json",
+              "expected": "\"job_id\": \"J1-multi-session-progress-triage\""
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "tier-evidence.json",
+              "expected": "\"tier\": \"new-agent-takeover\""
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "j1-decision-receipt.json",
+              "expected": "\"state\": \"mixed-action-required\""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "j2-normal",
+      "job_id": "J2-cross-repo-delivery-trust",
+      "tier": "normal",
+      "steps": [
+        {
+          "id": "execute",
+          "action": "workload-adapter",
+          "adapter_id": "postgres-phase-a-v1",
+          "timeout_seconds": 1800,
+          "oracles": [
+            {
+              "type": "exit-code",
+              "expected": 0
+            },
+            {
+              "type": "artifact-exists",
+              "path": "adapter-receipt.json",
+              "expected": true
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "adapter-receipt.json",
+              "expected": "\"job_id\": \"J2-cross-repo-delivery-trust\""
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "tier-evidence.json",
+              "expected": "\"tier\": \"normal\""
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "j2-delivery-receipt.json",
+              "expected": "\"state\": \"waiting\""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "j2-concurrent",
+      "job_id": "J2-cross-repo-delivery-trust",
+      "tier": "concurrent",
+      "steps": [
+        {
+          "id": "execute",
+          "action": "workload-adapter",
+          "adapter_id": "postgres-phase-a-v1",
+          "timeout_seconds": 1800,
+          "oracles": [
+            {
+              "type": "exit-code",
+              "expected": 0
+            },
+            {
+              "type": "artifact-exists",
+              "path": "adapter-receipt.json",
+              "expected": true
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "adapter-receipt.json",
+              "expected": "\"job_id\": \"J2-cross-repo-delivery-trust\""
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "tier-evidence.json",
+              "expected": "\"tier\": \"concurrent\""
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "j2-delivery-receipt.json",
+              "expected": "\"state\": \"waiting\""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "j2-crash-recovery",
+      "job_id": "J2-cross-repo-delivery-trust",
+      "tier": "crash-recovery",
+      "steps": [
+        {
+          "id": "execute",
+          "action": "workload-adapter",
+          "adapter_id": "postgres-phase-a-v1",
+          "timeout_seconds": 1800,
+          "oracles": [
+            {
+              "type": "exit-code",
+              "expected": 0
+            },
+            {
+              "type": "artifact-exists",
+              "path": "adapter-receipt.json",
+              "expected": true
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "adapter-receipt.json",
+              "expected": "\"job_id\": \"J2-cross-repo-delivery-trust\""
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "tier-evidence.json",
+              "expected": "\"tier\": \"crash-recovery\""
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "j2-delivery-receipt.json",
+              "expected": "\"state\": \"waiting\""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "j2-whole-root-restore",
+      "job_id": "J2-cross-repo-delivery-trust",
+      "tier": "whole-root-restore",
+      "steps": [
+        {
+          "id": "execute",
+          "action": "workload-adapter",
+          "adapter_id": "postgres-phase-a-v1",
+          "timeout_seconds": 1800,
+          "oracles": [
+            {
+              "type": "exit-code",
+              "expected": 0
+            },
+            {
+              "type": "artifact-exists",
+              "path": "adapter-receipt.json",
+              "expected": true
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "adapter-receipt.json",
+              "expected": "\"job_id\": \"J2-cross-repo-delivery-trust\""
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "tier-evidence.json",
+              "expected": "\"tier\": \"whole-root-restore\""
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "j2-delivery-receipt.json",
+              "expected": "\"state\": \"waiting\""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "j2-historical-query",
+      "job_id": "J2-cross-repo-delivery-trust",
+      "tier": "historical-query",
+      "steps": [
+        {
+          "id": "execute",
+          "action": "workload-adapter",
+          "adapter_id": "postgres-phase-a-v1",
+          "timeout_seconds": 1800,
+          "oracles": [
+            {
+              "type": "exit-code",
+              "expected": 0
+            },
+            {
+              "type": "artifact-exists",
+              "path": "adapter-receipt.json",
+              "expected": true
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "adapter-receipt.json",
+              "expected": "\"job_id\": \"J2-cross-repo-delivery-trust\""
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "tier-evidence.json",
+              "expected": "\"tier\": \"historical-query\""
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "j2-delivery-receipt.json",
+              "expected": "\"state\": \"waiting\""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "j2-schema-evolution",
+      "job_id": "J2-cross-repo-delivery-trust",
+      "tier": "schema-evolution",
+      "steps": [
+        {
+          "id": "execute",
+          "action": "workload-adapter",
+          "adapter_id": "postgres-phase-a-v1",
+          "timeout_seconds": 1800,
+          "oracles": [
+            {
+              "type": "exit-code",
+              "expected": 0
+            },
+            {
+              "type": "artifact-exists",
+              "path": "adapter-receipt.json",
+              "expected": true
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "adapter-receipt.json",
+              "expected": "\"job_id\": \"J2-cross-repo-delivery-trust\""
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "tier-evidence.json",
+              "expected": "\"tier\": \"schema-evolution\""
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "j2-delivery-receipt.json",
+              "expected": "\"state\": \"waiting\""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "j2-new-agent-takeover",
+      "job_id": "J2-cross-repo-delivery-trust",
+      "tier": "new-agent-takeover",
+      "steps": [
+        {
+          "id": "execute",
+          "action": "workload-adapter",
+          "adapter_id": "postgres-phase-a-v1",
+          "timeout_seconds": 1800,
+          "oracles": [
+            {
+              "type": "exit-code",
+              "expected": 0
+            },
+            {
+              "type": "artifact-exists",
+              "path": "adapter-receipt.json",
+              "expected": true
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "adapter-receipt.json",
+              "expected": "\"job_id\": \"J2-cross-repo-delivery-trust\""
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "tier-evidence.json",
+              "expected": "\"tier\": \"new-agent-takeover\""
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "j2-delivery-receipt.json",
+              "expected": "\"state\": \"waiting\""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "j3-normal",
+      "job_id": "J3-interrupted-go-recovery-handoff",
+      "tier": "normal",
+      "steps": [
+        {
+          "id": "execute",
+          "action": "workload-adapter",
+          "adapter_id": "postgres-phase-a-v1",
+          "timeout_seconds": 1800,
+          "oracles": [
+            {
+              "type": "exit-code",
+              "expected": 0
+            },
+            {
+              "type": "artifact-exists",
+              "path": "adapter-receipt.json",
+              "expected": true
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "adapter-receipt.json",
+              "expected": "\"job_id\": \"J3-interrupted-go-recovery-handoff\""
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "tier-evidence.json",
+              "expected": "\"tier\": \"normal\""
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "j3-handoff-receipt.json",
+              "expected": "\"state\": \"resume-from-stage\""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "j3-concurrent",
+      "job_id": "J3-interrupted-go-recovery-handoff",
+      "tier": "concurrent",
+      "steps": [
+        {
+          "id": "execute",
+          "action": "workload-adapter",
+          "adapter_id": "postgres-phase-a-v1",
+          "timeout_seconds": 1800,
+          "oracles": [
+            {
+              "type": "exit-code",
+              "expected": 0
+            },
+            {
+              "type": "artifact-exists",
+              "path": "adapter-receipt.json",
+              "expected": true
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "adapter-receipt.json",
+              "expected": "\"job_id\": \"J3-interrupted-go-recovery-handoff\""
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "tier-evidence.json",
+              "expected": "\"tier\": \"concurrent\""
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "j3-handoff-receipt.json",
+              "expected": "\"state\": \"resume-from-stage\""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "j3-crash-recovery",
+      "job_id": "J3-interrupted-go-recovery-handoff",
+      "tier": "crash-recovery",
+      "steps": [
+        {
+          "id": "execute",
+          "action": "workload-adapter",
+          "adapter_id": "postgres-phase-a-v1",
+          "timeout_seconds": 1800,
+          "oracles": [
+            {
+              "type": "exit-code",
+              "expected": 0
+            },
+            {
+              "type": "artifact-exists",
+              "path": "adapter-receipt.json",
+              "expected": true
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "adapter-receipt.json",
+              "expected": "\"job_id\": \"J3-interrupted-go-recovery-handoff\""
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "tier-evidence.json",
+              "expected": "\"tier\": \"crash-recovery\""
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "j3-handoff-receipt.json",
+              "expected": "\"state\": \"resume-from-stage\""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "j3-whole-root-restore",
+      "job_id": "J3-interrupted-go-recovery-handoff",
+      "tier": "whole-root-restore",
+      "steps": [
+        {
+          "id": "execute",
+          "action": "workload-adapter",
+          "adapter_id": "postgres-phase-a-v1",
+          "timeout_seconds": 1800,
+          "oracles": [
+            {
+              "type": "exit-code",
+              "expected": 0
+            },
+            {
+              "type": "artifact-exists",
+              "path": "adapter-receipt.json",
+              "expected": true
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "adapter-receipt.json",
+              "expected": "\"job_id\": \"J3-interrupted-go-recovery-handoff\""
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "tier-evidence.json",
+              "expected": "\"tier\": \"whole-root-restore\""
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "j3-handoff-receipt.json",
+              "expected": "\"state\": \"resume-from-stage\""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "j3-historical-query",
+      "job_id": "J3-interrupted-go-recovery-handoff",
+      "tier": "historical-query",
+      "steps": [
+        {
+          "id": "execute",
+          "action": "workload-adapter",
+          "adapter_id": "postgres-phase-a-v1",
+          "timeout_seconds": 1800,
+          "oracles": [
+            {
+              "type": "exit-code",
+              "expected": 0
+            },
+            {
+              "type": "artifact-exists",
+              "path": "adapter-receipt.json",
+              "expected": true
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "adapter-receipt.json",
+              "expected": "\"job_id\": \"J3-interrupted-go-recovery-handoff\""
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "tier-evidence.json",
+              "expected": "\"tier\": \"historical-query\""
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "j3-handoff-receipt.json",
+              "expected": "\"state\": \"resume-from-stage\""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "j3-schema-evolution",
+      "job_id": "J3-interrupted-go-recovery-handoff",
+      "tier": "schema-evolution",
+      "steps": [
+        {
+          "id": "execute",
+          "action": "workload-adapter",
+          "adapter_id": "postgres-phase-a-v1",
+          "timeout_seconds": 1800,
+          "oracles": [
+            {
+              "type": "exit-code",
+              "expected": 0
+            },
+            {
+              "type": "artifact-exists",
+              "path": "adapter-receipt.json",
+              "expected": true
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "adapter-receipt.json",
+              "expected": "\"job_id\": \"J3-interrupted-go-recovery-handoff\""
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "tier-evidence.json",
+              "expected": "\"tier\": \"schema-evolution\""
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "j3-handoff-receipt.json",
+              "expected": "\"state\": \"resume-from-stage\""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "j3-new-agent-takeover",
+      "job_id": "J3-interrupted-go-recovery-handoff",
+      "tier": "new-agent-takeover",
+      "steps": [
+        {
+          "id": "execute",
+          "action": "workload-adapter",
+          "adapter_id": "postgres-phase-a-v1",
+          "timeout_seconds": 1800,
+          "oracles": [
+            {
+              "type": "exit-code",
+              "expected": 0
+            },
+            {
+              "type": "artifact-exists",
+              "path": "adapter-receipt.json",
+              "expected": true
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "adapter-receipt.json",
+              "expected": "\"job_id\": \"J3-interrupted-go-recovery-handoff\""
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "tier-evidence.json",
+              "expected": "\"tier\": \"new-agent-takeover\""
+            },
+            {
+              "type": "artifact-text-contains",
+              "path": "j3-handoff-receipt.json",
+              "expected": "\"state\": \"resume-from-stage\""
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "artifact_retention": {
+    "destination": "qualification/postgres-phase-a-v1",
+    "required_patterns": [
+      "raw/**/adapter-receipt.json",
+      "raw/**/adapter-inputs.json",
+      "raw/**/tier-evidence.json",
+      "raw/**/j*-receipt.json",
+      "raw/**/commands/*.json",
+      "raw/**/stdout.log",
+      "raw/**/cleanup.stdout.log"
+    ],
+    "retention_days": 30
+  },
+  "claim_boundary": {
+    "native_performance_authority": false,
+    "user_outcome_qualification_authority_requested": true,
+    "fresh_install_cost_authority": false,
+    "final_scoring_authority": false
+  }
+}
