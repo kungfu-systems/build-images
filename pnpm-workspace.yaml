@@ -1,4 +1,4 @@
 packages: []
 minimumReleaseAgeExclude:
-  - '@kungfu-tech/buildchain@2.12.4-alpha.2'
+  - '@kungfu-tech/buildchain'
   - '@kungfu-tech/kfd@1.0.0-alpha.21'
