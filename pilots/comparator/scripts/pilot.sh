@@ -135,24 +135,23 @@ case "$profile" in
       "SELECT payload FROM pilot.pilot_events WHERE id = 1" | tee "$report_dir/clickhouse-restore-value.txt"
     ;;
   aeron)
-    printf 'n\n' | compose exec -T aeron java \
+    compose exec -T aeron java \
       --add-opens java.base/jdk.internal.misc=ALL-UNNAMED \
       --add-opens java.base/java.util.zip=ALL-UNNAMED \
       '-Daeron.archive.control.channel=aeron:udp?endpoint=localhost:8010' \
       '-Daeron.archive.replication.channel=aeron:udp?endpoint=localhost:0' \
       '-Daeron.archive.control.response.channel=aeron:udp?endpoint=localhost:0' \
-      -Daeron.sample.messages=10000 \
-      -Daeron.sample.messageLength=256 \
-      -Daeron.archive.dir=/var/lib/aeron/archive \
+      -Daeron.sample.messages=5 \
       -cp /opt/aeron/aeron-all.jar \
-      io.aeron.samples.archive.EmbeddedRecordingThroughput \
+      io.aeron.samples.archive.RecordedBasicPublisher \
       | tee "$report_dir/aeron-recording.txt"
     compose exec -T aeron sh -c "find /var/lib/aeron/archive -type f -print | sort" \
       | tee "$report_dir/aeron-archive-files.txt"
-    compose cp aeron:/var/lib/aeron/archive "$report_dir/aeron-archive"
     compose kill -s SIGKILL aeron
+    compose cp aeron:/var/lib/aeron/archive "$report_dir/aeron-archive"
     compose --profile aeron up -d --wait aeron
     compose exec -T aeron sh -c "test -n \"\$(find /var/lib/aeron/archive -type f -print -quit)\""
+    compose exec -T aeron mkdir -p /var/lib/aeron/restore
     compose cp "$report_dir/aeron-archive/." aeron:/var/lib/aeron/restore/
     compose exec -T aeron sh -c "test -n \"\$(find /var/lib/aeron/restore -type f -print -quit)\""
     ;;

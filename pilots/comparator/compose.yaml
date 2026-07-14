@@ -19,12 +19,30 @@ services:
     build:
       context: ./images/aeron
     platform: linux/amd64
-    command: ["sh", "-c", "trap 'exit 0' TERM INT; while :; do sleep 30; done"]
+    command:
+      - sh
+      - -c
+      - >-
+        mkdir -p /var/lib/aeron/archive /var/lib/aeron/restore &&
+        exec java
+        --add-opens java.base/jdk.internal.misc=ALL-UNNAMED
+        --add-opens java.base/java.util.zip=ALL-UNNAMED
+        '-Daeron.archive.dir=/var/lib/aeron/archive'
+        '-Daeron.archive.control.channel=aeron:udp?endpoint=localhost:8010'
+        '-Daeron.archive.replication.channel=aeron:udp?endpoint=localhost:0'
+        '-Daeron.archive.control.response.channel=aeron:udp?endpoint=localhost:0'
+        -cp /opt/aeron/aeron-all.jar
+        io.aeron.archive.ArchivingMediaDriver
     profiles: ["aeron"]
     read_only: true
     tmpfs:
       - /tmp:size=128m
     shm_size: 256m
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /var/lib/aeron/archive/archive-mark.dat"]
+      interval: 1s
+      timeout: 2s
+      retries: 30
     security_opt:
       - no-new-privileges:true
     volumes:
