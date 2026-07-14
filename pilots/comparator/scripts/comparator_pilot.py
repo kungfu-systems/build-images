@@ -14,6 +14,8 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 LOCK_PATH = ROOT / "environment.lock.json"
 COMPOSE_PATH = ROOT / "compose.yaml"
+MANIFEST_SCHEMA_PATH = ROOT / "environment-manifest.schema.json"
+MANIFEST_SCHEMA_ID = "urn:kungfu-systems:build-images:comparator-environment-manifest:v1"
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
 DIGEST_REF = re.compile(r"^[^\s]+@sha256:[0-9a-f]{64}$")
 READY_PROFILES = ("aeron", "clickhouse", "postgres")
@@ -27,6 +29,14 @@ def load_lock() -> dict:
 def validate() -> dict:
     lock = load_lock()
     errors: list[str] = []
+    with MANIFEST_SCHEMA_PATH.open(encoding="utf-8") as handle:
+        manifest_schema = json.load(handle)
+    if manifest_schema.get("$id") != MANIFEST_SCHEMA_ID:
+        errors.append("environment manifest schema has an unexpected $id")
+    if manifest_schema.get("properties", {}).get("pilot_unscored", {}).get("const") is not True:
+        errors.append("environment manifest schema must require pilot_unscored=true")
+    if manifest_schema.get("properties", {}).get("performance_authority", {}).get("const") is not False:
+        errors.append("environment manifest schema must require performance_authority=false")
     pilot = lock.get("pilot", {})
     if pilot.get("status") != "unscored" or pilot.get("performance_authority") is not False:
         errors.append("pilot must remain unscored and non-authoritative")
@@ -84,6 +94,7 @@ def emit_manifest(profile: str, project: str, output: pathlib.Path) -> None:
     if selected.get("status") != "ready":
         raise ValueError(f"profile {profile} is not runnable: {selected.get('blocked_reason', selected.get('status'))}")
     manifest = {
+        "manifest_schema": MANIFEST_SCHEMA_ID,
         "schema_version": 1,
         "pilot_unscored": True,
         "performance_authority": False,

@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:kungfu-systems:build-images:comparator-environment-manifest:v1",
+  "title": "Comparator pilot environment manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "manifest_schema",
+    "schema_version",
+    "pilot_unscored",
+    "performance_authority",
+    "profile",
+    "project",
+    "configuration_slot",
+    "generated_at",
+    "lock_sha256",
+    "subject",
+    "runner",
+    "claim_boundary"
+  ],
+  "properties": {
+    "manifest_schema": {
+      "const": "urn:kungfu-systems:build-images:comparator-environment-manifest:v1"
+    },
+    "schema_version": { "const": 1 },
+    "pilot_unscored": { "const": true },
+    "performance_authority": { "const": false },
+    "profile": { "enum": ["aeron", "clickhouse", "postgres", "kungfu"] },
+    "project": { "type": "string", "minLength": 1 },
+    "configuration_slot": { "enum": ["realistic-default", "expert-tuned"] },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "lock_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "subject": { "type": "object" },
+    "runner": {
+      "type": "object",
+      "required": ["image"],
+      "properties": {
+        "image": { "type": "string", "pattern": "@sha256:[0-9a-f]{64}$" }
+      }
+    },
+    "claim_boundary": { "type": "string", "minLength": 1 }
+  }
+}

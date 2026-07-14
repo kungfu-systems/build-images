@@ -42,6 +42,10 @@ Generated manifests and logs are stored under `.artifacts/` and say
 replace the designated native-host performance program, installation-cost
 study, or the final user-perspective comparison protocol.
 
+`environment-manifest.schema.json` is the machine-readable handoff contract for
+each retained run manifest. `environment.lock.json` remains the immutable input
+record for the profile definitions.
+
 ## Configuration slots
 
 `realistic-default` is the only active slot. `expert-tuned` is reserved until a
