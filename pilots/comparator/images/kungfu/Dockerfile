@@ -1,15 +1,60 @@
+ARG KUNGFU_BUILDER_IMAGE=ghcr.io/kungfu-systems/build-images/native-linux-x64@sha256:a9313d8911e4f81af46436784f7a6a6c436b5d0f040ac9607204cbc91634a1ba
+FROM ${KUNGFU_BUILDER_IMAGE} AS builder
+
+ARG KUNGFU_SOURCE_REPOSITORY=https://github.com/kungfu-systems/kungfu.git
+ARG KUNGFU_SOURCE_SHA=5b16a62b63e9a84ebea23f1a14b6253f66e3a8ab
+ARG RUSTUP_VERSION=1.28.2
+ARG RUSTUP_INIT_SHA256=20a06e644b0d9bd2fbdbfd52d42540bdde820ea7df86e92e533c073da0cdd43c
+ARG RUST_TOOLCHAIN=1.96.0
+
+ENV CARGO_HOME=/home/kungfu/.cargo
+ENV RUSTUP_HOME=/home/kungfu/.rustup
+ENV PATH=/home/kungfu/.cargo/bin:${PATH}
+
+USER kungfu
+WORKDIR /work
+
+RUN curl -fsSLo /tmp/rustup-init \
+      "https://static.rust-lang.org/rustup/archive/${RUSTUP_VERSION}/x86_64-unknown-linux-gnu/rustup-init" \
+    && echo "${RUSTUP_INIT_SHA256}  /tmp/rustup-init" | sha256sum -c - \
+    && chmod +x /tmp/rustup-init \
+    && /tmp/rustup-init -y --profile minimal --default-toolchain "${RUST_TOOLCHAIN}" \
+    && rm -f /tmp/rustup-init \
+    && rustc --version \
+    && cargo --version
+
+RUN git init /work/kungfu \
+    && cd /work/kungfu \
+    && git remote add origin "${KUNGFU_SOURCE_REPOSITORY}" \
+    && git fetch --depth=1 origin "${KUNGFU_SOURCE_SHA}" \
+    && git checkout --detach FETCH_HEAD \
+    && test "$(git rev-parse HEAD)" = "${KUNGFU_SOURCE_SHA}"
+
+WORKDIR /work/kungfu
+
+# Build only the source-backed core/CLI surface used by this unscored pilot.
+# The source checkout owns the Node, pnpm, uv, Python, Cargo, Conan and product
+# dependency locks; setup duration remains visible in the hosted smoke job.
+RUN ./shifu sync \
+    && ./shifu build:core \
+    && ./shifu freeze \
+    && test -x framework/core/dist/kungfu/kungfu \
+    && framework/core/dist/kungfu/kungfu agent capabilities --json >/tmp/kungfu-capabilities.json
+
 FROM ghcr.io/kungfu-systems/build-images/kungfu-verify@sha256:cb6d939d567c129903d6e3ad858e2c09a9475b3b8f81b1aad10279d0e63a920d
 
-ARG KUNGFU_ARTIFACT_URL
-ARG KUNGFU_ARTIFACT_SHA256
+ARG KUNGFU_SOURCE_SHA=5b16a62b63e9a84ebea23f1a14b6253f66e3a8ab
 
-RUN test -n "${KUNGFU_ARTIFACT_URL}" \
-    && test "${KUNGFU_ARTIFACT_URL}" != "BLOCKED_NO_FORMAL_ARTIFACT" \
-    && test -n "${KUNGFU_ARTIFACT_SHA256}" \
-    && test "${KUNGFU_ARTIFACT_SHA256}" != "BLOCKED_NO_FORMAL_ARTIFACT" \
-    || { echo >&2 "A formal Kungfu product artifact URL and SHA-256 are required"; exit 64; }
+USER root
+COPY --from=builder /work/kungfu/framework/core/dist/kungfu /opt/kungfu
+RUN mkdir -p /var/lib/kungfu \
+    && chown -R kungfu:kungfu /var/lib/kungfu \
+    && printf '%s\n' "${KUNGFU_SOURCE_SHA}" >/opt/kungfu/SOURCE_SHA \
+    && chmod -R a-w /opt/kungfu
 
-# The install and smoke contract intentionally remains fail-closed until the
-# formal product artifact publishes its archive layout and release evidence.
-RUN echo >&2 "Kungfu artifact layout is not yet published; installer remains blocked" \
-    && exit 65
+ENV PATH=/opt/kungfu:${PATH}
+USER kungfu
+WORKDIR /var/lib/kungfu
+
+HEALTHCHECK --interval=2s --timeout=5s --retries=30 \
+  CMD kungfu --home /tmp/kungfu-health agent capabilities --json >/dev/null || exit 1

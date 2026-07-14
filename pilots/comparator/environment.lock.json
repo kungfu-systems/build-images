@@ -32,12 +32,22 @@
       "source": "https://www.postgresql.org/docs/release/18.4/"
     },
     "kungfu": {
-      "status": "blocked-unpublished",
-      "version": null,
-      "artifact_url": null,
-      "artifact_sha256": null,
-      "release_evidence_url": null,
-      "blocked_reason": "No public formal Kungfu product artifact is currently available. The shifu-v4.0.0-alpha.0 launcher release and disposable ADR-0049 qualification packages are not substitutes."
+      "status": "ready",
+      "version": "4.0.0-alpha.0+source.5b16a62b63e9",
+      "distribution_mode": "pinned-source-build",
+      "source_repository": "https://github.com/kungfu-systems/kungfu.git",
+      "source_ref": "dev/v4/v4.0",
+      "source_sha": "5b16a62b63e9a84ebea23f1a14b6253f66e3a8ab",
+      "source_evidence_url": "https://github.com/kungfu-systems/kungfu/commit/5b16a62b63e9a84ebea23f1a14b6253f66e3a8ab",
+      "builder_image": "ghcr.io/kungfu-systems/build-images/native-linux-x64@sha256:a9313d8911e4f81af46436784f7a6a6c436b5d0f040ac9607204cbc91634a1ba",
+      "builder_image_release": "v1.2.3-alpha.7",
+      "runtime_image": "ghcr.io/kungfu-systems/build-images/kungfu-verify@sha256:cb6d939d567c129903d6e3ad858e2c09a9475b3b8f81b1aad10279d0e63a920d",
+      "rustup_version": "1.28.2",
+      "rustup_init_url": "https://static.rust-lang.org/rustup/archive/1.28.2/x86_64-unknown-linux-gnu/rustup-init",
+      "rustup_init_sha256": "20a06e644b0d9bd2fbdbfd52d42540bdde820ea7df86e92e533c073da0cdd43c",
+      "rust_toolchain": "1.96.0",
+      "build_entrypoint": "./shifu sync && ./shifu build:core && ./shifu freeze",
+      "claim_boundary": "Source-built core/CLI for disposable functional and recovery qualification; not a released product artifact or performance authority"
     }
   },
   "configuration_slots": {

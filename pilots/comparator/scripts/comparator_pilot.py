@@ -17,8 +17,9 @@ COMPOSE_PATH = ROOT / "compose.yaml"
 MANIFEST_SCHEMA_PATH = ROOT / "environment-manifest.schema.json"
 MANIFEST_SCHEMA_ID = "urn:kungfu-systems:build-images:comparator-environment-manifest:v1"
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
+GIT_SHA = re.compile(r"^[0-9a-f]{40}$")
 DIGEST_REF = re.compile(r"^[^\s]+@sha256:[0-9a-f]{64}$")
-READY_PROFILES = ("aeron", "clickhouse", "postgres")
+READY_PROFILES = ("aeron", "clickhouse", "postgres", "kungfu")
 
 
 def load_lock() -> dict:
@@ -60,26 +61,58 @@ def validate() -> dict:
         errors.append("aeron artifact must use an exact SHA-256")
 
     kungfu = profiles.get("kungfu", {})
-    if kungfu.get("status") == "ready":
-        for field in ("version", "artifact_url", "artifact_sha256", "release_evidence_url"):
-            if not kungfu.get(field):
-                errors.append(f"ready kungfu profile requires {field}")
-        if not SHA256.fullmatch(kungfu.get("artifact_sha256", "")):
-            errors.append("ready kungfu profile requires an exact SHA-256")
-    elif kungfu.get("status") == "blocked-unpublished":
-        for field in ("version", "artifact_url", "artifact_sha256", "release_evidence_url"):
-            if kungfu.get(field) is not None:
-                errors.append(f"blocked kungfu profile must leave {field} null")
-    else:
-        errors.append("kungfu status must be ready or blocked-unpublished")
+    required_kungfu_fields = (
+        "version",
+        "distribution_mode",
+        "source_repository",
+        "source_ref",
+        "source_sha",
+        "source_evidence_url",
+        "builder_image",
+        "builder_image_release",
+        "runtime_image",
+        "rustup_version",
+        "rustup_init_url",
+        "rustup_init_sha256",
+        "rust_toolchain",
+        "build_entrypoint",
+        "claim_boundary",
+    )
+    for field in required_kungfu_fields:
+        if not kungfu.get(field):
+            errors.append(f"ready kungfu profile requires {field}")
+    if kungfu.get("distribution_mode") != "pinned-source-build":
+        errors.append("kungfu distribution_mode must be pinned-source-build")
+    if not GIT_SHA.fullmatch(kungfu.get("source_sha", "")):
+        errors.append("kungfu source must use an exact 40-character Git SHA")
+    if not SHA256.fullmatch(kungfu.get("rustup_init_sha256", "")):
+        errors.append("kungfu rustup installer must use an exact SHA-256")
+    for field in ("builder_image", "runtime_image"):
+        if not DIGEST_REF.fullmatch(kungfu.get(field, "")):
+            errors.append(f"kungfu {field} must use an immutable sha256 digest")
+    if kungfu.get("runtime_image") != runner:
+        errors.append("kungfu runtime image must match the locked runner image")
+    if kungfu.get("source_sha", "") not in kungfu.get("source_evidence_url", ""):
+        errors.append("kungfu source evidence URL must identify the locked source SHA")
 
     compose = COMPOSE_PATH.read_text(encoding="utf-8")
     for forbidden in ("privileged:", "network_mode: host", "/var/run/docker.sock"):
         if forbidden in compose:
             errors.append(f"compose contains forbidden setting: {forbidden}")
-    for required in (runner, profiles["clickhouse"]["image"], profiles["postgres"]["image"]):
+    for required in (
+        runner,
+        profiles["clickhouse"]["image"],
+        profiles["postgres"]["image"],
+        kungfu.get("builder_image", ""),
+        kungfu.get("source_repository", ""),
+        kungfu.get("source_sha", ""),
+        kungfu.get("rustup_init_sha256", ""),
+        kungfu.get("rust_toolchain", ""),
+    ):
         if required not in compose:
             errors.append(f"compose is not aligned with lock: {required}")
+    if ":latest" in compose:
+        errors.append("compose must not use latest tags")
 
     if errors:
         raise ValueError("\n".join(errors))
