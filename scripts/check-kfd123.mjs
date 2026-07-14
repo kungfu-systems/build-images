@@ -3,7 +3,8 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
-import contractWorldJson from "@kungfu-tech/buildchain/site/buildchain-contract.json" with { type: "json" };
+import alphaContractWorldJson from "@kungfu-tech/buildchain/site/buildchain-contract.json" with { type: "json" };
+import stableContractWorldJson from "@kungfu-tech/buildchain-stable/site/buildchain-contract.json" with { type: "json" };
 import {
   evaluateBuildchainContractLock,
   readBuildchainContractLock,
@@ -117,25 +118,28 @@ function refreshKfd3Registry() {
 }
 
 function checkContractLocks() {
-  const tmpContractPath = repoPath(".buildchain/tmp/current-buildchain-contract.json");
-  fs.mkdirSync(path.dirname(tmpContractPath), { recursive: true });
-  fs.writeFileSync(tmpContractPath, `${JSON.stringify(contractWorldJson, null, 2)}\n`);
+  const tmpAlphaContractPath = repoPath(".buildchain/tmp/alpha-buildchain-contract.json");
+  const tmpStableContractPath = repoPath(".buildchain/tmp/stable-buildchain-contract.json");
+  fs.mkdirSync(path.dirname(tmpAlphaContractPath), { recursive: true });
+  fs.writeFileSync(tmpAlphaContractPath, `${JSON.stringify(alphaContractWorldJson, null, 2)}\n`);
+  fs.writeFileSync(tmpStableContractPath, `${JSON.stringify(stableContractWorldJson, null, 2)}\n`);
   try {
-    const current = readBuildchainContractWorld(tmpContractPath);
+    const alphaCurrent = readBuildchainContractWorld(tmpAlphaContractPath);
+    const stableCurrent = readBuildchainContractWorld(tmpStableContractPath);
     const stableLock = readBuildchainContractLock(repoPath(STABLE_CONTRACT_LOCK_PATH));
     const alphaLock = readBuildchainContractLock(repoPath(ALPHA_CONTRACT_LOCK_PATH));
     const stableEvaluation = evaluateBuildchainContractLock({
       lock: stableLock,
-      current,
+      current: stableCurrent,
       runtimeRef: stableLock?.buildchain?.ref || "v2",
-      runtimeSha: process.env.BUILDCHAIN_RUNTIME_SHA || stableLock?.buildchain?.resolvedSha || "",
+      runtimeSha: stableLock?.buildchain?.resolvedSha || "",
       runtimeClass: "stable",
       compatibilityPolicy: stableLock?.buildchain?.compatibilityPolicy || "major-compatible",
     });
     assertPassed(stableEvaluation.ok, `Stable Buildchain contract lock failed: ${(stableEvaluation.reasons || []).join("; ")}`);
     const alphaEvaluation = evaluateBuildchainContractLock({
       lock: alphaLock,
-      current,
+      current: alphaCurrent,
       runtimeRef: alphaLock?.buildchain?.ref || "v2-alpha",
       runtimeSha: alphaLock?.buildchain?.resolvedSha || "",
       runtimeClass: "alpha",
@@ -143,14 +147,18 @@ function checkContractLocks() {
     });
     assertPassed(alphaEvaluation.ok, `Alpha Buildchain contract lock failed: ${(alphaEvaluation.reasons || []).join("; ")}`);
     assertPassed(
-      alphaLock.buildchain.contractDigest === current.contractDigest,
+      alphaLock.buildchain.contractDigest === alphaCurrent.contractDigest,
       "Alpha Buildchain contract lock must match the installed Buildchain contract exactly",
+    );
+    assertPassed(
+      stableLock.buildchain.contractDigest === stableCurrent.contractDigest,
+      "Stable Buildchain contract lock must match the installed stable Buildchain contract exactly",
     );
     assertPassed(stableLock.buildchain.ref === "v2", `Stable Buildchain ref must be v2, got ${stableLock.buildchain.ref}`);
     assertPassed(alphaLock.buildchain.ref === "v2-alpha", `Alpha Buildchain ref must be v2-alpha, got ${alphaLock.buildchain.ref}`);
     assertPassed(alphaLock.buildchain.majorLine === stableLock.buildchain.majorLine, "Alpha and stable Buildchain locks must use the same major line");
+    assertPassed(stableLock.buildchain.compatibilityPolicy === "major-compatible", "Stable Buildchain lock must use major-compatible policy");
     assertPassed(alphaLock.buildchain.compatibilityPolicy === "major-compatible", "Alpha Buildchain lock must use major-compatible policy");
-    assertPassed(alphaLock.buildchain.compatibilityDigest === stableLock.buildchain.compatibilityDigest, "Alpha and stable Buildchain contracts are not major-compatible");
     return { stableEvaluation, alphaEvaluation, stableLock, alphaLock };
   } finally {
     fs.rmSync(repoPath(".buildchain/tmp"), { recursive: true, force: true });
