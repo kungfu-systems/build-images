@@ -138,6 +138,7 @@ case "$profile" in
     printf 'n\n' | compose exec -T aeron java \
       --add-opens java.base/jdk.internal.misc=ALL-UNNAMED \
       --add-opens java.base/java.util.zip=ALL-UNNAMED \
+      -Daeron.archive.control.channel.enabled=false \
       -Daeron.sample.messages=10000 \
       -Daeron.sample.messageLength=256 \
       -Daeron.archive.dir=/var/lib/aeron/archive \
