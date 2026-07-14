@@ -98,6 +98,7 @@ python3 "$SCRIPT_DIR/comparator_pilot.py" emit-manifest \
   --output "$report_dir/environment-manifest.json"
 
 cleanup() {
+  compose logs --no-color >"$report_dir/compose.log" 2>&1 || true
   compose --profile "$profile" down --volumes --remove-orphans >/dev/null 2>&1 || true
 }
 trap cleanup EXIT INT TERM
@@ -135,6 +136,8 @@ case "$profile" in
     ;;
   aeron)
     printf 'n\n' | compose exec -T aeron java \
+      --add-opens java.base/jdk.internal.misc=ALL-UNNAMED \
+      --add-opens java.base/java.util.zip=ALL-UNNAMED \
       -Daeron.sample.messages=10000 \
       -Daeron.sample.messageLength=256 \
       -Daeron.archive.dir=/var/lib/aeron/archive \
