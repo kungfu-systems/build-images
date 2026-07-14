@@ -47,6 +47,7 @@ PROFILES = ("aeron", "clickhouse", "postgres", "kungfu")
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
 GIT_SHA = re.compile(r"^[0-9a-f]{40}$")
 ID = re.compile(r"^[A-Za-z0-9._-]+$")
+COMPOSE_PROJECT_NAME = re.compile(r"^[a-z0-9][a-z0-9_-]{0,62}$")
 CLAIM_BOUNDARY = (
     "Containerized user-outcome qualification only; native-host performance, "
     "fresh-install cost, final scoring, and winner declarations remain outside this bundle."
@@ -731,6 +732,60 @@ def controlled_environment() -> dict[str, str]:
     return {name: value for name, value in os.environ.items() if name in RUNTIME_ENV_ALLOWLIST}
 
 
+def compose_project_name(
+    profile: str,
+    bundle_id: str,
+    repetition: int,
+    scenario: dict[str, Any],
+    step: dict[str, Any],
+) -> str:
+    step_identity = hashlib.sha256(
+        f"{scenario['id']}:{scenario.get('tier', '')}:{step['id']}".encode("utf-8")
+    ).hexdigest()[:10]
+    raw = f"kf-qual-{profile}-{bundle_id[-12:]}-r{repetition:03d}-{step_identity}"
+    project = re.sub(r"[^a-z0-9_-]", "-", raw.lower())[:63]
+    if COMPOSE_PROJECT_NAME.fullmatch(project) is None:
+        raise QualificationError(f"generated Compose project name is invalid: {project}")
+    return project
+
+
+def qualification_project_names(plan: dict[str, Any], profile: str, bundle_id: str) -> list[str]:
+    projects = [
+        compose_project_name(profile, bundle_id, repetition, scenario, step)
+        for repetition in range(1, plan["repetitions"] + 1)
+        for scenario in plan["scenarios"]
+        for step in scenario["steps"]
+    ]
+    if len(projects) != len(set(projects)):
+        raise QualificationError("generated Compose project names contain a collision")
+    return projects
+
+
+def preflight_compose_environment(profile: str, project: str) -> None:
+    try:
+        process = subprocess.run(
+            [
+                "docker", "compose", "-f", str(COMPOSE_PATH),
+                "--project-name", project,
+                "--profile", profile,
+                "config", "--quiet",
+            ],
+            cwd=REPO_ROOT,
+            env={**controlled_environment(), "COMPARATOR_PROJECT_NAME": project},
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+    except subprocess.TimeoutExpired as error:
+        detail = normalize_timeout_output(error.stderr).strip() or "Compose validation timed out"
+        raise QualificationError(
+            f"locked Compose environment preflight failed before service startup: {detail}"
+        ) from error
+    if process.returncode != 0:
+        detail = process.stderr.strip() or process.stdout.strip() or "unknown Compose validation error"
+        raise QualificationError(f"locked Compose environment preflight failed before service startup: {detail}")
+
+
 def verify_semantic_evidence(step_dir: pathlib.Path, context: dict[str, Any]) -> dict[str, Any]:
     job_id = context["job_id"]
     tier = context["tier"]
@@ -851,11 +906,7 @@ def execute_step(
     step: dict[str, Any],
     repetition_dir: pathlib.Path,
 ) -> dict[str, Any]:
-    step_identity = hashlib.sha256(
-        f"{scenario['id']}:{scenario.get('tier', '')}:{step['id']}".encode("utf-8")
-    ).hexdigest()[:10]
-    project = f"kf-qual-{profile}-{bundle_id[-12:]}-r{repetition:03d}-{step_identity}"
-    project = re.sub(r"[^A-Za-z0-9_-]", "-", project)[:63]
+    project = compose_project_name(profile, bundle_id, repetition, scenario, step)
     step_dir = repetition_dir / "raw" / scenario["id"] / step["id"]
     step_dir.mkdir(parents=True, exist_ok=True)
     environment = controlled_environment()
@@ -1092,8 +1143,10 @@ def run_plan(plan_path: pathlib.Path) -> pathlib.Path:
     if plan["test_only"]:
         raise QualificationError("test-only plans cannot issue qualification bundles")
     require_clean_source()
-    runtime = runtime_facts(resolved["resource_limits"])
     bundle_id = f"qual-{resolved['profile']}-{dt.datetime.now(dt.timezone.utc).strftime('%Y%m%dT%H%M%SZ')}-{os.getpid()}"
+    projects = qualification_project_names(plan, resolved["profile"], bundle_id)
+    preflight_compose_environment(resolved["profile"], projects[0])
+    runtime = runtime_facts(resolved["resource_limits"])
     destination = pathlib.Path(resolved["artifact_destination"])
     bundle_dir = destination / bundle_id
     if bundle_dir.exists():

@@ -43,7 +43,7 @@
       "id": "comparator-containerized-user-outcome-qualification",
       "impact": "patch",
       "class": "qualification-governance",
-      "rationale": "The comparator pilot derives J1/J2/J3 receipts from retained observed facts and tier postconditions, verifies them against a separate digest-locked oracle, rejects answer-key execution inputs and semantic tampering offline, and preserves existing adapter mappings, unscored smoke commands, and published image identifiers.",
+      "rationale": "The comparator pilot derives J1/J2/J3 receipts from retained observed facts, normalizes unique Compose project names to portable lowercase syntax, fails environment preflight before service startup, and preserves semantic verification, project-scoped cleanup, adapter mappings, unscored smoke commands, and published image identifiers.",
       "source": "pilots/comparator"
     }
   ],
@@ -51,5 +51,5 @@
   "breaking": false,
   "security": false,
   "migrationRequired": false,
-  "summary": "Build images v1.2 includes standard Buildchain release governance, maintained image runtime fixes, and an opt-in comparator qualification surface with observed-fact-derived semantic receipts."
+  "summary": "Build images v1.2 includes standard Buildchain release governance, maintained image runtime fixes, and an opt-in comparator qualification surface with observed-fact-derived receipts and portable Compose project identities."
 }

@@ -38,6 +38,38 @@ jobs:
               >"${RUNNER_TEMP}/${profile}-qualification-plan.json"
           done
 
+      - name: Validate production project identity with current Compose
+        shell: bash
+        run: |
+          set -euo pipefail
+          project="$(python3 - <<'PY'
+          import pathlib
+          import sys
+
+          root = pathlib.Path.cwd()
+          sys.path.insert(0, str(root / "pilots/comparator/scripts"))
+          import comparator_qualification as qualification
+
+          plan = qualification.load_json(root / "pilots/comparator/plans/postgres-phase-a-v1.json")
+          scenario = plan["scenarios"][0]
+          step = scenario["steps"][0]
+          print(qualification.compose_project_name(
+              "postgres",
+              "qual-postgres-20260714T104328Z-90803",
+              1,
+              scenario,
+              step,
+          ))
+          PY
+          )"
+          [[ "${project}" =~ ^[a-z0-9][a-z0-9_-]*$ ]]
+          (( ${#project} <= 63 ))
+          docker compose \
+            -f pilots/comparator/compose.yaml \
+            --project-name "${project}" \
+            --profile postgres \
+            config --quiet
+
       - name: Prove test fixtures cannot issue receipts
         shell: bash
         run: |
