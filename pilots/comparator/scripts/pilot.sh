@@ -145,10 +145,16 @@ case "$profile" in
       -cp /opt/aeron/aeron-all.jar \
       io.aeron.samples.archive.RecordedBasicPublisher \
       | tee "$report_dir/aeron-recording.txt"
+    grep -Fq "yay!" "$report_dir/aeron-recording.txt"
+    if grep -Fq "Offer failed" "$report_dir/aeron-recording.txt"; then
+      echo "Aeron publisher reported an unsuccessful offer" >&2
+      exit 1
+    fi
     compose exec -T aeron sh -c "find /var/lib/aeron/archive -type f -print | sort" \
       | tee "$report_dir/aeron-archive-files.txt"
     compose kill -s SIGKILL aeron
     compose cp aeron:/var/lib/aeron/archive "$report_dir/aeron-archive"
+    sleep 11
     compose --profile aeron up -d --wait aeron
     compose exec -T aeron sh -c "test -n \"\$(find /var/lib/aeron/archive -type f -print -quit)\""
     compose exec -T aeron mkdir -p /var/lib/aeron/restore

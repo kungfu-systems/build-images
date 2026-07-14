@@ -27,6 +27,7 @@ services:
         exec java
         --add-opens java.base/jdk.internal.misc=ALL-UNNAMED
         --add-opens java.base/java.util.zip=ALL-UNNAMED
+        -Daeron.spies.simulate.connection=true
         '-Daeron.archive.dir=/var/lib/aeron/archive'
         '-Daeron.archive.control.channel=aeron:udp?endpoint=localhost:8010'
         '-Daeron.archive.replication.channel=aeron:udp?endpoint=localhost:0'
