@@ -6,7 +6,7 @@
     {
       "id": "readme",
       "path": "README.md",
-      "sha256": "c68c594481bd0b684bdb42951c115b260153ea211c4d0fdd2f554c3af81e62e0"
+      "sha256": "66ff769b46a83ca30ef35e06e4e34a69cc75f55b53122f38d3ebcf46252cc567"
     },
     {
       "id": "image-contract",
@@ -43,7 +43,7 @@
     {
       "id": "kfd-1-contract-world-witness",
       "path": ".buildchain/kfd/kfd-1/build-images-contract-world.witness.json",
-      "sha256": "ecf8ceadf2cff03b3e671c13d8eab69acdf7c5889ce0265c85bd117434ce9b2f",
+      "sha256": "d74b50db8be3148e5e268e0d4d54e95caf44aeae4751f26e69d2a5947d6ae50b",
       "contract": "kfd-1",
       "status": "passed"
     },
@@ -57,16 +57,16 @@
     {
       "id": "kfd-3-surface-registry",
       "path": ".buildchain/kfd/kfd-3/surfaces.json",
-      "sha256": "d6d5f112c1d0284253e67f1e34af6fc03d7f868ba37357817d3396abf0c63fe5",
+      "sha256": "519469029a8c2122e2ba45e53b848589f0e38cc9a0511a300d325c371f2679a3",
       "contract": "kungfu-buildchain-kfd-3-surface-registry",
       "status": "passed"
     }
   ],
   "hashes": {
-    "kfd1WitnessSha256": "bbfe3f3dc9c6f8658fc64c17af9ae92ca610500beeb24f1e8feb6877521a15c5",
+    "kfd1WitnessSha256": "4f4f9aceb5ea97a3cc34422d63272a6594bfec5742761c20d0b65e54391de861",
     "upstreamAggregateSha256": "02da554cda59dcab331c8ca071b0017075eff5708e1f82a0e765d2d4cd1a660c",
-    "sourceBindingsSha256": "9f1e94fa01011799f4c9d9de1ae4540f2d2f36ece0937514a2e84f91eb461676",
-    "machineEvidenceSha256": "8d624362629eaca99f66bd3508b99f6788cfef26e78eadbd545dd151ea2564df"
+    "sourceBindingsSha256": "8fac094d960e56172a106b6d8cc91b88365105516cc2e67ae536f8265b828e01",
+    "machineEvidenceSha256": "87f2500cc5fea4a1b1304fd9b9b79d677d0e4b7098c612f896c3d86e512fd6a1"
   },
   "artifacts": [
     {

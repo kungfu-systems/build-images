@@ -38,11 +38,18 @@
       "class": "release-governance",
       "rationale": "Stable publication now supplies the required surface impact ledger to the Buildchain release passport without changing the published OCI family contract.",
       "source": ".buildchain/release-impact.json"
+    },
+    {
+      "id": "comparator-containerized-user-outcome-qualification",
+      "impact": "patch",
+      "class": "qualification-governance",
+      "rationale": "The comparator pilot adds an opt-in frozen-plan evidence bundle and offline verifier while preserving existing unscored smoke commands and all published image identifiers.",
+      "source": "pilots/comparator"
     }
   ],
   "classification": "patch",
   "breaking": false,
   "security": false,
   "migrationRequired": false,
-  "summary": "Build images v1.2 completes the standard Buildchain v2.12 dual-channel release path, pnpm runtime support, scalable LaTeX defaults, and production release-passport evidence."
+  "summary": "Build images v1.2 includes standard Buildchain release governance, maintained image runtime fixes, and an opt-in frozen-plan comparator qualification evidence surface."
 }

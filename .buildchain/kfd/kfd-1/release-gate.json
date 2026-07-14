@@ -54,13 +54,13 @@
       "standard": "KFD-1",
       "standardKey": "kfd-1",
       "result": "passed",
-      "preBuildWitnessSha256": "ad6f540f32817e8f2e8170550909afa2cbbf93b8c88328f98cba26873d1a8f80",
+      "preBuildWitnessSha256": "9875717890eec6bb9ea36c0305aa9d923ebe80fd1121a70c1ae7f283aef57b60",
       "sourceHashes": {
-        "sha256": "7886c05b9dcad56529bb5eaab3166d8e65f994d090629ed170c7f9837535d60d",
+        "sha256": "a74f96fb05e54ba1eb27a43aef3784607a04742bc035bc03d7b66549dd586081",
         "surfaceCount": 6
       },
       "artifactHashes": {
-        "sha256": "598244d2ab096d9b6af10d259bf6a5e7663caab1939d594b07fa5fb7bc482af0",
+        "sha256": "b3b55f211193d44794e04bb76860a933839027a1c35ae491af4b6c7455de569d",
         "surfaceCount": 6
       },
       "witness": {
@@ -75,14 +75,14 @@
         },
         "contractWorld": {
           "schemaId": "https://kfd.libkungfu.dev/schemas/kfd-1/contract-world.schema.json",
-          "digest": "sha256:ae348602bb804ff2f0d9e56684752af0de78895c0e54498b8de3197158307d9b"
+          "digest": "sha256:c2fe52b200bbe042fdd690691156f6666213a1958adef105ca203fab5263b1c4"
         },
         "standardContract": {
           "id": "",
           "schemaId": "https://kfd.libkungfu.dev/schemas/kfd-1/contract-world.schema.json",
           "path": "",
           "sha256": "",
-          "digest": "sha256:ae348602bb804ff2f0d9e56684752af0de78895c0e54498b8de3197158307d9b"
+          "digest": "sha256:c2fe52b200bbe042fdd690691156f6666213a1958adef105ca203fab5263b1c4"
         },
         "selfHostingBoundary": {
           "mode": "external-contract-world",
@@ -103,15 +103,15 @@
         },
         "registry": {
           "path": ".buildchain/kfd/kfd-3/surfaces.json",
-          "sha256": "d6d5f112c1d0284253e67f1e34af6fc03d7f868ba37357817d3396abf0c63fe5"
+          "sha256": "519469029a8c2122e2ba45e53b848589f0e38cc9a0511a300d325c371f2679a3"
         },
         "surfaces": [
           {
             "name": "readme",
             "sourcePath": "README.md",
-            "sourceSha256": "c68c594481bd0b684bdb42951c115b260153ea211c4d0fdd2f554c3af81e62e0",
+            "sourceSha256": "66ff769b46a83ca30ef35e06e4e34a69cc75f55b53122f38d3ebcf46252cc567",
             "artifactPath": "README.md",
-            "expectedSha256": "c68c594481bd0b684bdb42951c115b260153ea211c4d0fdd2f554c3af81e62e0",
+            "expectedSha256": "66ff769b46a83ca30ef35e06e4e34a69cc75f55b53122f38d3ebcf46252cc567",
             "byteForByte": true
           },
           {
@@ -178,7 +178,7 @@
         "schemaId": "https://kfd.libkungfu.dev/schemas/kfd-1/contract-world.schema.json",
         "path": "",
         "sha256": "",
-        "digest": "sha256:ae348602bb804ff2f0d9e56684752af0de78895c0e54498b8de3197158307d9b"
+        "digest": "sha256:c2fe52b200bbe042fdd690691156f6666213a1958adef105ca203fab5263b1c4"
       },
       "selfHostingBoundary": {
         "mode": "external-contract-world",
@@ -200,8 +200,8 @@
           {
             "name": "readme",
             "sourcePath": "README.md",
-            "expectedSha256": "c68c594481bd0b684bdb42951c115b260153ea211c4d0fdd2f554c3af81e62e0",
-            "actualSha256": "c68c594481bd0b684bdb42951c115b260153ea211c4d0fdd2f554c3af81e62e0",
+            "expectedSha256": "66ff769b46a83ca30ef35e06e4e34a69cc75f55b53122f38d3ebcf46252cc567",
+            "actualSha256": "66ff769b46a83ca30ef35e06e4e34a69cc75f55b53122f38d3ebcf46252cc567",
             "status": "passed",
             "reason": ""
           },
@@ -254,10 +254,10 @@
           {
             "name": "readme",
             "sourcePath": "README.md",
-            "sourceSha256": "c68c594481bd0b684bdb42951c115b260153ea211c4d0fdd2f554c3af81e62e0",
+            "sourceSha256": "66ff769b46a83ca30ef35e06e4e34a69cc75f55b53122f38d3ebcf46252cc567",
             "artifactPath": "README.md",
-            "expectedSha256": "c68c594481bd0b684bdb42951c115b260153ea211c4d0fdd2f554c3af81e62e0",
-            "actualSha256": "c68c594481bd0b684bdb42951c115b260153ea211c4d0fdd2f554c3af81e62e0",
+            "expectedSha256": "66ff769b46a83ca30ef35e06e4e34a69cc75f55b53122f38d3ebcf46252cc567",
+            "actualSha256": "66ff769b46a83ca30ef35e06e4e34a69cc75f55b53122f38d3ebcf46252cc567",
             "byteForByte": true,
             "status": "passed",
             "reason": ""

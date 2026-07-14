@@ -1,0 +1,166 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:kungfu-systems:build-images:comparator-qualification-plan:v1",
+  "title": "Comparator containerized user-outcome qualification plan",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "plan_schema",
+    "schema_version",
+    "test_only",
+    "evidence_class",
+    "charter",
+    "fixture_set",
+    "profile",
+    "configuration_slot",
+    "environment",
+    "repetitions",
+    "scenarios",
+    "artifact_retention",
+    "claim_boundary"
+  ],
+  "properties": {
+    "plan_schema": {
+      "const": "urn:kungfu-systems:build-images:comparator-qualification-plan:v1"
+    },
+    "schema_version": { "const": 1 },
+    "test_only": { "type": "boolean" },
+    "evidence_class": { "const": "containerized-user-outcome-qualification" },
+    "charter": { "$ref": "#/$defs/versionedDigest" },
+    "fixture_set": { "$ref": "#/$defs/digestIdentity" },
+    "profile": { "enum": ["aeron", "clickhouse", "postgres", "kungfu"] },
+    "configuration_slot": { "enum": ["realistic-default", "expert-tuned"] },
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "compose_path",
+        "compose_sha256",
+        "environment_lock_path",
+        "environment_lock_sha256",
+        "runner_image"
+      ],
+      "properties": {
+        "compose_path": { "const": "compose.yaml" },
+        "compose_sha256": { "$ref": "#/$defs/sha256" },
+        "environment_lock_path": { "const": "environment.lock.json" },
+        "environment_lock_sha256": { "$ref": "#/$defs/sha256" },
+        "runner_image": { "pattern": "@sha256:[0-9a-f]{64}$" }
+      }
+    },
+    "subject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifact_name", "version", "package_sha256", "source_sha", "evidence_url"],
+      "properties": {
+        "artifact_name": { "const": "kungfu-episodes-cli-linux-x64.tar.gz" },
+        "version": { "type": "string", "minLength": 1 },
+        "package_sha256": { "$ref": "#/$defs/sha256" },
+        "source_sha": { "pattern": "^[0-9a-f]{40}$" },
+        "evidence_url": { "type": "string", "pattern": "^https://" }
+      }
+    },
+    "repetitions": { "type": "integer", "minimum": 3, "maximum": 20 },
+    "scenarios": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "job_id", "steps"],
+        "properties": {
+          "id": { "$ref": "#/$defs/id" },
+          "job_id": { "$ref": "#/$defs/id" },
+          "steps": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["id", "action", "timeout_seconds", "oracles"],
+              "properties": {
+                "id": { "$ref": "#/$defs/id" },
+                "action": { "const": "profile-smoke" },
+                "timeout_seconds": { "type": "integer", "minimum": 30, "maximum": 3600 },
+                "oracles": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["type", "expected"],
+                    "properties": {
+                      "type": { "enum": ["exit-code", "artifact-exists", "artifact-text-contains"] },
+                      "path": { "type": "string", "minLength": 1 },
+                      "expected": {}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "artifact_retention": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["destination", "required_patterns", "retention_days"],
+      "properties": {
+        "destination": { "type": "string", "pattern": "^[A-Za-z0-9._/-]+$" },
+        "required_patterns": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "retention_days": { "type": "integer", "minimum": 1, "maximum": 90 }
+      }
+    },
+    "claim_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "native_performance_authority",
+        "user_outcome_qualification_authority_requested",
+        "fresh_install_cost_authority",
+        "final_scoring_authority"
+      ],
+      "properties": {
+        "native_performance_authority": { "const": false },
+        "user_outcome_qualification_authority_requested": { "const": true },
+        "fresh_install_cost_authority": { "const": false },
+        "final_scoring_authority": { "const": false }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "profile": { "const": "kungfu" } } },
+      "then": { "required": ["subject"] },
+      "else": { "not": { "required": ["subject"] } }
+    }
+  ],
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[A-Za-z0-9._-]+$" },
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "digestIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "sha256"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "versionedDigest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version", "sha256"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "version": { "type": "string", "minLength": 1 },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    }
+  }
+}

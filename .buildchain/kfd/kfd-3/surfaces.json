@@ -83,7 +83,7 @@
       "policy": {},
       "facts": {
         "path": "README.md",
-        "sha256": "c68c594481bd0b684bdb42951c115b260153ea211c4d0fdd2f554c3af81e62e0"
+        "sha256": "66ff769b46a83ca30ef35e06e4e34a69cc75f55b53122f38d3ebcf46252cc567"
       },
       "declaration": {
         "owner": "product",
