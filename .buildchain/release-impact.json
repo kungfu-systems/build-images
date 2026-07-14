@@ -43,7 +43,7 @@
       "id": "comparator-containerized-user-outcome-qualification",
       "impact": "patch",
       "class": "qualification-governance",
-      "rationale": "The comparator pilot derives J1/J2/J3 receipts from retained observed facts, normalizes unique Compose project names to portable lowercase syntax, fails environment preflight before service startup, and preserves semantic verification, project-scoped cleanup, adapter mappings, unscored smoke commands, and published image identifiers.",
+      "rationale": "The comparator pilot prepares exact-digest images in a retained unscored phase with bounded transient retries, prevents pulls during all 63 formal PostgreSQL steps, derives J1/J2/J3 receipts from retained observed facts, and preserves semantic verification, project-scoped cleanup, adapter mappings, and published image identifiers.",
       "source": "pilots/comparator"
     }
   ],
@@ -51,5 +51,5 @@
   "breaking": false,
   "security": false,
   "migrationRequired": false,
-  "summary": "Build images v1.2 includes standard Buildchain release governance, maintained image runtime fixes, and an opt-in comparator qualification surface with observed-fact-derived receipts and portable Compose project identities."
+  "summary": "Build images v1.2 includes standard Buildchain release governance, maintained image runtime fixes, and an opt-in comparator qualification surface with exact-digest cold-host preparation and observed-fact-derived receipts."
 }
