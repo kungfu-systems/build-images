@@ -76,6 +76,10 @@ def validate() -> dict:
         "rustup_init_url",
         "rustup_init_sha256",
         "rust_toolchain",
+        "compiler",
+        "compiler_minimum",
+        "compiler_selection",
+        "compiler_contract_url",
         "build_entrypoint",
         "claim_boundary",
     )
@@ -95,6 +99,10 @@ def validate() -> dict:
         errors.append("kungfu runtime image must match the locked runner image")
     if kungfu.get("source_sha", "") not in kungfu.get("source_evidence_url", ""):
         errors.append("kungfu source evidence URL must identify the locked source SHA")
+    if kungfu.get("source_sha", "") not in kungfu.get("compiler_contract_url", ""):
+        errors.append("kungfu compiler contract URL must identify the locked source SHA")
+    if kungfu.get("compiler") != "Clang" or kungfu.get("compiler_minimum") != "18.0.0":
+        errors.append("kungfu source build must use the qualified Clang 18 compiler contract")
 
     compose = COMPOSE_PATH.read_text(encoding="utf-8")
     kungfu_dockerfile = KUNGFU_DOCKERFILE_PATH.read_text(encoding="utf-8")
@@ -121,6 +129,9 @@ def validate() -> dict:
         kungfu.get("source_sha", ""),
         kungfu.get("rustup_init_sha256", ""),
         kungfu.get("rust_toolchain", ""),
+        "ENV CC=clang",
+        "ENV CXX=clang++",
+        "clang --version",
         "uv run --frozen conan profile detect --force",
         "./shifu build:core",
         "./shifu freeze",

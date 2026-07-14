@@ -46,6 +46,10 @@
       "rustup_init_url": "https://static.rust-lang.org/rustup/archive/1.28.2/x86_64-unknown-linux-gnu/rustup-init",
       "rustup_init_sha256": "20a06e644b0d9bd2fbdbfd52d42540bdde820ea7df86e92e533c073da0cdd43c",
       "rust_toolchain": "1.96.0",
+      "compiler": "Clang",
+      "compiler_minimum": "18.0.0",
+      "compiler_selection": "CC=clang CXX=clang++",
+      "compiler_contract_url": "https://github.com/kungfu-systems/kungfu/blob/5b16a62b63e9a84ebea23f1a14b6253f66e3a8ab/toolchain.contract.json",
       "build_entrypoint": "./shifu sync && (cd framework/core && uv run --frozen conan profile detect --force) && ./shifu build:core && ./shifu freeze",
       "claim_boundary": "Source-built core/CLI for disposable functional and recovery qualification; not a released product artifact or performance authority"
     }

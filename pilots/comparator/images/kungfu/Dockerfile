@@ -10,6 +10,8 @@ ARG RUST_TOOLCHAIN=1.96.0
 ENV CARGO_HOME=/home/kungfu/.cargo
 ENV RUSTUP_HOME=/home/kungfu/.rustup
 ENV PATH=/home/kungfu/bin:/home/kungfu/.cargo/bin:/home/kungfu/.cache/kungfu/tools/uv/0.11.23/linux-x86_64:${PATH}
+ENV CC=clang
+ENV CXX=clang++
 
 USER kungfu
 WORKDIR /work
@@ -56,8 +58,11 @@ WORKDIR /work/kungfu
 
 # Build only the source-backed core/CLI surface used by this unscored pilot.
 # The source checkout owns the Node, pnpm, uv, Python, Cargo, Conan and product
-# dependency locks; setup duration remains visible in the hosted smoke job.
-RUN ./shifu sync \
+# dependency locks. Clang 18 is the source contract's qualified Linux secondary
+# compiler; setup duration remains visible in the hosted smoke job.
+RUN clang --version \
+    && clang++ --version \
+    && ./shifu sync \
     && cd framework/core \
     && uv run --frozen conan profile detect --force \
     && cd ../.. \
