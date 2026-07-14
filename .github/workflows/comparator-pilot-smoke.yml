@@ -40,4 +40,5 @@ jobs:
           name: comparator-pilot-${{ matrix.profile }}-${{ github.run_id }}
           path: pilots/comparator/.artifacts/
           if-no-files-found: warn
+          include-hidden-files: true
           retention-days: 7
