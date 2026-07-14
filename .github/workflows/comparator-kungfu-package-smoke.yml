@@ -1,0 +1,80 @@
+name: Comparator Kungfu Package Smoke
+
+on:
+  workflow_call:
+    inputs:
+      package_artifact_name:
+        description: Actions artifact containing kungfu-episodes-cli-linux-x64.tar.gz
+        required: true
+        type: string
+      package_sha256:
+        description: Exact SHA-256 of kungfu-episodes-cli-linux-x64.tar.gz
+        required: true
+        type: string
+      package_version:
+        description: Version recorded in the comparator environment manifest
+        required: true
+        type: string
+      source_sha:
+        description: Exact 40-character source commit used to build the package
+        required: true
+        type: string
+      build_images_ref:
+        description: Reviewed build-images ref containing the package consumer
+        default: dev/v1/v1.2
+        required: false
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  smoke:
+    name: unscored-kungfu-package
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out package consumer
+        uses: actions/checkout@v5
+        with:
+          repository: kungfu-systems/build-images
+          ref: ${{ inputs.build_images_ref }}
+          path: build-images
+
+      - name: Download prebuilt Kungfu CLI package
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.package_artifact_name }}
+          path: package-input
+
+      - name: Stage and verify package input
+        env:
+          EXPECTED_SHA256: ${{ inputs.package_sha256 }}
+        run: |
+          set -euo pipefail
+          package_count=$(find package-input -type f -name 'kungfu-episodes-cli-linux-x64.tar.gz' -print | wc -l | tr -d ' ')
+          test "$package_count" -eq 1
+          package=$(find package-input -type f -name 'kungfu-episodes-cli-linux-x64.tar.gz' -print -quit)
+          echo "${EXPECTED_SHA256}  ${package}" | sha256sum -c -
+          install -m 0644 "${package}" build-images/pilots/comparator/images/kungfu/kungfu-episodes-cli-linux-x64.tar.gz
+
+      - name: Run disposable unscored Kungfu package smoke
+        working-directory: build-images
+        env:
+          KUNGFU_CLI_ARTIFACT_NAME: ${{ inputs.package_artifact_name }}
+          KUNGFU_CLI_PACKAGE_SHA256: ${{ inputs.package_sha256 }}
+          KUNGFU_CLI_VERSION: ${{ inputs.package_version }}
+          KUNGFU_CLI_SOURCE_SHA: ${{ inputs.source_sha }}
+          KUNGFU_CLI_EVIDENCE_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: bash pilots/comparator/scripts/pilot.sh smoke kungfu --execute
+
+      - name: Upload unscored evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: comparator-pilot-kungfu-${{ github.run_id }}
+          path: build-images/pilots/comparator/.artifacts/
+          if-no-files-found: warn
+          include-hidden-files: true
+          retention-days: 7

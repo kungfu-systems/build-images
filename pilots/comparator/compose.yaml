@@ -99,12 +99,9 @@ services:
     build:
       context: ./images/kungfu
       args:
-        KUNGFU_BUILDER_IMAGE: ghcr.io/kungfu-systems/build-images/native-linux-x64@sha256:a9313d8911e4f81af46436784f7a6a6c436b5d0f040ac9607204cbc91634a1ba
-        KUNGFU_SOURCE_REPOSITORY: https://github.com/kungfu-systems/kungfu.git
-        KUNGFU_SOURCE_SHA: 5b16a62b63e9a84ebea23f1a14b6253f66e3a8ab
-        RUSTUP_VERSION: 1.28.2
-        RUSTUP_INIT_SHA256: 20a06e644b0d9bd2fbdbfd52d42540bdde820ea7df86e92e533c073da0cdd43c
-        RUST_TOOLCHAIN: 1.96.0
+        KUNGFU_CLI_PACKAGE_SHA256: ${KUNGFU_CLI_PACKAGE_SHA256:-INPUT_REQUIRED}
+        KUNGFU_CLI_VERSION: ${KUNGFU_CLI_VERSION:-INPUT_REQUIRED}
+        KUNGFU_CLI_SOURCE_SHA: ${KUNGFU_CLI_SOURCE_SHA:-INPUT_REQUIRED}
     platform: linux/amd64
     command: ["sh", "-c", "trap 'exit 0' TERM INT; while :; do sleep 30; done"]
     profiles: ["kungfu"]

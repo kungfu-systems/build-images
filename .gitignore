@@ -7,3 +7,4 @@ __pycache__/
 *.log
 .DS_Store
 pilots/comparator/.artifacts/
+pilots/comparator/images/kungfu/kungfu-episodes-cli-linux-x64.tar.gz

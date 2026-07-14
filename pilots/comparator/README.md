@@ -11,12 +11,12 @@ program. It does **not** produce performance evidence.
 | Aeron | 1.52.2 JAR + SHA-256; Temurin image digest | Ready | recorded publisher, forced driver restart, archive copy/restore entry |
 | ClickHouse | 26.3.10.60 LTS image digest | Ready | create/insert/query, forced restart, Native export/import |
 | PostgreSQL | 18.4 Bookworm image digest | Ready | create/insert/query, forced restart, `pg_dump`/restore |
-| Kungfu | source SHA + builder/runtime image digests + Rust bootstrap pins | Ready | Episode write/query, bundle export, forced restart, fsck, isolated restore |
+| Kungfu | prebuilt CLI package + SHA-256 + source SHA + runtime image digest | Input required | Episode write/query, bundle export, forced restart, fsck, isolated restore |
 
-The Kungfu pilot is built from the public source snapshot named in
-`environment.lock.json`. It is not presented as a released product artifact.
-The hosted job performs the source build, so its setup time and failure modes
-remain visible instead of being hidden behind a developer-machine binary.
+The Kungfu pilot consumes `kungfu-episodes-cli-linux-x64.tar.gz` after another
+job has built it. The Dockerfile verifies the supplied SHA-256 and
+`kungfu.product.cli/v1` metadata, installs the package, and runs the CLI. It
+does not check out or compile Kungfu source.
 
 ## Safe usage
 
@@ -53,32 +53,44 @@ record for the profile definitions.
 separately reviewed product-specific tuning record exists. A tuned run must not
 quietly replace the default user path.
 
-## Kungfu source-build boundary
+## Kungfu package boundary
 
-The source-build profile is appropriate for disposable functional and recovery
-qualification while Kungfu remains pre-release. It deliberately separates two
-questions:
+Package production and package consumption are deliberately separate:
 
-1. Can a fresh, neutral environment reproduce and exercise the current public
-   source at one exact commit?
-2. What will a real user pay to install a released Kungfu distribution?
+1. An upstream job builds `kungfu-episodes-cli-linux-x64.tar.gz` and uploads it
+   as an Actions artifact.
+2. The reusable `Comparator Kungfu Package Smoke` workflow downloads that
+   artifact, verifies its exact SHA-256, and places it in the Docker build
+   context.
+3. The package-consumer image validates `product.json`, resolves the declared
+   CLI and compatibility entries, and runs the functional/recovery smoke.
 
-This kit answers only the first question. Downstream comparisons must retain
-the source checkout, dependency setup, build duration, network transfer and
-failure evidence as Kungfu setup cost. They must not report the prebuilt Docker
-image startup time as time-to-trusted-answer.
+The caller supplies the package artifact name, package version, exact package
+SHA-256, exact source commit, and retained workflow evidence. These values are
+written into the run manifest. The static environment lock intentionally does
+not invent them before a package exists.
 
-The lock records the exact source commit, builder and runtime image digests,
-Rust bootstrap checksum/toolchain, and the Shifu build entrypoint, including
-fresh-host Conan profile detection. It also selects the source contract's
-qualified Clang 18 Linux secondary compiler; the builder digest fixes the
-actual compiler environment. The source tree then supplies its own Node, pnpm,
-Python, Cargo, Conan and package locks.
 The smoke writes and seals an Episode, proves it through the query surface,
 exports it, kills the container, checks the retained journal after restart,
 and imports the bundle into a separate workspace.
 
-When a public Kungfu product artifact becomes available, it may be added as a
-separate installation mode with its own checksum and release evidence. That
-future user-install path does not block this explicitly unscored source pilot,
-and it must not silently replace the retained source-build cost record.
+The ordinary pull-request workflow keeps running the three self-contained
+profiles. Kungfu joins only through the reusable package workflow because a
+package must already exist in the caller's workflow run:
+
+```yaml
+jobs:
+  comparator-kungfu:
+    needs: build-kungfu-cli
+    uses: kungfu-systems/build-images/.github/workflows/comparator-kungfu-package-smoke.yml@dev/v1/v1.2
+    with:
+      package_artifact_name: ${{ needs.build-kungfu-cli.outputs.artifact_name }}
+      package_sha256: ${{ needs.build-kungfu-cli.outputs.package_sha256 }}
+      package_version: ${{ needs.build-kungfu-cli.outputs.package_version }}
+      source_sha: ${{ needs.build-kungfu-cli.outputs.source_sha }}
+```
+
+This Docker evidence remains explicitly unscored and non-authoritative for
+performance. Installation-cost comparisons must use the agreed user delivery
+path; neither upstream build time nor a prebuilt image's startup time should be
+silently substituted for that measurement.
