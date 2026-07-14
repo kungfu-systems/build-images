@@ -9,10 +9,32 @@ ARG RUST_TOOLCHAIN=1.96.0
 
 ENV CARGO_HOME=/home/kungfu/.cargo
 ENV RUSTUP_HOME=/home/kungfu/.rustup
-ENV PATH=/home/kungfu/.cargo/bin:${PATH}
+ENV PATH=/home/kungfu/bin:/home/kungfu/.cargo/bin:${PATH}
 
 USER kungfu
 WORKDIR /work
+
+# native-linux-x64 intentionally omits unzip. Shifu needs only the conventional
+# `unzip -oq ARCHIVE -d DEST` surface for its checksum-verified bootstrap zips,
+# which Python's pinned base-image standard library can provide without apt.
+RUN mkdir -p /home/kungfu/bin \
+    && printf '%s\n' \
+      '#!/bin/sh' \
+      'set -eu' \
+      'archive=' \
+      'dest=.' \
+      'while [ "$#" -gt 0 ]; do' \
+      '  case "$1" in' \
+      '    -oq|-qo|-o|-q) ;;' \
+      '    -d) shift; dest=$1 ;;' \
+      '    *) archive=$1 ;;' \
+      '  esac' \
+      '  shift' \
+      'done' \
+      'test -n "$archive"' \
+      'exec python3 -m zipfile -e "$archive" "$dest"' \
+      >/home/kungfu/bin/unzip \
+    && chmod +x /home/kungfu/bin/unzip
 
 RUN curl -fsSLo /tmp/rustup-init \
       "https://static.rust-lang.org/rustup/archive/${RUSTUP_VERSION}/x86_64-unknown-linux-gnu/rustup-init" \
