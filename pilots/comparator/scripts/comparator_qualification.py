@@ -29,11 +29,13 @@ QUALIFICATION_RUNNER = pathlib.Path(__file__).resolve()
 PLAN_SCHEMA_PATH = PILOT_DIR / "qualification-plan.schema.json"
 RUN_SCHEMA_PATH = PILOT_DIR / "qualification-run-manifest.schema.json"
 BUNDLE_SCHEMA_PATH = PILOT_DIR / "qualification-bundle-manifest.schema.json"
+ADAPTER_REGISTRY_PATH = PILOT_DIR / "workload-adapters" / "registry.json"
 
 PLAN_SCHEMA_ID = "urn:kungfu-systems:build-images:comparator-qualification-plan:v1"
 RUN_SCHEMA_ID = "urn:kungfu-systems:build-images:comparator-qualification-run:v1"
 BUNDLE_SCHEMA_ID = "urn:kungfu-systems:build-images:comparator-qualification-bundle:v1"
 EVIDENCE_CLASS = "containerized-user-outcome-qualification"
+WORKLOAD_ACTION = "workload-adapter"
 PROFILES = ("aeron", "clickhouse", "postgres", "kungfu")
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
 GIT_SHA = re.compile(r"^[0-9a-f]{40}$")
@@ -154,6 +156,97 @@ def validate_digest_identity(value: Any, context: str, *, versioned: bool) -> di
     return value
 
 
+def validate_adapter_registry(registry_path: pathlib.Path, root: pathlib.Path) -> dict[str, dict[str, Any]]:
+    registry = load_json(registry_path)
+    require_keys(registry, {"schema", "schema_version", "adapters"}, set(), "workload adapter registry")
+    if registry["schema"] != "urn:kungfu-systems:build-images:workload-adapter-registry:v1":
+        raise QualificationError("workload adapter registry schema is unsupported")
+    if registry["schema_version"] != 1 or not isinstance(registry["adapters"], dict) or not registry["adapters"]:
+        raise QualificationError("workload adapter registry is empty or has an unsupported version")
+    resolved: dict[str, dict[str, Any]] = {}
+    for adapter_id, adapter in registry["adapters"].items():
+        require_id(adapter_id, "workload adapter id")
+        if not isinstance(adapter, dict):
+            raise QualificationError(f"workload adapter record must be an object: {adapter_id}")
+        require_keys(
+            adapter,
+            {"version", "artifact", "sha256", "entrypoint", "profiles", "fixture", "mappings"},
+            set(),
+            f"workload adapter {adapter_id}",
+        )
+        if not isinstance(adapter["version"], str) or not adapter["version"]:
+            raise QualificationError(f"workload adapter version is invalid: {adapter_id}")
+        require_id(adapter["entrypoint"], f"workload adapter {adapter_id}.entrypoint")
+        artifact_relative = safe_relative(adapter["artifact"], f"workload adapter {adapter_id}.artifact")
+        if not artifact_relative.as_posix().startswith("workload-adapters/"):
+            raise QualificationError(f"workload adapter artifact is outside the allowlisted directory: {adapter_id}")
+        artifact_path = root / pathlib.Path(*artifact_relative.parts)
+        require_sha256(adapter["sha256"], f"workload adapter {adapter_id}.sha256")
+        if not artifact_path.is_file() or sha256_file(artifact_path) != adapter["sha256"]:
+            raise QualificationError(f"workload adapter artifact digest mismatch: {adapter_id}")
+        fixture = adapter["fixture"]
+        if not isinstance(fixture, dict):
+            raise QualificationError(f"workload adapter fixture is invalid: {adapter_id}")
+        require_keys(fixture, {"path", "sha256"}, set(), f"workload adapter {adapter_id}.fixture")
+        fixture_relative = safe_relative(fixture["path"], f"workload adapter {adapter_id}.fixture.path")
+        if not fixture_relative.as_posix().startswith("workload-adapters/fixtures/"):
+            raise QualificationError(f"workload adapter fixture is outside the allowlisted directory: {adapter_id}")
+        fixture_path = root / pathlib.Path(*fixture_relative.parts)
+        require_sha256(fixture["sha256"], f"workload adapter {adapter_id}.fixture.sha256")
+        if not fixture_path.is_file() or sha256_file(fixture_path) != fixture["sha256"]:
+            raise QualificationError(f"workload adapter fixture digest mismatch: {adapter_id}")
+        profiles = adapter["profiles"]
+        if not isinstance(profiles, list) or not profiles or any(profile not in PROFILES for profile in profiles):
+            raise QualificationError(f"workload adapter profiles are invalid: {adapter_id}")
+        if len(profiles) != len(set(profiles)):
+            raise QualificationError(f"workload adapter profiles contain duplicates: {adapter_id}")
+        mappings = adapter["mappings"]
+        if not isinstance(mappings, list) or not mappings:
+            raise QualificationError(f"workload adapter mappings are empty: {adapter_id}")
+        seen_mappings: set[tuple[str, str]] = set()
+        for index, mapping in enumerate(mappings):
+            if not isinstance(mapping, dict):
+                raise QualificationError(f"workload adapter mapping must be an object: {adapter_id}[{index}]")
+            require_keys(mapping, {"job_id", "tiers"}, set(), f"workload adapter mapping {adapter_id}[{index}]")
+            job_id = require_id(mapping["job_id"], f"workload adapter mapping {adapter_id}[{index}].job_id")
+            tiers = mapping["tiers"]
+            if not isinstance(tiers, list) or not tiers:
+                raise QualificationError(f"workload adapter tiers are empty: {adapter_id}/{job_id}")
+            for tier in tiers:
+                tier_id = require_id(tier, f"workload adapter tier {adapter_id}/{job_id}")
+                pair = (job_id, tier_id)
+                if pair in seen_mappings:
+                    raise QualificationError(f"duplicate workload adapter mapping: {adapter_id}/{job_id}/{tier_id}")
+                seen_mappings.add(pair)
+        resolved[adapter_id] = copy.deepcopy(adapter)
+    return resolved
+
+
+def workload_binding(
+    profile: str,
+    registry_sha256: str,
+    adapter: dict[str, Any],
+    scenario: dict[str, Any],
+    step: dict[str, Any],
+) -> dict[str, Any]:
+    payload = {
+        "schema": "urn:kungfu-systems:build-images:workload-binding:v1",
+        "profile": profile,
+        "scenario_id": scenario["id"],
+        "job_id": scenario["job_id"],
+        "tier": scenario["tier"],
+        "step_id": step["id"],
+        "action": step["action"],
+        "adapter_id": adapter["id"],
+        "adapter_version": adapter["version"],
+        "adapter_entrypoint": adapter["entrypoint"],
+        "adapter_sha256": adapter["sha256"],
+        "fixture_sha256": adapter["fixture"]["sha256"],
+        "registry_sha256": registry_sha256,
+    }
+    return {"payload": payload, "sha256": sha256_json(payload)}
+
+
 def parse_compose_limits() -> dict[str, dict[str, str]]:
     limits: dict[str, dict[str, str]] = {}
     service = ""
@@ -214,7 +307,7 @@ def validate_plan_document(plan: dict[str, Any]) -> None:
         "artifact_retention",
         "claim_boundary",
     }
-    require_keys(plan, required, {"subject"}, "qualification plan")
+    require_keys(plan, required, {"subject", "adapter_registry", "workload_adapter"}, "qualification plan")
     if plan["plan_schema"] != PLAN_SCHEMA_ID or plan["schema_version"] != 1:
         raise QualificationError("qualification plan schema/version is unsupported")
     if not isinstance(plan["test_only"], bool):
@@ -229,6 +322,56 @@ def validate_plan_document(plan: dict[str, Any]) -> None:
         raise QualificationError(f"unknown profile: {profile}")
     if plan["configuration_slot"] not in ("realistic-default", "expert-tuned"):
         raise QualificationError("unknown configuration_slot")
+
+    adapter_mappings: set[tuple[str, str]] = set()
+    adapter_id = ""
+    if plan["test_only"]:
+        if "adapter_registry" in plan or "workload_adapter" in plan:
+            raise QualificationError("test-only profile-smoke plans must not declare production workload adapters")
+    else:
+        registry = plan.get("adapter_registry")
+        adapter = plan.get("workload_adapter")
+        if not isinstance(registry, dict) or not isinstance(adapter, dict):
+            raise QualificationError("production qualification requires an adapter registry and workload adapter")
+        require_keys(registry, {"path", "sha256"}, set(), "adapter_registry")
+        if registry["path"] != "workload-adapters/registry.json":
+            raise QualificationError("replacement workload adapter registries are forbidden")
+        require_sha256(registry["sha256"], "adapter_registry.sha256")
+        require_keys(
+            adapter,
+            {"id", "version", "artifact", "sha256", "entrypoint", "profiles", "fixture", "mappings"},
+            set(),
+            "workload_adapter",
+        )
+        adapter_id = require_id(adapter["id"], "workload_adapter.id")
+        if not isinstance(adapter["version"], str) or not adapter["version"]:
+            raise QualificationError("workload_adapter.version must be non-empty")
+        require_id(adapter["entrypoint"], "workload_adapter.entrypoint")
+        safe_relative(adapter["artifact"], "workload_adapter.artifact")
+        require_sha256(adapter["sha256"], "workload_adapter.sha256")
+        fixture = adapter["fixture"]
+        if not isinstance(fixture, dict):
+            raise QualificationError("workload_adapter.fixture must be an object")
+        require_keys(fixture, {"path", "sha256"}, set(), "workload_adapter.fixture")
+        safe_relative(fixture["path"], "workload_adapter.fixture.path")
+        require_sha256(fixture["sha256"], "workload_adapter.fixture.sha256")
+        if adapter["profiles"] != [profile]:
+            raise QualificationError("workload adapter must bind exactly the selected profile")
+        mappings = adapter["mappings"]
+        if not isinstance(mappings, list) or not mappings:
+            raise QualificationError("workload adapter mappings must be non-empty")
+        for mapping_index, mapping in enumerate(mappings):
+            if not isinstance(mapping, dict):
+                raise QualificationError(f"workload adapter mapping {mapping_index} must be an object")
+            require_keys(mapping, {"job_id", "tiers"}, set(), f"workload adapter mapping {mapping_index}")
+            mapped_job = require_id(mapping["job_id"], f"workload adapter mapping {mapping_index}.job_id")
+            if not isinstance(mapping["tiers"], list) or not mapping["tiers"]:
+                raise QualificationError(f"workload adapter mapping {mapping_index}.tiers must be non-empty")
+            for tier in mapping["tiers"]:
+                pair = (mapped_job, require_id(tier, f"workload adapter mapping {mapping_index}.tier"))
+                if pair in adapter_mappings:
+                    raise QualificationError(f"duplicate workload adapter mapping: {pair[0]}/{pair[1]}")
+                adapter_mappings.add(pair)
 
     environment = plan["environment"]
     if not isinstance(environment, dict):
@@ -262,9 +405,15 @@ def validate_plan_document(plan: dict[str, Any]) -> None:
         context = f"scenarios[{scenario_index}]"
         if not isinstance(scenario, dict):
             raise QualificationError(f"{context} must be an object")
-        require_keys(scenario, {"id", "job_id", "steps"}, set(), context)
+        scenario_required = {"id", "job_id", "steps"} | ({"tier"} if not plan["test_only"] else set())
+        require_keys(scenario, scenario_required, set(), context)
         scenario_id = require_id(scenario["id"], f"{context}.id")
-        require_id(scenario["job_id"], f"{context}.job_id")
+        job_id = require_id(scenario["job_id"], f"{context}.job_id")
+        tier = ""
+        if not plan["test_only"]:
+            tier = require_id(scenario["tier"], f"{context}.tier")
+            if (job_id, tier) not in adapter_mappings:
+                raise QualificationError(f"scenario job/tier is not mapped by the workload adapter: {job_id}/{tier}")
         if scenario_id in scenario_ids:
             raise QualificationError(f"duplicate scenario id: {scenario_id}")
         scenario_ids.add(scenario_id)
@@ -276,13 +425,18 @@ def validate_plan_document(plan: dict[str, Any]) -> None:
             step_context = f"{context}.steps[{step_index}]"
             if not isinstance(step, dict):
                 raise QualificationError(f"{step_context} must be an object")
-            require_keys(step, {"id", "action", "timeout_seconds", "oracles"}, set(), step_context)
+            step_required = {"id", "action", "timeout_seconds", "oracles"}
+            step_optional = {"adapter_id"}
+            require_keys(step, step_required, step_optional, step_context)
             step_id = require_id(step["id"], f"{step_context}.id")
             if step_id in step_ids:
                 raise QualificationError(f"duplicate step id in {scenario_id}: {step_id}")
             step_ids.add(step_id)
-            if step["action"] != "profile-smoke":
-                raise QualificationError(f"{step_context}.action is not an allowlisted adapter action")
+            if plan["test_only"]:
+                if step["action"] != "profile-smoke" or "adapter_id" in step:
+                    raise QualificationError(f"{step_context} must remain a test-only profile-smoke step")
+            elif step["action"] != WORKLOAD_ACTION or step.get("adapter_id") != adapter_id:
+                raise QualificationError(f"{step_context} must use the declared workload adapter")
             timeout = step["timeout_seconds"]
             if not isinstance(timeout, int) or isinstance(timeout, bool) or not 30 <= timeout <= 3600:
                 raise QualificationError(f"{step_context}.timeout_seconds must be 30..3600")
@@ -374,6 +528,25 @@ def resolve_plan(plan_path: pathlib.Path) -> tuple[dict[str, Any], dict[str, Any
     if ":latest" in COMPOSE_PATH.read_text(encoding="utf-8"):
         raise QualificationError("fixed Compose environment contains :latest")
 
+    workload_adapter: dict[str, Any] | None = None
+    adapter_registry_sha256 = ""
+    if not plan["test_only"]:
+        adapter_registry_sha256 = sha256_file(ADAPTER_REGISTRY_PATH)
+        if plan["adapter_registry"]["sha256"] != adapter_registry_sha256:
+            raise QualificationError("qualification plan adapter registry digest does not match the fixed registry")
+        registered = validate_adapter_registry(ADAPTER_REGISTRY_PATH, PILOT_DIR)
+        adapter_id = plan["workload_adapter"]["id"]
+        registered_adapter = registered.get(adapter_id)
+        if registered_adapter is None:
+            raise QualificationError(f"qualification plan adapter is not registered: {adapter_id}")
+        expected_adapter = {"id": adapter_id, **registered_adapter}
+        if plan["workload_adapter"] != expected_adapter:
+            raise QualificationError("qualification plan adapter identity does not match the fixed registry")
+        workload_adapter = {
+            "registry_sha256": adapter_registry_sha256,
+            "identity": copy.deepcopy(expected_adapter),
+        }
+
     slot = lock.get("configuration_slots", {}).get(plan["configuration_slot"], {})
     if plan["configuration_slot"] == "expert-tuned" or slot.get("status") != "active":
         raise QualificationError("expert-tuned is unavailable without a separately reviewed active tuning record")
@@ -410,6 +583,7 @@ def resolve_plan(plan_path: pathlib.Path) -> tuple[dict[str, Any], dict[str, Any
         "environment_lock": {"path": str(LOCK_PATH), "sha256": actual_lock_sha},
         "runner_image": environment["runner_image"],
         "subject": subject,
+        "workload_adapter": workload_adapter,
         "resource_limits": {"runner": limits["runner"], profile: limits[profile]},
         "repetitions": plan["repetitions"],
         "artifact_destination": str(destination),
@@ -499,13 +673,17 @@ def evaluate_oracles(step_dir: pathlib.Path, exit_code: int, oracles: list[dict[
 def execute_step(
     profile: str,
     subject: dict[str, Any],
+    workload_adapter: dict[str, Any] | None,
     bundle_id: str,
     repetition: int,
     scenario: dict[str, Any],
     step: dict[str, Any],
     repetition_dir: pathlib.Path,
 ) -> dict[str, Any]:
-    project = f"kf-qual-{profile}-{bundle_id[-18:]}-r{repetition:03d}-{step['id']}"
+    step_identity = hashlib.sha256(
+        f"{scenario['id']}:{scenario.get('tier', '')}:{step['id']}".encode("utf-8")
+    ).hexdigest()[:10]
+    project = f"kf-qual-{profile}-{bundle_id[-12:]}-r{repetition:03d}-{step_identity}"
     project = re.sub(r"[^A-Za-z0-9_-]", "-", project)[:63]
     step_dir = repetition_dir / "raw" / scenario["id"] / step["id"]
     step_dir.mkdir(parents=True, exist_ok=True)
@@ -521,12 +699,57 @@ def execute_step(
                 "KUNGFU_CLI_EVIDENCE_URL": subject["evidence_url"],
             }
         )
+    adapter_evidence: dict[str, Any] | None = None
+    if step["action"] == WORKLOAD_ACTION:
+        if not isinstance(workload_adapter, dict):
+            raise QualificationError("workload adapter step is missing its resolved adapter")
+        adapter = workload_adapter["identity"]
+        binding = workload_binding(
+            profile,
+            workload_adapter["registry_sha256"],
+            adapter,
+            scenario,
+            step,
+        )
+        adapter_path = PILOT_DIR / pathlib.Path(*safe_relative(adapter["artifact"], "adapter artifact").parts)
+        command = [
+            sys.executable,
+            str(adapter_path),
+            "run",
+            "--project",
+            project,
+            "--scenario-id",
+            scenario["id"],
+            "--job-id",
+            scenario["job_id"],
+            "--tier",
+            scenario["tier"],
+            "--step-id",
+            step["id"],
+            "--expected-binding-sha256",
+            binding["sha256"],
+            "--output-dir",
+            str(step_dir),
+        ]
+        adapter_evidence = {
+            "id": adapter["id"],
+            "version": adapter["version"],
+            "entrypoint": adapter["entrypoint"],
+            "artifact": adapter["artifact"],
+            "artifact_sha256": adapter["sha256"],
+            "fixture": adapter["fixture"],
+            "registry_sha256": workload_adapter["registry_sha256"],
+            "binding_sha256": binding["sha256"],
+            "receipt_path": "adapter-receipt.json",
+        }
+    else:
+        command = ["bash", str(PILOT_SCRIPT), "smoke", profile, "--execute"]
     started_at = utc_now()
     started = time.monotonic()
     timed_out = False
     try:
         process = subprocess.run(
-            ["bash", str(PILOT_SCRIPT), "smoke", profile, "--execute"],
+            command,
             cwd=REPO_ROOT,
             env=environment,
             capture_output=True,
@@ -575,14 +798,16 @@ def execute_step(
     (step_dir / "cleanup.stdout.log").write_text(cleanup_stdout, encoding="utf-8")
     (step_dir / "cleanup.stderr.log").write_text(cleanup_stderr, encoding="utf-8")
     pilot_artifacts = ARTIFACT_ROOT / project
-    if pilot_artifacts.is_dir():
+    if step["action"] == "profile-smoke" and pilot_artifacts.is_dir():
         shutil.copytree(pilot_artifacts, step_dir / "pilot")
     oracle_results = evaluate_oracles(step_dir, exit_code, step["oracles"])
     return {
         "scenario_id": scenario["id"],
         "job_id": scenario["job_id"],
+        "tier": scenario.get("tier", ""),
         "step_id": step["id"],
         "action": step["action"],
+        "adapter": adapter_evidence,
         "project": project,
         "started_at": started_at,
         "finished_at": utc_now(),
@@ -644,11 +869,34 @@ def copy_bundle_inputs(bundle_dir: pathlib.Path, resolved: dict[str, Any]) -> di
             "path": target.relative_to(bundle_dir).as_posix(),
             "sha256": sha256_file(target),
         }
+    workload_adapter = resolved.get("workload_adapter")
+    if not isinstance(workload_adapter, dict):
+        raise QualificationError("production qualification bundle is missing its workload adapter")
+    adapter = workload_adapter["identity"]
+    adapter_files: dict[str, dict[str, str]] = {}
+    for role, source_relative in (
+        ("registry", pathlib.PurePosixPath("workload-adapters/registry.json")),
+        ("artifact", safe_relative(adapter["artifact"], "workload adapter artifact")),
+        ("fixture", safe_relative(adapter["fixture"]["path"], "workload adapter fixture")),
+    ):
+        source = PILOT_DIR / pathlib.Path(*source_relative.parts)
+        target = input_dir / pathlib.Path(*source_relative.parts)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, target)
+        adapter_files[role] = {
+            "path": target.relative_to(bundle_dir).as_posix(),
+            "sha256": sha256_file(target),
+        }
     return {
         **files,
         "runner_image": resolved["runner_image"],
         "subject": resolved["subject"],
         "subject_sha256": sha256_json(resolved["subject"]),
+        "workload_adapter": {
+            **adapter_files,
+            "identity": adapter,
+            "registry_sha256": workload_adapter["registry_sha256"],
+        },
     }
 
 
@@ -682,6 +930,7 @@ def run_plan(plan_path: pathlib.Path) -> pathlib.Path:
                     execute_step(
                         resolved["profile"],
                         resolved["subject"],
+                        resolved["workload_adapter"],
                         bundle_id,
                         repetition,
                         scenario,
@@ -723,6 +972,7 @@ def run_plan(plan_path: pathlib.Path) -> pathlib.Path:
                 "qualification_runner_sha256": sha256_file(QUALIFICATION_RUNNER),
                 "subject": resolved["subject"],
                 "subject_sha256": sha256_json(resolved["subject"]),
+                "workload_adapter": resolved["workload_adapter"],
             },
             "runtime": runtime,
             "steps": step_results,
@@ -820,7 +1070,7 @@ def verify_bundle(bundle_dir: pathlib.Path, *, require_authority: bool = True) -
         bundle_inputs,
         {
             "compose", "environment_lock", "pilot_script", "qualification_runner",
-            "runner_image", "subject", "subject_sha256",
+            "runner_image", "subject", "subject_sha256", "workload_adapter",
         },
         set(),
         "bundle inputs",
@@ -859,6 +1109,44 @@ def verify_bundle(bundle_dir: pathlib.Path, *, require_authority: bool = True) -
     expected_subject_sha = sha256_json(locked_subject)
     if bundle_inputs.get("subject") != locked_subject or bundle_inputs.get("subject_sha256") != expected_subject_sha:
         raise QualificationError("bundle subject does not match the frozen environment inputs")
+
+    copied_adapter = bundle_inputs.get("workload_adapter")
+    if not isinstance(copied_adapter, dict):
+        raise QualificationError("bundle workload adapter inputs are missing")
+    require_keys(
+        copied_adapter,
+        {"registry", "artifact", "fixture", "identity", "registry_sha256"},
+        set(),
+        "bundle workload adapter",
+    )
+    expected_adapter_paths = {
+        "registry": "inputs/workload-adapters/registry.json",
+        "artifact": f"inputs/{plan['workload_adapter']['artifact']}",
+        "fixture": f"inputs/{plan['workload_adapter']['fixture']['path']}",
+    }
+    copied_adapter_paths: dict[str, pathlib.Path] = {}
+    for role, expected_path in expected_adapter_paths.items():
+        record = copied_adapter.get(role)
+        if not isinstance(record, dict):
+            raise QualificationError(f"bundle workload adapter record is invalid: {role}")
+        require_keys(record, {"path", "sha256"}, set(), f"bundle workload adapter {role}")
+        if record["path"] != expected_path:
+            raise QualificationError(f"bundle workload adapter path is unexpected: {role}")
+        relative = safe_relative(record["path"], f"bundle workload adapter {role}.path")
+        path = bundle_dir / pathlib.Path(*relative.parts)
+        if not path.is_file() or sha256_file(path) != record["sha256"]:
+            raise QualificationError(f"bundle workload adapter digest mismatch: {role}")
+        copied_adapter_paths[role] = path
+    if copied_adapter["registry_sha256"] != plan["adapter_registry"]["sha256"]:
+        raise QualificationError("bundle workload adapter registry does not match the plan")
+    registered_adapters = validate_adapter_registry(
+        copied_adapter_paths["registry"],
+        bundle_dir / "inputs",
+    )
+    adapter_id = plan["workload_adapter"]["id"]
+    expected_adapter = {"id": adapter_id, **registered_adapters.get(adapter_id, {})}
+    if copied_adapter["identity"] != expected_adapter or plan["workload_adapter"] != expected_adapter:
+        raise QualificationError("bundle workload adapter identity does not match the copied registry")
 
     contracts = bundle.get("contracts")
     if not isinstance(contracts, list) or len(contracts) != 3:
@@ -931,11 +1219,15 @@ def verify_bundle(bundle_dir: pathlib.Path, *, require_authority: bool = True) -
             for step in scenario["steps"]
         ]
         expected_steps = [
-            (scenario["id"], scenario["job_id"], step["id"], step["action"])
+            (scenario["id"], scenario["job_id"], scenario["tier"], step["id"], step["action"], step["adapter_id"])
             for scenario, step in plan_steps
         ]
         observed_steps = [
-            (step.get("scenario_id"), step.get("job_id"), step.get("step_id"), step.get("action"))
+            (
+                step.get("scenario_id"), step.get("job_id"), step.get("tier"),
+                step.get("step_id"), step.get("action"),
+                step.get("adapter", {}).get("id") if isinstance(step.get("adapter"), dict) else None,
+            )
             for step in steps
         ]
         if observed_steps != expected_steps:
@@ -944,6 +1236,49 @@ def verify_bundle(bundle_dir: pathlib.Path, *, require_authority: bool = True) -
             if observed_step.get("cleanup_exit_code") != 0:
                 raise QualificationError(f"run manifest project cleanup failed: {relative}")
             step_dir = run_path.parent / "raw" / planned_scenario["id"] / planned_step["id"]
+            binding = workload_binding(
+                bundle["profile"],
+                plan["adapter_registry"]["sha256"],
+                plan["workload_adapter"],
+                planned_scenario,
+                planned_step,
+            )
+            observed_adapter = observed_step.get("adapter")
+            expected_adapter_evidence = {
+                "id": plan["workload_adapter"]["id"],
+                "version": plan["workload_adapter"]["version"],
+                "entrypoint": plan["workload_adapter"]["entrypoint"],
+                "artifact": plan["workload_adapter"]["artifact"],
+                "artifact_sha256": plan["workload_adapter"]["sha256"],
+                "fixture": plan["workload_adapter"]["fixture"],
+                "registry_sha256": plan["adapter_registry"]["sha256"],
+                "binding_sha256": binding["sha256"],
+                "receipt_path": "adapter-receipt.json",
+            }
+            if observed_adapter != expected_adapter_evidence:
+                raise QualificationError(f"run manifest workload binding does not match the plan: {relative}")
+            receipt_path = step_dir / "adapter-receipt.json"
+            tier_evidence_path = step_dir / "tier-evidence.json"
+            if not receipt_path.is_file() or not tier_evidence_path.is_file():
+                raise QualificationError(f"workload adapter receipt is missing: {relative}")
+            adapter_receipt = load_json(receipt_path)
+            expected_receipt_fields = {"status": "passed", **binding["payload"], "binding_sha256": binding["sha256"]}
+            for field, expected_value in expected_receipt_fields.items():
+                if adapter_receipt.get(field) != expected_value:
+                    raise QualificationError(f"workload adapter receipt binding mismatch for {field}: {relative}")
+            job_receipt_relative = safe_relative(adapter_receipt.get("job_receipt"), "adapter receipt job_receipt")
+            job_receipt_path = step_dir / pathlib.Path(*job_receipt_relative.parts)
+            if not job_receipt_path.is_file():
+                raise QualificationError(f"workload adapter job receipt is missing: {relative}")
+            job_receipt = load_json(job_receipt_path)
+            tier_evidence = load_json(tier_evidence_path)
+            for evidence_name, evidence in (("job", job_receipt), ("tier", tier_evidence)):
+                if (
+                    evidence.get("job_id") != planned_scenario["job_id"]
+                    or evidence.get("tier") != planned_scenario["tier"]
+                    or evidence.get("binding_sha256") != binding["sha256"]
+                ):
+                    raise QualificationError(f"workload adapter {evidence_name} evidence is relabelled: {relative}")
             recomputed_oracles = evaluate_oracles(step_dir, observed_step.get("exit_code"), planned_step["oracles"])
             if observed_step.get("oracles") != recomputed_oracles:
                 raise QualificationError(f"run manifest oracle evidence does not match raw artifacts: {relative}")
@@ -981,7 +1316,7 @@ def verify_bundle(bundle_dir: pathlib.Path, *, require_authority: bool = True) -
                 "build_images_git_sha", "plan_sha256", "charter", "fixture_set",
                 "compose_sha256", "environment_lock_sha256", "runner_image",
                 "pilot_script_sha256", "qualification_runner_sha256", "subject",
-                "subject_sha256",
+                "subject_sha256", "workload_adapter",
             },
             set(),
             f"run manifest inputs {relative}",
@@ -1007,6 +1342,12 @@ def verify_bundle(bundle_dir: pathlib.Path, *, require_authority: bool = True) -
                 raise QualificationError(f"run manifest input mismatch for {field}: {relative}")
         if inputs.get("subject") != locked_subject or inputs.get("subject_sha256") != expected_subject_sha:
             raise QualificationError(f"run manifest subject binding is invalid: {relative}")
+        expected_workload_input = {
+            "registry_sha256": plan["adapter_registry"]["sha256"],
+            "identity": plan["workload_adapter"],
+        }
+        if inputs.get("workload_adapter") != expected_workload_input:
+            raise QualificationError(f"run manifest workload adapter input is invalid: {relative}")
 
         repetition_dir = run_path.parent
         artifacts = run.get("artifacts")

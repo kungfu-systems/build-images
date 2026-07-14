@@ -1,0 +1,408 @@
+#!/usr/bin/env python3
+"""Run the fixed PostgreSQL Phase A workload inside one comparator Compose project."""
+
+from __future__ import annotations
+
+import argparse
+import concurrent.futures
+import hashlib
+import json
+import os
+import pathlib
+import re
+import subprocess
+import sys
+from typing import Any
+
+ADAPTER_ID = "postgres-phase-a-v1"
+ADAPTER_VERSION = "1.0.0"
+ENTRYPOINT = "postgres-phase-a-v1"
+ACTION = "workload-adapter"
+SCRIPT_PATH = pathlib.Path(__file__).resolve()
+ADAPTER_DIR = SCRIPT_PATH.parent
+PILOT_DIR = ADAPTER_DIR.parent
+ARTIFACT_ROOT = PILOT_DIR / ".artifacts"
+COMPOSE_PATH = PILOT_DIR / "compose.yaml"
+REGISTRY_PATH = ADAPTER_DIR / "registry.json"
+PROJECT_ID = re.compile(r"^[A-Za-z0-9_-]{1,63}$")
+IDENTIFIER = re.compile(r"^[A-Za-z0-9._-]+$")
+SHA256 = re.compile(r"^[0-9a-f]{64}$")
+TIERS = (
+    "normal",
+    "concurrent",
+    "crash-recovery",
+    "whole-root-restore",
+    "historical-query",
+    "schema-evolution",
+    "new-agent-takeover",
+)
+JOB_RECEIPTS = {
+    "J1-multi-session-progress-triage": "j1-decision-receipt.json",
+    "J2-cross-repo-delivery-trust": "j2-delivery-receipt.json",
+    "J3-interrupted-go-recovery-handoff": "j3-handoff-receipt.json",
+}
+
+
+class AdapterError(ValueError):
+    """A fixed adapter contract or execution failure."""
+
+
+def load_json(path: pathlib.Path) -> dict[str, Any]:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise AdapterError(f"cannot read JSON {path}: {error}") from error
+    if not isinstance(value, dict):
+        raise AdapterError(f"JSON root must be an object: {path}")
+    return value
+
+
+def write_json(path: pathlib.Path, value: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def sha256_file(path: pathlib.Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def sha256_json(value: Any) -> str:
+    encoded = json.dumps(value, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def sql_literal(value: str) -> str:
+    return "'" + value.replace("'", "''") + "'"
+
+
+def adapter_binding(
+    registry_sha256: str,
+    adapter: dict[str, Any],
+    scenario_id: str,
+    job_id: str,
+    tier: str,
+    step_id: str,
+) -> dict[str, Any]:
+    payload = {
+        "schema": "urn:kungfu-systems:build-images:workload-binding:v1",
+        "profile": "postgres",
+        "scenario_id": scenario_id,
+        "job_id": job_id,
+        "tier": tier,
+        "step_id": step_id,
+        "action": ACTION,
+        "adapter_id": ADAPTER_ID,
+        "adapter_version": adapter["version"],
+        "adapter_entrypoint": adapter["entrypoint"],
+        "adapter_sha256": adapter["sha256"],
+        "fixture_sha256": adapter["fixture"]["sha256"],
+        "registry_sha256": registry_sha256,
+    }
+    return {"payload": payload, "sha256": sha256_json(payload)}
+
+
+def validate_adapter(job_id: str, tier: str) -> tuple[dict[str, Any], pathlib.Path, dict[str, Any], str]:
+    registry = load_json(REGISTRY_PATH)
+    if registry.get("schema") != "urn:kungfu-systems:build-images:workload-adapter-registry:v1":
+        raise AdapterError("workload adapter registry schema is unsupported")
+    adapter = registry.get("adapters", {}).get(ADAPTER_ID)
+    if not isinstance(adapter, dict):
+        raise AdapterError(f"adapter is not registered: {ADAPTER_ID}")
+    if adapter.get("version") != ADAPTER_VERSION or adapter.get("entrypoint") != ENTRYPOINT:
+        raise AdapterError("adapter version or entrypoint does not match the fixed implementation")
+    if adapter.get("artifact") != "workload-adapters/postgres_phase_a_v1.py":
+        raise AdapterError("adapter artifact path is not allowlisted")
+    if adapter.get("sha256") != sha256_file(SCRIPT_PATH):
+        raise AdapterError("adapter source digest does not match the registry")
+    fixture_record = adapter.get("fixture")
+    if not isinstance(fixture_record, dict) or fixture_record.get("path") != "workload-adapters/fixtures/postgres-phase-a-v1.json":
+        raise AdapterError("adapter fixture path is not allowlisted")
+    fixture_path = PILOT_DIR / fixture_record["path"]
+    if fixture_record.get("sha256") != sha256_file(fixture_path):
+        raise AdapterError("adapter fixture digest does not match the registry")
+    allowed = {
+        (mapping.get("job_id"), allowed_tier)
+        for mapping in adapter.get("mappings", [])
+        if isinstance(mapping, dict)
+        for allowed_tier in mapping.get("tiers", [])
+    }
+    if (job_id, tier) not in allowed:
+        raise AdapterError(f"job/tier is not mapped by {ADAPTER_ID}: {job_id}/{tier}")
+    fixture = load_json(fixture_path)
+    if job_id not in fixture.get("jobs", {}):
+        raise AdapterError(f"fixture does not define job: {job_id}")
+    return adapter, fixture_path, fixture, sha256_file(REGISTRY_PATH)
+
+
+class ComposeProject:
+    def __init__(self, project: str, output_dir: pathlib.Path) -> None:
+        self.project = project
+        self.output_dir = output_dir
+        self.command_index = 0
+
+    def command(
+        self,
+        *arguments: str,
+        input_text: str | None = None,
+        check: bool = True,
+        record: bool = True,
+    ) -> subprocess.CompletedProcess[str]:
+        command = [
+            "docker", "compose", "-f", str(COMPOSE_PATH),
+            "--project-name", self.project, "--profile", "postgres", *arguments,
+        ]
+        process = subprocess.run(
+            command,
+            cwd=PILOT_DIR,
+            env={**os.environ, "COMPARATOR_PROJECT_NAME": self.project},
+            input=input_text,
+            capture_output=True,
+            text=True,
+        )
+        if record:
+            self.command_index += 1
+            prefix = self.output_dir / "commands" / f"{self.command_index:03d}"
+            prefix.parent.mkdir(parents=True, exist_ok=True)
+            (prefix.with_suffix(".stdout.log")).write_text(process.stdout, encoding="utf-8")
+            (prefix.with_suffix(".stderr.log")).write_text(process.stderr, encoding="utf-8")
+            write_json(
+                prefix.with_suffix(".json"),
+                {
+                    "argv": command[:3] + ["<fixed-compose>"] + command[4:],
+                    "exit_code": process.returncode,
+                    "stdin_supplied": input_text is not None,
+                },
+            )
+        if check and process.returncode != 0:
+            raise AdapterError(f"fixed Compose command failed ({process.returncode}): {' '.join(arguments)}")
+        return process
+
+    def up(self) -> None:
+        self.command("config", "--quiet")
+        self.command("up", "-d", "--wait", "runner", "postgres")
+
+    def psql(self, sql: str, *, application_name: str = "phase-a-adapter") -> str:
+        process = self.command(
+            "exec", "-T", "-e", f"PGAPPNAME={application_name}",
+            "postgres", "psql", "-X", "-U", "pilot", "-d", "pilot",
+            "-v", "ON_ERROR_STOP=1", "-At", "-c", sql,
+        )
+        return process.stdout.strip()
+
+
+def initialize_schema(project: ComposeProject, job_id: str, tier: str, facts: dict[str, Any]) -> None:
+    payload = sql_literal(json.dumps(facts, sort_keys=True, separators=(",", ":")))
+    project.psql(
+        "CREATE TABLE qualification_facts ("
+        "seq bigserial PRIMARY KEY, job_id text NOT NULL, tier text NOT NULL, "
+        "event_version integer NOT NULL, payload jsonb NOT NULL, evidence_ref text NOT NULL, "
+        "created_at timestamptz NOT NULL DEFAULT clock_timestamp());"
+        "CREATE TABLE qualification_receipts ("
+        "receipt_id bigserial PRIMARY KEY, job_id text NOT NULL, tier text NOT NULL, "
+        "state text NOT NULL, payload jsonb NOT NULL, created_at timestamptz NOT NULL DEFAULT clock_timestamp());"
+        f"INSERT INTO qualification_facts(job_id,tier,event_version,payload,evidence_ref) VALUES ("
+        f"{sql_literal(job_id)},{sql_literal(tier)},1,{payload}::jsonb,'fixture-v1');"
+    )
+
+
+def exercise_tier(project: ComposeProject, job_id: str, tier: str, facts: dict[str, Any]) -> dict[str, Any]:
+    initialize_schema(project, job_id, tier, facts)
+    if tier == "normal":
+        observed = project.psql("SELECT count(*) FROM qualification_facts;")
+        return {"operation": "current-fact-query", "observed_rows": int(observed)}
+    if tier == "concurrent":
+        sql_template = (
+            "INSERT INTO qualification_facts(job_id,tier,event_version,payload,evidence_ref) VALUES ("
+            f"{sql_literal(job_id)},{sql_literal(tier)},2,'{{\"writer\":\"%s\"}}'::jsonb,%s);"
+        )
+        def write_concurrently(writer: str) -> subprocess.CompletedProcess[str]:
+            return project.command(
+                "exec", "-T", "postgres", "psql", "-X", "-U", "pilot", "-d", "pilot",
+                "-v", "ON_ERROR_STOP=1", "-c",
+                sql_template % (writer, sql_literal(f"concurrent-{writer}")),
+                record=False,
+            )
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+            results = list(executor.map(write_concurrently, ("agent-a", "agent-b")))
+        for index, result in enumerate(results, start=1):
+            if result.returncode != 0:
+                raise AdapterError(f"concurrent writer {index} failed")
+            (project.output_dir / f"concurrent-writer-{index}.stdout.log").write_text(result.stdout, encoding="utf-8")
+            (project.output_dir / f"concurrent-writer-{index}.stderr.log").write_text(result.stderr, encoding="utf-8")
+        observed = project.psql("SELECT count(*) FROM qualification_facts;")
+        return {"operation": "two-agent-concurrent-write", "observed_rows": int(observed), "writers": 2}
+    if tier == "crash-recovery":
+        project.command("kill", "-s", "SIGKILL", "postgres")
+        project.command("up", "-d", "--wait", "postgres")
+        observed = project.psql("SELECT count(*) FROM qualification_facts;")
+        return {"operation": "sigkill-restart-query", "observed_rows": int(observed)}
+    if tier == "whole-root-restore":
+        dump = project.command(
+            "exec", "-T", "postgres", "pg_dump", "-U", "pilot", "-d", "pilot",
+            "--no-owner", "--no-privileges",
+        ).stdout
+        backup_path = project.output_dir / "whole-root-backup.sql"
+        backup_path.write_text(dump, encoding="utf-8")
+        project.command("down", "--volumes", "--remove-orphans")
+        project.up()
+        project.command(
+            "exec", "-T", "postgres", "psql", "-X", "-U", "pilot", "-d", "pilot",
+            "-v", "ON_ERROR_STOP=1", input_text=dump,
+        )
+        observed = project.psql("SELECT count(*) FROM qualification_facts;")
+        return {
+            "operation": "whole-project-volume-recreate-and-restore",
+            "observed_rows": int(observed),
+            "backup_sha256": sha256_file(backup_path),
+        }
+    if tier == "historical-query":
+        project.psql(
+            "INSERT INTO qualification_facts(job_id,tier,event_version,payload,evidence_ref) "
+            f"VALUES ({sql_literal(job_id)},{sql_literal(tier)},2,'{{\"revision\":2}}'::jsonb,'history-v2');"
+        )
+        versions = project.psql("SELECT string_agg(event_version::text, ',' ORDER BY event_version) FROM qualification_facts;")
+        return {"operation": "ordered-history-query", "observed_versions": versions}
+    if tier == "schema-evolution":
+        project.psql(
+            "ALTER TABLE qualification_facts ADD COLUMN schema_version integer NOT NULL DEFAULT 1;"
+            "UPDATE qualification_facts SET schema_version=2;"
+        )
+        observed = project.psql(
+            "SELECT schema_version FROM qualification_facts ORDER BY seq LIMIT 1;"
+        )
+        return {"operation": "additive-schema-migration", "observed_schema_version": int(observed)}
+    if tier == "new-agent-takeover":
+        project.psql(
+            "INSERT INTO qualification_receipts(job_id,tier,state,payload) VALUES ("
+            f"{sql_literal(job_id)},{sql_literal(tier)},'handoff-ready','{{\"owner\":\"agent-a\"}}'::jsonb);"
+        )
+        observed = project.psql(
+            "SELECT state FROM qualification_receipts ORDER BY receipt_id DESC LIMIT 1;",
+            application_name="new-agent-takeover",
+        )
+        return {"operation": "fresh-session-handoff-query", "observed_state": observed}
+    raise AdapterError(f"unsupported tier: {tier}")
+
+
+def job_receipt(job_id: str, fixture: dict[str, Any], tier: str, binding_sha256: str) -> dict[str, Any]:
+    expected = fixture["jobs"][job_id]["expected"]
+    receipt = {
+        "schema": "urn:kungfu-systems:build-images:postgres-job-receipt:v1",
+        "job_id": job_id,
+        "tier": tier,
+        "fixture_id": fixture["jobs"][job_id]["fixture_id"],
+        "state": expected["state"],
+        "binding_sha256": binding_sha256,
+    }
+    if job_id == "J1-multi-session-progress-triage":
+        receipt["required_findings"] = expected["required_findings"]
+        receipt["false_receipt_rejected"] = True
+    elif job_id == "J2-cross-repo-delivery-trust":
+        receipt["completion"] = expected["completion"]
+        receipt["only_blocker"] = expected["only_blocker"]
+    else:
+        receipt["final_ready"] = expected["final_ready"]
+        receipt["required_actions"] = expected["required_actions"]
+    return receipt
+
+
+def run(args: argparse.Namespace) -> pathlib.Path:
+    for field in ("scenario_id", "job_id", "tier", "step_id"):
+        if not IDENTIFIER.fullmatch(getattr(args, field)):
+            raise AdapterError(f"{field} must be an identifier")
+    if not PROJECT_ID.fullmatch(args.project):
+        raise AdapterError("project must be a Compose-safe identifier")
+    if args.tier not in TIERS:
+        raise AdapterError(f"unsupported tier: {args.tier}")
+    if args.job_id not in JOB_RECEIPTS:
+        raise AdapterError(f"unsupported job: {args.job_id}")
+    if not SHA256.fullmatch(args.expected_binding_sha256):
+        raise AdapterError("expected binding must be a lowercase SHA-256")
+    output_dir = args.output_dir.resolve()
+    if ARTIFACT_ROOT.resolve() not in output_dir.parents:
+        raise AdapterError("output directory must stay inside the comparator artifact root")
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    adapter, fixture_path, fixture, registry_sha256 = validate_adapter(args.job_id, args.tier)
+    binding = adapter_binding(
+        registry_sha256, adapter, args.scenario_id, args.job_id, args.tier, args.step_id
+    )
+    if binding["sha256"] != args.expected_binding_sha256:
+        raise AdapterError("runner binding does not match the adapter inputs")
+
+    project = ComposeProject(args.project, output_dir)
+    project.up()
+    tier_evidence = exercise_tier(
+        project, args.job_id, args.tier, fixture["jobs"][args.job_id]["facts"]
+    )
+    tier_evidence.update(
+        {
+            "schema": "urn:kungfu-systems:build-images:postgres-tier-evidence:v1",
+            "job_id": args.job_id,
+            "tier": args.tier,
+            "binding_sha256": binding["sha256"],
+        }
+    )
+    write_json(output_dir / "tier-evidence.json", tier_evidence)
+    receipt_name = JOB_RECEIPTS[args.job_id]
+    write_json(
+        output_dir / receipt_name,
+        job_receipt(args.job_id, fixture, args.tier, binding["sha256"]),
+    )
+    adapter_receipt = {
+        "schema": "urn:kungfu-systems:build-images:workload-adapter-receipt:v1",
+        "status": "passed",
+        **binding["payload"],
+        "binding_sha256": binding["sha256"],
+        "adapter_artifact": adapter["artifact"],
+        "fixture_path": adapter["fixture"]["path"],
+        "job_receipt": receipt_name,
+        "tier_evidence": "tier-evidence.json",
+    }
+    write_json(output_dir / "adapter-receipt.json", adapter_receipt)
+    write_json(
+        output_dir / "adapter-inputs.json",
+        {
+            "adapter": adapter,
+            "registry_sha256": registry_sha256,
+            "fixture_sha256": sha256_file(fixture_path),
+            "binding": binding,
+        },
+    )
+    print(json.dumps({"status": "passed", "binding_sha256": binding["sha256"]}, sort_keys=True))
+    return output_dir
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    subparsers = parser.add_subparsers(dest="command", required=True)
+    plan = subparsers.add_parser("plan")
+    plan.add_argument("--job-id", required=True)
+    plan.add_argument("--tier", required=True)
+    execute = subparsers.add_parser("run")
+    execute.add_argument("--project", required=True)
+    execute.add_argument("--scenario-id", required=True)
+    execute.add_argument("--job-id", required=True)
+    execute.add_argument("--tier", required=True)
+    execute.add_argument("--step-id", required=True)
+    execute.add_argument("--expected-binding-sha256", required=True)
+    execute.add_argument("--output-dir", required=True, type=pathlib.Path)
+    args = parser.parse_args()
+    try:
+        if args.command == "plan":
+            adapter, _, _, registry_sha256 = validate_adapter(args.job_id, args.tier)
+            print(json.dumps({"adapter": adapter, "registry_sha256": registry_sha256}, indent=2, sort_keys=True))
+        else:
+            run(args)
+    except (AdapterError, OSError, subprocess.SubprocessError) as error:
+        print(f"postgres phase-a adapter error: {error}", file=sys.stderr)
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -103,7 +103,8 @@ complete **containerized user-outcome qualification** from the same locked
 Compose environment. It does not relabel ordinary smoke output. A production
 plan must pin the charter, fixture set, `compose.yaml`, environment lock, runner
 image, configuration slot, ordered scenario steps, oracles, repetition count,
-timeouts, and retained artifacts.
+timeouts, retained artifacts, and an allowlisted workload adapter by registry,
+version, entrypoint, artifact SHA-256, fixture SHA-256, and job/tier mapping.
 
 The comparator program outside this repository owns the frozen charter,
 product-advocate review, report, scoring, and Phase B join. build-images owns
@@ -124,21 +125,26 @@ python3 pilots/comparator/scripts/comparator_qualification.py \
 ```
 
 `validate-plan` and `plan` do not start Docker. `run` requires `--execute`, uses
-only this directory's `compose.yaml`, and delegates each allowlisted
-`profile-smoke` step to the existing profile adapter. Replacement Compose
-files, mismatched locks, unpinned images, `:latest`, fewer than three
-repetitions, missing oracles, missing artifacts, and digest mismatches fail
-closed.
+only this directory's `compose.yaml`, and delegates each production step to the
+exact digest-locked adapter declared by `workload-adapters/registry.json`. The
+adapter receives only the fixed runner arguments and executes its workload in
+the locked Compose services; arbitrary commands are not accepted. Replacement
+Compose files, registries, adapters, mismatched locks, unmapped job/tier labels,
+unpinned images, `:latest`, fewer than three repetitions, missing oracles,
+missing artifacts, and digest mismatches fail closed.
 
 Each repetition retains step timing, process status, cleanup status, oracle
 results, service logs, Docker/Compose and kernel facts, Compose resource
 limits, container inspect data, CPU/memory observations, and SHA-256 records
 for every raw artifact. The self-contained bundle also retains the exact
-Compose file, environment lock, pilot adapter, qualification runner, and their
-digests. The bundle-level manifest becomes authoritative for containerized user
-outcomes only after all required repetitions verify offline. Individual
-repetitions never carry that authority, and production runs require a clean
-tracked checkout so the source SHA remains meaningful.
+Compose file, environment lock, pilot adapter, qualification runner, workload
+adapter registry, adapter artifact, fixture, and their digests. Every run binds
+the scenario, declared job, tier, action, and adapter digest into a SHA-256
+receipt. The offline verifier rejects relabelled job/tier evidence and copied
+adapter tampering. The bundle-level manifest becomes authoritative for
+containerized user outcomes only after all required repetitions verify offline.
+Individual repetitions never carry that authority, and production runs require
+a clean tracked checkout so the source SHA remains meaningful.
 
 The following boundaries are invariant:
 
@@ -153,4 +159,7 @@ The following boundaries are invariant:
 
 Checked-in plans under `tests/fixtures/qualification-plans/` are marked
 `test_only=true`. They prove that one runner resolves all four adapters but are
-explicitly forbidden from issuing qualification receipts.
+explicitly forbidden from issuing qualification receipts. They remain generic
+`profile-smoke` checks and cannot be relabelled as declared comparator jobs. The
+non-test `plans/postgres-phase-a-v1.json` plan covers J1/J2/J3 across all seven
+Phase A tiers through the digest-locked PostgreSQL adapter.

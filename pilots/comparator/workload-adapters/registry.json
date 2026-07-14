@@ -1,0 +1,57 @@
+{
+  "schema": "urn:kungfu-systems:build-images:workload-adapter-registry:v1",
+  "schema_version": 1,
+  "adapters": {
+    "postgres-phase-a-v1": {
+      "version": "1.0.0",
+      "artifact": "workload-adapters/postgres_phase_a_v1.py",
+      "sha256": "837f65b0f1aa37985d82a2a1fdbcb52ca28500463f32497e915a839f430905c8",
+      "entrypoint": "postgres-phase-a-v1",
+      "profiles": [
+        "postgres"
+      ],
+      "fixture": {
+        "path": "workload-adapters/fixtures/postgres-phase-a-v1.json",
+        "sha256": "cb678b60df2ea564b8d5afc00301a424dc25bb4446b0e9a3a137ec8cd36806a5"
+      },
+      "mappings": [
+        {
+          "job_id": "J1-multi-session-progress-triage",
+          "tiers": [
+            "normal",
+            "concurrent",
+            "crash-recovery",
+            "whole-root-restore",
+            "historical-query",
+            "schema-evolution",
+            "new-agent-takeover"
+          ]
+        },
+        {
+          "job_id": "J2-cross-repo-delivery-trust",
+          "tiers": [
+            "normal",
+            "concurrent",
+            "crash-recovery",
+            "whole-root-restore",
+            "historical-query",
+            "schema-evolution",
+            "new-agent-takeover"
+          ]
+        },
+        {
+          "job_id": "J3-interrupted-go-recovery-handoff",
+          "tiers": [
+            "normal",
+            "concurrent",
+            "crash-recovery",
+            "whole-root-restore",
+            "historical-query",
+            "schema-evolution",
+            "new-agent-takeover"
+          ]
+        }
+      ]
+    }
+  }
+}

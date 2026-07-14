@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import pathlib
 import subprocess
 import sys
@@ -8,10 +9,15 @@ import unittest
 from unittest import mock
 
 SCRIPT_DIR = pathlib.Path(__file__).resolve().parents[1] / "scripts"
+PILOT_DIR = pathlib.Path(__file__).resolve().parents[1]
+ADAPTER_DIR = PILOT_DIR / "workload-adapters"
 FIXTURE_DIR = pathlib.Path(__file__).resolve().parent / "fixtures" / "qualification-plans"
+PRODUCTION_PLAN = PILOT_DIR / "plans" / "postgres-phase-a-v1.json"
 sys.path.insert(0, str(SCRIPT_DIR))
+sys.path.insert(0, str(ADAPTER_DIR))
 
 import comparator_qualification as qualification  # noqa: E402
+import postgres_phase_a_v1 as postgres_adapter  # noqa: E402
 
 
 class QualificationPlanTests(unittest.TestCase):
@@ -49,6 +55,53 @@ class QualificationPlanTests(unittest.TestCase):
         with self.assertRaisesRegex(qualification.QualificationError, "fixed Kungfu package filename"):
             qualification.validate_plan_document(plan)
 
+    def test_production_plan_covers_every_declared_job_and_tier(self) -> None:
+        plan, resolved = qualification.resolve_plan(PRODUCTION_PLAN)
+        expected = {
+            (mapping["job_id"], tier)
+            for mapping in plan["workload_adapter"]["mappings"]
+            for tier in mapping["tiers"]
+        }
+        observed = {(scenario["job_id"], scenario["tier"]) for scenario in plan["scenarios"]}
+        self.assertEqual(observed, expected)
+        self.assertEqual(len(observed), 21)
+        self.assertEqual(resolved["workload_adapter"]["identity"], plan["workload_adapter"])
+
+    def test_runner_and_adapter_compute_the_same_workload_binding(self) -> None:
+        plan = qualification.load_json(PRODUCTION_PLAN)
+        scenario = plan["scenarios"][0]
+        step = scenario["steps"][0]
+        runner_binding = qualification.workload_binding(
+            plan["profile"],
+            plan["adapter_registry"]["sha256"],
+            plan["workload_adapter"],
+            scenario,
+            step,
+        )
+        adapter_binding = postgres_adapter.adapter_binding(
+            plan["adapter_registry"]["sha256"],
+            plan["workload_adapter"],
+            scenario["id"],
+            scenario["job_id"],
+            scenario["tier"],
+            step["id"],
+        )
+        self.assertEqual(adapter_binding, runner_binding)
+
+    def test_production_plan_rejects_missing_adapter_mapping(self) -> None:
+        plan = qualification.load_json(PRODUCTION_PLAN)
+        plan["workload_adapter"]["mappings"][0]["tiers"].remove("normal")
+        with self.assertRaisesRegex(qualification.QualificationError, "not mapped"):
+            qualification.validate_plan_document(plan)
+
+    def test_generic_smoke_cannot_be_relabelled_as_production_work(self) -> None:
+        plan = qualification.load_json(PRODUCTION_PLAN)
+        step = plan["scenarios"][0]["steps"][0]
+        step["action"] = "profile-smoke"
+        step.pop("adapter_id")
+        with self.assertRaisesRegex(qualification.QualificationError, "declared workload adapter"):
+            qualification.validate_plan_document(plan)
+
 
 class QualificationExecutionTests(unittest.TestCase):
     def test_controlled_environment_drops_ad_hoc_compose_inputs(self) -> None:
@@ -79,6 +132,7 @@ class QualificationExecutionTests(unittest.TestCase):
                 result = qualification.execute_step(
                     "aeron",
                     {},
+                    None,
                     "qualification-timeout-test",
                     1,
                     scenario,
@@ -102,31 +156,93 @@ class QualificationBundleTests(unittest.TestCase):
         self.temporary = tempfile.TemporaryDirectory()
         self.bundle_dir = pathlib.Path(self.temporary.name) / "bundle"
         self.bundle_dir.mkdir()
-        fixture_plan = qualification.load_json(FIXTURE_DIR / "aeron.json")
-        fixture_plan["test_only"] = False
-        fixture_plan["scenarios"][0]["steps"][0]["oracles"] = [
-            {"type": "exit-code", "expected": 0},
-            {"type": "artifact-exists", "path": "evidence.txt", "expected": True},
-            {"type": "artifact-text-contains", "path": "evidence.txt", "expected": "evidence-"},
+        fixture_plan = qualification.load_json(PRODUCTION_PLAN)
+        fixture_plan["scenarios"] = fixture_plan["scenarios"][:1]
+        fixture_plan["artifact_retention"]["required_patterns"] = [
+            "raw/**/adapter-receipt.json",
+            "raw/**/tier-evidence.json",
+            "raw/**/j1-decision-receipt.json",
         ]
-        fixture_plan["artifact_retention"]["required_patterns"] = ["raw/**/evidence.txt"]
         self.plan_path = self.bundle_dir / "qualification-plan.json"
         qualification.write_json(self.plan_path, fixture_plan)
         self.plan_sha = qualification.sha256_file(self.plan_path)
         self.contracts = qualification.copy_contracts(self.bundle_dir)
-        locked_subject = qualification.load_json(qualification.LOCK_PATH)["profiles"]["aeron"]
+        locked_subject = qualification.load_json(qualification.LOCK_PATH)["profiles"]["postgres"]
+        workload_adapter = {
+            "registry_sha256": fixture_plan["adapter_registry"]["sha256"],
+            "identity": fixture_plan["workload_adapter"],
+        }
         self.bundle_inputs = qualification.copy_bundle_inputs(
             self.bundle_dir,
-            {"runner_image": fixture_plan["environment"]["runner_image"], "subject": locked_subject},
+            {
+                "runner_image": fixture_plan["environment"]["runner_image"],
+                "subject": locked_subject,
+                "workload_adapter": workload_adapter,
+            },
         )
         self.build_sha = "c" * 40
         self.bundle_id = "synthetic-offline-verification"
         self.run_records = []
+        scenario = fixture_plan["scenarios"][0]
+        step = scenario["steps"][0]
+        binding = qualification.workload_binding(
+            fixture_plan["profile"],
+            fixture_plan["adapter_registry"]["sha256"],
+            fixture_plan["workload_adapter"],
+            scenario,
+            step,
+        )
+        adapter_evidence = {
+            "id": fixture_plan["workload_adapter"]["id"],
+            "version": fixture_plan["workload_adapter"]["version"],
+            "entrypoint": fixture_plan["workload_adapter"]["entrypoint"],
+            "artifact": fixture_plan["workload_adapter"]["artifact"],
+            "artifact_sha256": fixture_plan["workload_adapter"]["sha256"],
+            "fixture": fixture_plan["workload_adapter"]["fixture"],
+            "registry_sha256": fixture_plan["adapter_registry"]["sha256"],
+            "binding_sha256": binding["sha256"],
+            "receipt_path": "adapter-receipt.json",
+        }
         for repetition in range(1, 4):
             repetition_dir = self.bundle_dir / f"repetition-{repetition:03d}"
-            raw = repetition_dir / "raw" / "archive-recovery" / "smoke"
+            raw = repetition_dir / "raw" / scenario["id"] / step["id"]
             raw.mkdir(parents=True)
-            (raw / "evidence.txt").write_text(f"evidence-{repetition}\n", encoding="utf-8")
+            qualification.write_json(
+                raw / "adapter-receipt.json",
+                {
+                    "schema": "urn:kungfu-systems:build-images:workload-adapter-receipt:v1",
+                    "status": "passed",
+                    **binding["payload"],
+                    "binding_sha256": binding["sha256"],
+                    "adapter_artifact": fixture_plan["workload_adapter"]["artifact"],
+                    "fixture_path": fixture_plan["workload_adapter"]["fixture"]["path"],
+                    "job_receipt": "j1-decision-receipt.json",
+                    "tier_evidence": "tier-evidence.json",
+                },
+            )
+            qualification.write_json(
+                raw / "j1-decision-receipt.json",
+                {
+                    "schema": "urn:kungfu-systems:build-images:postgres-job-receipt:v1",
+                    "job_id": scenario["job_id"],
+                    "tier": scenario["tier"],
+                    "fixture_id": "F1-session-triage",
+                    "state": "mixed-action-required",
+                    "binding_sha256": binding["sha256"],
+                    "required_findings": ["reject false receipt"],
+                    "false_receipt_rejected": True,
+                },
+            )
+            qualification.write_json(
+                raw / "tier-evidence.json",
+                {
+                    "schema": "urn:kungfu-systems:build-images:postgres-tier-evidence:v1",
+                    "job_id": scenario["job_id"],
+                    "tier": scenario["tier"],
+                    "binding_sha256": binding["sha256"],
+                    "operation": "normal-query",
+                },
+            )
             manifest = {
                 "run_schema": qualification.RUN_SCHEMA_ID,
                 "schema_version": 1,
@@ -140,7 +256,7 @@ class QualificationBundleTests(unittest.TestCase):
                 "bundle_id": self.bundle_id,
                 "run_id": f"synthetic-{repetition}",
                 "repetition": repetition,
-                "profile": "aeron",
+                "profile": "postgres",
                 "configuration_slot": "realistic-default",
                 "started_at": "2026-07-14T00:00:00Z",
                 "finished_at": "2026-07-14T00:00:01Z",
@@ -157,6 +273,7 @@ class QualificationBundleTests(unittest.TestCase):
                     "qualification_runner_sha256": self.bundle_inputs["qualification_runner"]["sha256"],
                     "subject": locked_subject,
                     "subject_sha256": qualification.sha256_json(locked_subject),
+                    "workload_adapter": workload_adapter,
                 },
                 "runtime": {
                     "platform": "linux-test",
@@ -170,15 +287,17 @@ class QualificationBundleTests(unittest.TestCase):
                     "cgroup": {"version": "v2", "files": {}},
                     "resource_limits": {
                         "runner": {"mem_limit": "256m", "cpus": "0.50"},
-                        "aeron": {"mem_limit": "1g", "cpus": "1.00"},
+                        "postgres": {"mem_limit": "2g", "cpus": "1.00"},
                     },
                 },
                 "steps": [
                     {
-                        "scenario_id": "archive-recovery",
-                        "job_id": "aeron-qualification",
-                        "step_id": "smoke",
-                        "action": "profile-smoke",
+                        "scenario_id": scenario["id"],
+                        "job_id": scenario["job_id"],
+                        "tier": scenario["tier"],
+                        "step_id": step["id"],
+                        "action": step["action"],
+                        "adapter": copy.deepcopy(adapter_evidence),
                         "project": f"synthetic-{repetition}",
                         "started_at": "2026-07-14T00:00:00Z",
                         "finished_at": "2026-07-14T00:00:01Z",
@@ -190,7 +309,7 @@ class QualificationBundleTests(unittest.TestCase):
                         "oracles": qualification.evaluate_oracles(
                             raw,
                             0,
-                            fixture_plan["scenarios"][0]["steps"][0]["oracles"],
+                            step["oracles"],
                         ),
                         "passed": True,
                     }
@@ -223,7 +342,7 @@ class QualificationBundleTests(unittest.TestCase):
             "final_scoring_authority": False,
             "bundle_id": self.bundle_id,
             "generated_at": "2026-07-14T00:00:03Z",
-            "profile": "aeron",
+            "profile": "postgres",
             "configuration_slot": "realistic-default",
             "build_images_git_sha": self.build_sha,
             "inputs": self.bundle_inputs,
@@ -244,9 +363,9 @@ class QualificationBundleTests(unittest.TestCase):
         self.assertTrue(bundle["user_outcome_qualification_authority"])
 
     def test_offline_verification_rejects_altered_raw_evidence(self) -> None:
-        target = self.bundle_dir / "repetition-002" / "raw" / "archive-recovery" / "smoke" / "evidence.txt"
-        target.write_text("tampered\n", encoding="utf-8")
-        with self.assertRaisesRegex(qualification.QualificationError, "oracle evidence"):
+        target = self.bundle_dir / "repetition-002" / "raw" / "j1-normal" / "execute" / "adapter-receipt.json"
+        target.write_text("{}\n", encoding="utf-8")
+        with self.assertRaisesRegex(qualification.QualificationError, "receipt binding"):
             qualification.verify_bundle(self.bundle_dir)
 
     def test_offline_verification_rejects_missing_repetition(self) -> None:
@@ -258,7 +377,7 @@ class QualificationBundleTests(unittest.TestCase):
             qualification.verify_bundle(self.bundle_dir)
 
     def test_offline_verification_rejects_unrecorded_artifact(self) -> None:
-        target = self.bundle_dir / "repetition-003" / "raw" / "archive-recovery" / "smoke" / "unrecorded.txt"
+        target = self.bundle_dir / "repetition-003" / "raw" / "j1-normal" / "execute" / "unrecorded.txt"
         target.write_text("not in the manifest\n", encoding="utf-8")
         with self.assertRaisesRegex(qualification.QualificationError, "artifact inventory is incomplete"):
             qualification.verify_bundle(self.bundle_dir)
@@ -277,6 +396,34 @@ class QualificationBundleTests(unittest.TestCase):
         qualification.write_json(bundle_path, bundle)
         with self.assertRaisesRegex(qualification.QualificationError, "subject does not match"):
             qualification.verify_bundle(self.bundle_dir)
+
+    def test_offline_verification_rejects_relabelled_job_receipt(self) -> None:
+        repetition_dir = self.bundle_dir / "repetition-001"
+        target = repetition_dir / "raw" / "j1-normal" / "execute" / "j1-decision-receipt.json"
+        receipt = qualification.load_json(target)
+        receipt["job_id"] = "J2-cross-repo-delivery-trust"
+        qualification.write_json(target, receipt)
+        self._refresh_run_manifest(1)
+        with self.assertRaisesRegex(qualification.QualificationError, "evidence is relabelled"):
+            qualification.verify_bundle(self.bundle_dir)
+
+    def test_offline_verification_rejects_tampered_adapter_artifact(self) -> None:
+        record = qualification.load_json(self.bundle_dir / "bundle-manifest.json")["inputs"]["workload_adapter"]
+        target = self.bundle_dir / record["artifact"]["path"]
+        target.write_text(target.read_text(encoding="utf-8") + "\n# tampered\n", encoding="utf-8")
+        with self.assertRaisesRegex(qualification.QualificationError, "adapter digest mismatch"):
+            qualification.verify_bundle(self.bundle_dir)
+
+    def _refresh_run_manifest(self, repetition: int) -> None:
+        repetition_dir = self.bundle_dir / f"repetition-{repetition:03d}"
+        run_path = repetition_dir / "run-manifest.json"
+        run = qualification.load_json(run_path)
+        run["artifacts"] = qualification.artifact_records(repetition_dir, exclude={"run-manifest.json"})
+        qualification.write_json(run_path, run)
+        bundle_path = self.bundle_dir / "bundle-manifest.json"
+        bundle = qualification.load_json(bundle_path)
+        bundle["run_manifests"][repetition - 1]["sha256"] = qualification.sha256_file(run_path)
+        qualification.write_json(bundle_path, bundle)
 
 
 if __name__ == "__main__":

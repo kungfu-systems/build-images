@@ -50,7 +50,8 @@
         "qualification_runner",
         "runner_image",
         "subject",
-        "subject_sha256"
+        "subject_sha256",
+        "workload_adapter"
       ],
       "properties": {
         "compose": { "$ref": "#/$defs/fileRecord" },
@@ -59,7 +60,19 @@
         "qualification_runner": { "$ref": "#/$defs/fileRecord" },
         "runner_image": { "pattern": "@sha256:[0-9a-f]{64}$" },
         "subject": { "type": "object" },
-        "subject_sha256": { "pattern": "^[0-9a-f]{64}$" }
+        "subject_sha256": { "pattern": "^[0-9a-f]{64}$" },
+        "workload_adapter": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["registry", "artifact", "fixture", "identity", "registry_sha256"],
+          "properties": {
+            "registry": { "$ref": "#/$defs/fileRecord" },
+            "artifact": { "$ref": "#/$defs/fileRecord" },
+            "fixture": { "$ref": "#/$defs/fileRecord" },
+            "identity": { "type": "object" },
+            "registry_sha256": { "pattern": "^[0-9a-f]{64}$" }
+          }
+        }
       }
     },
     "plan": { "type": "object" },

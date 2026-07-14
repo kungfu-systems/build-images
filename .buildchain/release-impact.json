@@ -43,7 +43,7 @@
       "id": "comparator-containerized-user-outcome-qualification",
       "impact": "patch",
       "class": "qualification-governance",
-      "rationale": "The comparator pilot adds an opt-in frozen-plan evidence bundle and offline verifier while preserving existing unscored smoke commands and all published image identifiers.",
+      "rationale": "The comparator pilot binds declared jobs and tiers to a digest-locked allowlisted workload adapter, adds a non-test PostgreSQL Phase A plan and tamper-rejecting offline receipts, and preserves existing unscored smoke commands and published image identifiers.",
       "source": "pilots/comparator"
     }
   ],
