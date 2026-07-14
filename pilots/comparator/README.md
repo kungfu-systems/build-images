@@ -69,8 +69,9 @@ failure evidence as Kungfu setup cost. They must not report the prebuilt Docker
 image startup time as time-to-trusted-answer.
 
 The lock records the exact source commit, builder and runtime image digests,
-Rust bootstrap checksum/toolchain, and the Shifu build entrypoint. The source
-tree then supplies its own Node, pnpm, Python, Cargo, Conan and package locks.
+Rust bootstrap checksum/toolchain, and the Shifu build entrypoint, including
+fresh-host Conan profile detection. The source tree then supplies its own Node,
+pnpm, Python, Cargo, Conan and package locks.
 The smoke writes and seals an Episode, proves it through the query surface,
 exports it, kills the container, checks the retained journal after restart,
 and imports the bundle into a separate workspace.

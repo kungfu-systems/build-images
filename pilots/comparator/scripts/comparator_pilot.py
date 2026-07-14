@@ -14,6 +14,7 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 LOCK_PATH = ROOT / "environment.lock.json"
 COMPOSE_PATH = ROOT / "compose.yaml"
+KUNGFU_DOCKERFILE_PATH = ROOT / "images" / "kungfu" / "Dockerfile"
 MANIFEST_SCHEMA_PATH = ROOT / "environment-manifest.schema.json"
 MANIFEST_SCHEMA_ID = "urn:kungfu-systems:build-images:comparator-environment-manifest:v1"
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
@@ -96,6 +97,7 @@ def validate() -> dict:
         errors.append("kungfu source evidence URL must identify the locked source SHA")
 
     compose = COMPOSE_PATH.read_text(encoding="utf-8")
+    kungfu_dockerfile = KUNGFU_DOCKERFILE_PATH.read_text(encoding="utf-8")
     for forbidden in ("privileged:", "network_mode: host", "/var/run/docker.sock"):
         if forbidden in compose:
             errors.append(f"compose contains forbidden setting: {forbidden}")
@@ -113,6 +115,18 @@ def validate() -> dict:
             errors.append(f"compose is not aligned with lock: {required}")
     if ":latest" in compose:
         errors.append("compose must not use latest tags")
+    for required in (
+        kungfu.get("builder_image", ""),
+        kungfu.get("runtime_image", ""),
+        kungfu.get("source_sha", ""),
+        kungfu.get("rustup_init_sha256", ""),
+        kungfu.get("rust_toolchain", ""),
+        "uv run --frozen conan profile detect --force",
+        "./shifu build:core",
+        "./shifu freeze",
+    ):
+        if required not in kungfu_dockerfile:
+            errors.append(f"kungfu Dockerfile is not aligned with lock: {required}")
 
     if errors:
         raise ValueError("\n".join(errors))
