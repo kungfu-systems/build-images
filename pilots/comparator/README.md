@@ -134,6 +134,13 @@ Compose files, registries, adapters, mismatched locks, unmapped job/tier labels,
 unpinned images, `:latest`, fewer than three repetitions, missing oracles,
 missing artifacts, and digest mismatches fail closed.
 
+Before service startup, `run` derives and validates the complete set of unique
+Compose project names for every repetition and step. Names are normalized to
+portable lowercase Compose syntax, capped at 63 characters, and reused without
+change by execution and project-scoped cleanup. One `compose config --quiet`
+preflight against the locked file fails the whole run before any service starts,
+instead of repeating a deterministic environment or project-name error.
+
 Each repetition retains step timing, process status, cleanup status, oracle
 results, service logs, Docker/Compose and kernel facts, Compose resource
 limits, container inspect data, CPU/memory observations, and SHA-256 records

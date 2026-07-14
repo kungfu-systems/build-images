@@ -213,6 +213,49 @@ class WorkloadSemanticTests(unittest.TestCase):
 
 
 class QualificationExecutionTests(unittest.TestCase):
+    def test_compose_project_name_is_lowercase_portable_and_frozen(self) -> None:
+        scenario = {"id": "j1-normal", "tier": "normal", "job_id": "J1"}
+        step = {"id": "execute"}
+        project = qualification.compose_project_name(
+            "postgres",
+            "qual-postgres-20260714T104328Z-90803",
+            1,
+            scenario,
+            step,
+        )
+        self.assertEqual(project, "kf-qual-postgres-04328z-90803-r001-f1c7607ace")
+        self.assertRegex(project, r"^[a-z0-9][a-z0-9_-]*$")
+        self.assertLessEqual(len(project), 63)
+
+    def test_all_production_project_names_are_unique_and_portable(self) -> None:
+        plan = qualification.load_json(PRODUCTION_PLAN)
+        projects = qualification.qualification_project_names(
+            plan,
+            "postgres",
+            "qual-postgres-20260714T104328Z-90803",
+        )
+        expected_count = plan["repetitions"] * sum(
+            len(scenario["steps"]) for scenario in plan["scenarios"]
+        )
+        self.assertEqual(len(projects), expected_count)
+        self.assertEqual(len(projects), len(set(projects)))
+        self.assertTrue(all(qualification.COMPOSE_PROJECT_NAME.fullmatch(project) for project in projects))
+
+    def test_compose_preflight_fails_before_service_startup(self) -> None:
+        failed = mock.Mock(returncode=1, stdout="", stderr="invalid project name")
+        with mock.patch.object(qualification.subprocess, "run", return_value=failed) as run:
+            with self.assertRaisesRegex(qualification.QualificationError, "before service startup"):
+                qualification.preflight_compose_environment("postgres", "kf-qual-postgres-valid")
+        command = run.call_args.args[0]
+        self.assertEqual(command[-2:], ["config", "--quiet"])
+        self.assertNotIn("up", command)
+
+    def test_compose_preflight_timeout_fails_closed(self) -> None:
+        timeout = subprocess.TimeoutExpired(["docker", "compose"], 60, stderr=b"preflight timeout")
+        with mock.patch.object(qualification.subprocess, "run", side_effect=timeout):
+            with self.assertRaisesRegex(qualification.QualificationError, "preflight timeout"):
+                qualification.preflight_compose_environment("postgres", "kf-qual-postgres-valid")
+
     def test_controlled_environment_drops_ad_hoc_compose_inputs(self) -> None:
         with mock.patch.dict(
             qualification.os.environ,
@@ -249,10 +292,14 @@ class QualificationExecutionTests(unittest.TestCase):
                     repetition_dir,
                 )
             cleanup_command = run.call_args_list[1].args[0]
+            execution_environment = run.call_args_list[0].kwargs["env"]
+            project_index = cleanup_command.index("--project-name") + 1
             self.assertEqual(result["exit_code"], 124)
             self.assertEqual(result["cleanup_exit_code"], 0)
             self.assertFalse(result["passed"])
             self.assertIn("--project-name", cleanup_command)
+            self.assertEqual(execution_environment["COMPARATOR_PROJECT_NAME"], cleanup_command[project_index])
+            self.assertRegex(cleanup_command[project_index], r"^[a-z0-9][a-z0-9_-]*$")
             self.assertEqual(cleanup_command[-3:], ["down", "--volumes", "--remove-orphans"])
             self.assertEqual(
                 (repetition_dir / "raw" / "timeout-scenario" / "smoke" / "cleanup.stdout.log").read_text(),
