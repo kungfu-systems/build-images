@@ -1,18 +1,26 @@
 {
-  "schema": "urn:kungfu-systems:build-images:workload-adapter-registry:v1",
-  "schema_version": 1,
+  "schema": "urn:kungfu-systems:build-images:workload-adapter-registry:v2",
+  "schema_version": 2,
   "adapters": {
     "postgres-phase-a-v1": {
-      "version": "1.0.0",
+      "version": "1.1.0",
       "artifact": "workload-adapters/postgres_phase_a_v1.py",
-      "sha256": "837f65b0f1aa37985d82a2a1fdbcb52ca28500463f32497e915a839f430905c8",
+      "sha256": "fef0841241927ce2721eb3480a8775fc93dd92594b4ce734c566bf6ecb1a986f",
       "entrypoint": "postgres-phase-a-v1",
       "profiles": [
         "postgres"
       ],
+      "semantics": {
+        "path": "workload-adapters/postgres_phase_a_semantics.py",
+        "sha256": "4fc5ef31be09b04c86e04fc30dbd4211ab8c1fabdad5e4883d0cb8c626ca2168"
+      },
       "fixture": {
         "path": "workload-adapters/fixtures/postgres-phase-a-v1.json",
-        "sha256": "cb678b60df2ea564b8d5afc00301a424dc25bb4446b0e9a3a137ec8cd36806a5"
+        "sha256": "bef708da5886bf48f3bfca6045f499c75ad76807f218133569bf2aa323915738"
+      },
+      "oracle": {
+        "path": "workload-adapters/oracles/postgres-phase-a-v1.json",
+        "sha256": "ffd8fc9f0fa77c4541694da78789c50e01c6603bae173996f029a8e5760098f6"
       },
       "mappings": [
         {

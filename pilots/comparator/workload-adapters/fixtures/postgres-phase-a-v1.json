@@ -1,5 +1,5 @@
 {
-  "schema": "urn:kungfu-systems:build-images:postgres-phase-a-fixture:v1",
+  "schema": "urn:kungfu-systems:build-images:postgres-phase-a-execution-input:v2",
   "fixture_set_id": "kungfu-agent-work-charter-pilot-v1",
   "synthetic": true,
   "contains_private_data": false,
@@ -31,33 +31,29 @@
             "blocker": "repeated same failure"
           }
         ]
-      },
-      "expected": {
-        "state": "mixed-action-required",
-        "required_findings": [
-          "reattach s-live-detached",
-          "reject s-false-done as false receipt",
-          "pause or inspect s-burning before further spend"
-        ]
       }
     },
     "J2-cross-repo-delivery-trust": {
       "fixture_id": "F2-cross-repo-delivery",
       "facts": {
         "source_sha": "source-1111111",
-        "runtime_sha": "runtime-2222222",
-        "package_sha256": "package-3333333",
+        "runtime": {
+          "sha": "runtime-2222222",
+          "source_sha": "source-1111111"
+        },
+        "package": {
+          "sha256": "package-3333333",
+          "source_sha": "source-1111111",
+          "runtime_sha": "runtime-2222222"
+        },
         "pull_request": {
           "state": "merged",
           "checks": "green"
         },
         "static_contract": "valid",
-        "downstream_runtime_smoke_receipt": "missing"
-      },
-      "expected": {
-        "state": "waiting",
-        "completion": false,
-        "only_blocker": "missing downstream runtime smoke receipt bound to source, runtime, and package identity"
+        "downstream_runtime_smoke_receipt": {
+          "status": "missing"
+        }
       }
     },
     "J3-interrupted-go-recovery-handoff": {
@@ -79,16 +75,6 @@
         },
         "latest_validation": "schema check passed",
         "remaining_risk": "independent comparator advocate sign-off pending"
-      },
-      "expected": {
-        "state": "resume-from-stage",
-        "final_ready": false,
-        "required_actions": [
-          "preserve the live source branch",
-          "recreate or relocate only after policy check",
-          "continue from the recorded remaining risk",
-          "do not clean or mark merged"
-        ]
       }
     }
   }
