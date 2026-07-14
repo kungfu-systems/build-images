@@ -3,9 +3,9 @@
   "schema_version": 2,
   "adapters": {
     "postgres-phase-a-v1": {
-      "version": "1.1.0",
+      "version": "1.2.0",
       "artifact": "workload-adapters/postgres_phase_a_v1.py",
-      "sha256": "fef0841241927ce2721eb3480a8775fc93dd92594b4ce734c566bf6ecb1a986f",
+      "sha256": "74a8634576df54430a1642eb364c7f3ef50ec869933b13ca0c8d33e4641e4812",
       "entrypoint": "postgres-phase-a-v1",
       "profiles": [
         "postgres"

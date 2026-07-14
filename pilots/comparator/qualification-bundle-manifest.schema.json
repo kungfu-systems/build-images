@@ -20,6 +20,7 @@
     "build_images_git_sha",
     "inputs",
     "plan",
+    "preparation",
     "expected_repetitions",
     "completed_repetitions",
     "contracts",
@@ -78,6 +79,7 @@
       }
     },
     "plan": { "type": "object" },
+    "preparation": { "$ref": "#/$defs/fileRecord" },
     "expected_repetitions": { "type": "integer", "minimum": 3 },
     "completed_repetitions": { "type": "integer", "minimum": 0 },
     "contracts": { "type": "array", "minItems": 3 },

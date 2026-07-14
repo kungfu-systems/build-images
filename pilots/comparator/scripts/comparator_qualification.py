@@ -48,6 +48,16 @@ SHA256 = re.compile(r"^[0-9a-f]{64}$")
 GIT_SHA = re.compile(r"^[0-9a-f]{40}$")
 ID = re.compile(r"^[A-Za-z0-9._-]+$")
 COMPOSE_PROJECT_NAME = re.compile(r"^[a-z0-9][a-z0-9_-]{0,62}$")
+EXACT_IMAGE_REF = re.compile(r"^[^\s@]+@sha256:[0-9a-f]{64}$")
+LOCAL_IMAGE_ID = re.compile(r"^sha256:[0-9a-f]{64}$")
+TRANSIENT_PULL_ERROR = re.compile(
+    r"connection reset|timed? out|timeout|temporary failure|unexpected eof|"
+    r"tls handshake timeout|too many requests|\b429\b|\b5\d\d\b",
+    re.IGNORECASE,
+)
+IMAGE_PREPARATION_SCHEMA = "urn:kungfu-systems:build-images:comparator-image-preparation:v1"
+PULL_MAX_ATTEMPTS = 3
+PULL_RETRY_DELAYS_SECONDS = (2, 5)
 CLAIM_BOUNDARY = (
     "Containerized user-outcome qualification only; native-host performance, "
     "fresh-install cost, final scoring, and winner declarations remain outside this bundle."
@@ -786,6 +796,244 @@ def preflight_compose_environment(profile: str, project: str) -> None:
         raise QualificationError(f"locked Compose environment preflight failed before service startup: {detail}")
 
 
+def preparation_file_record(root: pathlib.Path, path: pathlib.Path) -> dict[str, Any]:
+    return {
+        "path": path.relative_to(root).as_posix(),
+        "size": path.stat().st_size,
+        "sha256": sha256_file(path),
+    }
+
+
+def compose_profile_images(
+    profile: str,
+    project: str,
+    preparation_dir: pathlib.Path,
+    evidence: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    command = [
+        "docker", "compose", "-f", str(COMPOSE_PATH),
+        "--project-name", project,
+        "--profile", profile,
+        "config", "--format", "json",
+    ]
+    try:
+        process = subprocess.run(
+            command,
+            cwd=REPO_ROOT,
+            env={**controlled_environment(), "COMPARATOR_PROJECT_NAME": project},
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+    except subprocess.TimeoutExpired as error:
+        process = subprocess.CompletedProcess(
+            command,
+            124,
+            normalize_timeout_output(error.stdout),
+            normalize_timeout_output(error.stderr) + "\nCompose image discovery timed out\n",
+        )
+    stdout_path = preparation_dir / "discovery.stdout.log"
+    stderr_path = preparation_dir / "discovery.stderr.log"
+    stdout_path.write_text(process.stdout, encoding="utf-8")
+    stderr_path.write_text(process.stderr, encoding="utf-8")
+    discovery = evidence if evidence is not None else {}
+    discovery.update({
+        "command": command,
+        "exit_code": process.returncode,
+        "stdout": preparation_file_record(preparation_dir, stdout_path),
+        "stderr": preparation_file_record(preparation_dir, stderr_path),
+        "services": [],
+    })
+    if process.returncode != 0:
+        detail = process.stderr.strip() or process.stdout.strip() or "unknown Compose discovery error"
+        raise QualificationError(f"locked Compose image discovery failed before formal execution: {detail}")
+    try:
+        config = json.loads(process.stdout)
+    except json.JSONDecodeError as error:
+        raise QualificationError(f"locked Compose image discovery is not JSON: {error}") from error
+    services = config.get("services") if isinstance(config, dict) else None
+    if not isinstance(services, dict) or not services:
+        raise QualificationError("locked Compose profile has no services to prepare")
+    for service_name, service in sorted(services.items()):
+        if not isinstance(service, dict):
+            raise QualificationError(f"locked Compose service is invalid: {service_name}")
+        image = service.get("image")
+        platform_name = service.get("platform")
+        if not isinstance(image, str) or EXACT_IMAGE_REF.fullmatch(image) is None:
+            raise QualificationError(
+                f"locked Compose service is not backed by an exact digest: {service_name}"
+            )
+        if not isinstance(platform_name, str) or not platform_name:
+            raise QualificationError(f"locked Compose service platform is missing: {service_name}")
+        discovery["services"].append(
+            {"service": service_name, "image": image, "platform": platform_name}
+        )
+    if len({item["image"] for item in discovery["services"]}) != len(discovery["services"]):
+        raise QualificationError("locked Compose profile reuses an image across multiple services")
+    return discovery
+
+
+def inspect_prepared_image(
+    image: str,
+    expected_digest: str,
+    preparation_dir: pathlib.Path,
+    image_index: int,
+) -> dict[str, Any]:
+    command = ["docker", "image", "inspect", image, "--format", "{{json .}}"]
+    try:
+        process = subprocess.run(
+            command,
+            cwd=REPO_ROOT,
+            env=controlled_environment(),
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+    except subprocess.TimeoutExpired as error:
+        process = subprocess.CompletedProcess(
+            command,
+            124,
+            normalize_timeout_output(error.stdout),
+            normalize_timeout_output(error.stderr) + "\nlocal image inspection timed out\n",
+        )
+    prefix = preparation_dir / f"image-{image_index:02d}.inspect"
+    stdout_path = prefix.with_suffix(".stdout.log")
+    stderr_path = prefix.with_suffix(".stderr.log")
+    stdout_path.write_text(process.stdout, encoding="utf-8")
+    stderr_path.write_text(process.stderr, encoding="utf-8")
+    record = {
+        "command": command,
+        "exit_code": process.returncode,
+        "stdout": preparation_file_record(preparation_dir, stdout_path),
+        "stderr": preparation_file_record(preparation_dir, stderr_path),
+    }
+    if process.returncode != 0:
+        detail = process.stderr.strip() or process.stdout.strip() or "unknown local image error"
+        raise QualificationError(f"prepared image cannot be inspected: {detail}")
+    try:
+        inspected = json.loads(process.stdout)
+    except json.JSONDecodeError as error:
+        raise QualificationError(f"prepared image inspection is not JSON: {error}") from error
+    local_id = inspected.get("Id") if isinstance(inspected, dict) else None
+    repo_digests = inspected.get("RepoDigests") if isinstance(inspected, dict) else None
+    if not isinstance(local_id, str) or LOCAL_IMAGE_ID.fullmatch(local_id) is None:
+        raise QualificationError("prepared image has no valid local image ID")
+    if (
+        not isinstance(repo_digests, list)
+        or not repo_digests
+        or not all(isinstance(value, str) for value in repo_digests)
+        or not any(value.endswith(f"@{expected_digest}") for value in repo_digests)
+    ):
+        raise QualificationError("prepared image does not retain the expected repository digest")
+    return {**record, "id": local_id, "repo_digests": sorted(repo_digests)}
+
+
+def prepare_exact_images(profile: str, project: str, preparation_dir: pathlib.Path) -> pathlib.Path:
+    preparation_dir.mkdir(parents=True, exist_ok=False)
+    started_at = utc_now()
+    started = time.monotonic()
+    manifest: dict[str, Any] = {
+        "schema": IMAGE_PREPARATION_SCHEMA,
+        "status": "running",
+        "unscored": True,
+        "profile": profile,
+        "project": project,
+        "started_at": started_at,
+        "finished_at": "",
+        "duration_seconds": 0.0,
+        "max_attempts": PULL_MAX_ATTEMPTS,
+        "retry_delays_seconds": list(PULL_RETRY_DELAYS_SECONDS),
+        "discovery": {},
+        "images": [],
+    }
+    manifest_path = preparation_dir / "image-preparation.json"
+    try:
+        discovery = compose_profile_images(
+            profile,
+            project,
+            preparation_dir,
+            manifest["discovery"],
+        )
+        for image_index, service in enumerate(discovery["services"], start=1):
+            image = service["image"]
+            expected_digest = image.rsplit("@", 1)[1]
+            image_record: dict[str, Any] = {
+                **service,
+                "expected_digest": expected_digest,
+                "attempts": [],
+                "final_status": "failed",
+            }
+            manifest["images"].append(image_record)
+            for attempt in range(1, PULL_MAX_ATTEMPTS + 1):
+                command = ["docker", "pull", "--platform", service["platform"], image]
+                attempt_started_at = utc_now()
+                attempt_started = time.monotonic()
+                timed_out = False
+                try:
+                    process = subprocess.run(
+                        command,
+                        cwd=REPO_ROOT,
+                        env=controlled_environment(),
+                        capture_output=True,
+                        text=True,
+                        timeout=900,
+                    )
+                except subprocess.TimeoutExpired as error:
+                    timed_out = True
+                    process = subprocess.CompletedProcess(
+                        command,
+                        124,
+                        normalize_timeout_output(error.stdout),
+                        normalize_timeout_output(error.stderr) + "\nexact image pull timed out\n",
+                    )
+                prefix = preparation_dir / f"image-{image_index:02d}.pull-{attempt:02d}"
+                stdout_path = prefix.with_suffix(".stdout.log")
+                stderr_path = prefix.with_suffix(".stderr.log")
+                stdout_path.write_text(process.stdout, encoding="utf-8")
+                stderr_path.write_text(process.stderr, encoding="utf-8")
+                retryable = timed_out or TRANSIENT_PULL_ERROR.search(
+                    f"{process.stdout}\n{process.stderr}"
+                ) is not None
+                image_record["attempts"].append(
+                    {
+                        "attempt": attempt,
+                        "command": command,
+                        "started_at": attempt_started_at,
+                        "finished_at": utc_now(),
+                        "duration_seconds": round(time.monotonic() - attempt_started, 6),
+                        "timed_out": timed_out,
+                        "exit_code": process.returncode,
+                        "retryable": retryable,
+                        "stdout": preparation_file_record(preparation_dir, stdout_path),
+                        "stderr": preparation_file_record(preparation_dir, stderr_path),
+                    }
+                )
+                if process.returncode == 0:
+                    image_record["final_status"] = "passed"
+                    break
+                if not retryable or attempt == PULL_MAX_ATTEMPTS:
+                    detail = process.stderr.strip() or process.stdout.strip() or "unknown pull error"
+                    raise QualificationError(
+                        f"exact image preparation failed after {attempt} attempt(s): {image}: {detail}"
+                    )
+                time.sleep(PULL_RETRY_DELAYS_SECONDS[attempt - 1])
+            image_record["local"] = inspect_prepared_image(
+                image,
+                expected_digest,
+                preparation_dir,
+                image_index,
+            )
+        manifest["status"] = "passed"
+    except QualificationError:
+        manifest["status"] = "failed"
+        raise
+    finally:
+        manifest["finished_at"] = utc_now()
+        manifest["duration_seconds"] = round(time.monotonic() - started, 6)
+        write_json(manifest_path, manifest)
+    return manifest_path
+
+
 def verify_semantic_evidence(step_dir: pathlib.Path, context: dict[str, Any]) -> dict[str, Any]:
     job_id = context["job_id"]
     tier = context["tier"]
@@ -1156,6 +1404,21 @@ def run_plan(plan_path: pathlib.Path) -> pathlib.Path:
     shutil.copy2(plan_path, plan_copy)
     contracts = copy_contracts(bundle_dir)
     bundle_inputs = copy_bundle_inputs(bundle_dir, resolved)
+    preparation_path = bundle_dir / "preparation" / "image-preparation.json"
+    try:
+        prepare_exact_images(
+            resolved["profile"],
+            projects[0],
+            preparation_path.parent,
+        )
+    except QualificationError as error:
+        raise QualificationError(
+            f"{error}; retained unscored preparation evidence: {preparation_path}"
+        ) from error
+    preparation = {
+        "path": preparation_path.relative_to(bundle_dir).as_posix(),
+        "sha256": sha256_file(preparation_path),
+    }
     run_records: list[dict[str, Any]] = []
     completed = 0
 
@@ -1210,6 +1473,7 @@ def run_plan(plan_path: pathlib.Path) -> pathlib.Path:
                 "runner_image": resolved["runner_image"],
                 "pilot_script_sha256": sha256_file(PILOT_SCRIPT),
                 "qualification_runner_sha256": sha256_file(QUALIFICATION_RUNNER),
+                "image_preparation_sha256": preparation["sha256"],
                 "subject": resolved["subject"],
                 "subject_sha256": sha256_json(resolved["subject"]),
                 "workload_adapter": resolved["workload_adapter"],
@@ -1248,6 +1512,7 @@ def run_plan(plan_path: pathlib.Path) -> pathlib.Path:
         "build_images_git_sha": resolved["build_images_git_sha"],
         "inputs": bundle_inputs,
         "plan": {"path": plan_copy.name, "sha256": sha256_file(plan_copy)},
+        "preparation": preparation,
         "expected_repetitions": plan["repetitions"],
         "completed_repetitions": completed,
         "contracts": contracts,
@@ -1261,6 +1526,237 @@ def run_plan(plan_path: pathlib.Path) -> pathlib.Path:
     return bundle_dir
 
 
+def verify_preparation(
+    bundle_dir: pathlib.Path,
+    bundle: dict[str, Any],
+    plan: dict[str, Any],
+    bundle_inputs: dict[str, Any],
+) -> str:
+    record = bundle.get("preparation")
+    if not isinstance(record, dict):
+        raise QualificationError("bundle image preparation record is missing")
+    require_keys(record, {"path", "sha256"}, set(), "bundle image preparation record")
+    relative = safe_relative(record.get("path"), "bundle preparation.path")
+    if relative.as_posix() != "preparation/image-preparation.json":
+        raise QualificationError("bundle image preparation path is unexpected")
+    path = bundle_dir / pathlib.Path(*relative.parts)
+    if not path.is_file() or sha256_file(path) != record.get("sha256"):
+        raise QualificationError("bundle image preparation digest mismatch")
+    preparation = load_json(path)
+    require_keys(
+        preparation,
+        {
+            "schema", "status", "unscored", "profile", "project", "started_at",
+            "finished_at", "duration_seconds", "max_attempts", "retry_delays_seconds",
+            "discovery", "images",
+        },
+        set(),
+        "image preparation manifest",
+    )
+    if (
+        preparation.get("schema") != IMAGE_PREPARATION_SCHEMA
+        or preparation.get("status") != "passed"
+        or preparation.get("unscored") is not True
+    ):
+        raise QualificationError("image preparation is not a passed unscored phase")
+    expected_project = qualification_project_names(
+        plan,
+        bundle["profile"],
+        bundle["bundle_id"],
+    )[0]
+    if preparation.get("profile") != bundle["profile"] or preparation.get("project") != expected_project:
+        raise QualificationError("image preparation profile/project binding is invalid")
+    if (
+        preparation.get("max_attempts") != PULL_MAX_ATTEMPTS
+        or preparation.get("retry_delays_seconds") != list(PULL_RETRY_DELAYS_SECONDS)
+        or not isinstance(preparation.get("duration_seconds"), (int, float))
+        or preparation["duration_seconds"] < 0
+    ):
+        raise QualificationError("image preparation retry or timing policy is invalid")
+
+    referenced_artifacts: set[str] = set()
+
+    def verify_log(record_value: Any, context: str) -> pathlib.Path:
+        if not isinstance(record_value, dict):
+            raise QualificationError(f"{context} log record is invalid")
+        require_keys(record_value, {"path", "size", "sha256"}, set(), f"{context} log record")
+        log_relative = safe_relative(record_value.get("path"), f"{context}.path")
+        log_name = log_relative.as_posix()
+        if log_name in referenced_artifacts:
+            raise QualificationError(f"duplicate preparation artifact record: {log_name}")
+        log_path = path.parent / pathlib.Path(*log_relative.parts)
+        if (
+            not log_path.is_file()
+            or log_path.stat().st_size != record_value.get("size")
+            or sha256_file(log_path) != record_value.get("sha256")
+        ):
+            raise QualificationError(f"image preparation artifact integrity mismatch: {log_name}")
+        referenced_artifacts.add(log_name)
+        return log_path
+
+    discovery = preparation.get("discovery")
+    if not isinstance(discovery, dict):
+        raise QualificationError("image preparation discovery evidence is missing")
+    require_keys(
+        discovery,
+        {"command", "exit_code", "stdout", "stderr", "services"},
+        set(),
+        "image preparation discovery",
+    )
+    command = discovery.get("command")
+    if (
+        not isinstance(command, list)
+        or len(command) != 11
+        or command[:3] != ["docker", "compose", "-f"]
+        or command[4:] != [
+            "--project-name", expected_project,
+            "--profile", bundle["profile"],
+            "config", "--format", "json",
+        ]
+        or discovery.get("exit_code") != 0
+    ):
+        raise QualificationError("image preparation discovery command is invalid")
+    discovery_stdout = verify_log(discovery.get("stdout"), "image preparation discovery stdout")
+    verify_log(discovery.get("stderr"), "image preparation discovery stderr")
+
+    services = discovery.get("services")
+    images = preparation.get("images")
+    if not isinstance(services, list) or not isinstance(images, list) or not services or len(images) != len(services):
+        raise QualificationError("image preparation service/image set is invalid")
+    try:
+        discovered_config = json.loads(discovery_stdout.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as error:
+        raise QualificationError(f"image preparation discovery log is not JSON: {error}") from error
+    discovered_services = discovered_config.get("services") if isinstance(discovered_config, dict) else None
+    if not isinstance(discovered_services, dict):
+        raise QualificationError("image preparation discovery log has no services")
+    services_from_log = [
+        {
+            "service": service_name,
+            "image": service.get("image") if isinstance(service, dict) else None,
+            "platform": service.get("platform") if isinstance(service, dict) else None,
+        }
+        for service_name, service in sorted(discovered_services.items())
+    ]
+    if services != services_from_log:
+        raise QualificationError("image preparation services do not match the discovery log")
+    expected_images = {bundle_inputs["runner_image"]}
+    subject_image = bundle_inputs.get("subject", {}).get("image")
+    if isinstance(subject_image, str):
+        expected_images.add(subject_image)
+    observed_images = {item.get("image") for item in images if isinstance(item, dict)}
+    if observed_images != expected_images:
+        raise QualificationError("image preparation does not cover the locked exact image set")
+
+    for image_index, (service, image_record) in enumerate(zip(services, images), start=1):
+        if not isinstance(service, dict) or not isinstance(image_record, dict):
+            raise QualificationError("image preparation image record is invalid")
+        require_keys(service, {"service", "image", "platform"}, set(), "prepared Compose service")
+        require_keys(
+            image_record,
+            {
+                "service", "image", "platform", "expected_digest", "attempts",
+                "final_status", "local",
+            },
+            set(),
+            "prepared image",
+        )
+        if {key: image_record.get(key) for key in service} != service:
+            raise QualificationError("prepared image is not bound to Compose discovery")
+        image = service.get("image")
+        platform_name = service.get("platform")
+        if not isinstance(image, str) or EXACT_IMAGE_REF.fullmatch(image) is None:
+            raise QualificationError("prepared image is not pinned by exact digest")
+        expected_digest = image.rsplit("@", 1)[1]
+        if image_record.get("expected_digest") != expected_digest or image_record.get("final_status") != "passed":
+            raise QualificationError("prepared image final digest/status is invalid")
+        attempts = image_record.get("attempts")
+        if not isinstance(attempts, list) or not 1 <= len(attempts) <= PULL_MAX_ATTEMPTS:
+            raise QualificationError("prepared image attempt count is invalid")
+        for attempt_index, attempt in enumerate(attempts, start=1):
+            if not isinstance(attempt, dict):
+                raise QualificationError("prepared image attempt record is invalid")
+            require_keys(
+                attempt,
+                {
+                    "attempt", "command", "started_at", "finished_at", "duration_seconds",
+                    "timed_out", "exit_code", "retryable", "stdout", "stderr",
+                },
+                set(),
+                "prepared image attempt",
+            )
+            if (
+                attempt.get("attempt") != attempt_index
+                or attempt.get("command") != ["docker", "pull", "--platform", platform_name, image]
+                or not isinstance(attempt.get("started_at"), str)
+                or not isinstance(attempt.get("finished_at"), str)
+                or not isinstance(attempt.get("duration_seconds"), (int, float))
+                or attempt["duration_seconds"] < 0
+                or not isinstance(attempt.get("timed_out"), bool)
+                or not isinstance(attempt.get("retryable"), bool)
+            ):
+                raise QualificationError("prepared image attempt command/order/timing is invalid")
+            if attempt_index < len(attempts):
+                if attempt.get("exit_code") == 0 or attempt.get("retryable") is not True:
+                    raise QualificationError("prepared image retry is not justified by a transient failure")
+            elif attempt.get("exit_code") != 0:
+                raise QualificationError("prepared image final pull attempt did not pass")
+            pull_stdout = verify_log(
+                attempt.get("stdout"),
+                f"prepared image {image_index} attempt {attempt_index} stdout",
+            )
+            pull_stderr = verify_log(
+                attempt.get("stderr"),
+                f"prepared image {image_index} attempt {attempt_index} stderr",
+            )
+            pull_output = f"{pull_stdout.read_text(encoding='utf-8')}\n{pull_stderr.read_text(encoding='utf-8')}"
+            expected_retryable = attempt["timed_out"] or TRANSIENT_PULL_ERROR.search(pull_output) is not None
+            if attempt.get("retryable") is not expected_retryable:
+                raise QualificationError("prepared image retry classification does not match retained logs")
+            if attempt["timed_out"] and attempt.get("exit_code") != 124:
+                raise QualificationError("prepared image timeout exit code is invalid")
+        local = image_record.get("local")
+        if not isinstance(local, dict):
+            raise QualificationError("prepared image local identity is missing")
+        require_keys(
+            local,
+            {"command", "exit_code", "stdout", "stderr", "id", "repo_digests"},
+            set(),
+            "prepared image local identity",
+        )
+        if (
+            local.get("command") != ["docker", "image", "inspect", image, "--format", "{{json .}}"]
+            or local.get("exit_code") != 0
+            or not isinstance(local.get("id"), str)
+            or LOCAL_IMAGE_ID.fullmatch(local["id"]) is None
+            or not isinstance(local.get("repo_digests"), list)
+            or not all(isinstance(value, str) for value in local["repo_digests"])
+            or not any(value.endswith(f"@{expected_digest}") for value in local["repo_digests"])
+        ):
+            raise QualificationError("prepared image local digest proof is invalid")
+        inspect_stdout = verify_log(local.get("stdout"), f"prepared image {image_index} inspect stdout")
+        verify_log(local.get("stderr"), f"prepared image {image_index} inspect stderr")
+        try:
+            inspected = json.loads(inspect_stdout.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as error:
+            raise QualificationError(f"prepared image inspect log is not JSON: {error}") from error
+        if (
+            not isinstance(inspected, dict)
+            or inspected.get("Id") != local["id"]
+            or sorted(inspected.get("RepoDigests", [])) != local["repo_digests"]
+        ):
+            raise QualificationError("prepared image local identity does not match retained inspect output")
+
+    actual_artifacts = {
+        artifact.relative_to(path.parent).as_posix()
+        for artifact in path.parent.rglob("*")
+        if artifact.is_file() and artifact != path
+    }
+    if referenced_artifacts != actual_artifacts:
+        raise QualificationError("image preparation artifact inventory is incomplete or contains extras")
+    return record["sha256"]
+
+
 def verify_bundle(bundle_dir: pathlib.Path, *, require_authority: bool = True) -> dict[str, Any]:
     manifest_path = bundle_dir / "bundle-manifest.json"
     bundle = load_json(manifest_path)
@@ -1271,7 +1767,7 @@ def verify_bundle(bundle_dir: pathlib.Path, *, require_authority: bool = True) -
             "native_performance_authority", "user_outcome_qualification_authority",
             "fresh_install_cost_authority", "final_scoring_authority", "bundle_id",
             "generated_at", "profile", "configuration_slot", "build_images_git_sha",
-            "inputs", "plan", "expected_repetitions", "completed_repetitions",
+            "inputs", "plan", "preparation", "expected_repetitions", "completed_repetitions",
             "contracts", "run_manifests", "claim_boundary",
         },
         set(),
@@ -1349,6 +1845,7 @@ def verify_bundle(bundle_dir: pathlib.Path, *, require_authority: bool = True) -
     expected_subject_sha = sha256_json(locked_subject)
     if bundle_inputs.get("subject") != locked_subject or bundle_inputs.get("subject_sha256") != expected_subject_sha:
         raise QualificationError("bundle subject does not match the frozen environment inputs")
+    preparation_sha256 = verify_preparation(bundle_dir, bundle, plan, bundle_inputs)
 
     copied_adapter = bundle_inputs.get("workload_adapter")
     if not isinstance(copied_adapter, dict):
@@ -1591,13 +2088,15 @@ def verify_bundle(bundle_dir: pathlib.Path, *, require_authority: bool = True) -
                 "build_images_git_sha", "plan_sha256", "charter", "fixture_set",
                 "compose_sha256", "environment_lock_sha256", "runner_image",
                 "pilot_script_sha256", "qualification_runner_sha256", "subject",
-                "subject_sha256", "workload_adapter",
+                "subject_sha256", "image_preparation_sha256", "workload_adapter",
             },
             set(),
             f"run manifest inputs {relative}",
         )
         if inputs.get("plan_sha256") != plan_record.get("sha256"):
             raise QualificationError(f"run manifest plan digest mismatch: {relative}")
+        if inputs.get("image_preparation_sha256") != preparation_sha256:
+            raise QualificationError(f"run manifest image preparation digest mismatch: {relative}")
         expected_inputs = {
             "charter": plan["charter"],
             "fixture_set": plan["fixture_set"],
