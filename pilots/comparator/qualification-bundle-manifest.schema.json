@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:kungfu-systems:build-images:comparator-qualification-bundle:v1",
+  "title": "Comparator qualification evidence bundle",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "bundle_schema",
+    "schema_version",
+    "status",
+    "evidence_class",
+    "native_performance_authority",
+    "user_outcome_qualification_authority",
+    "fresh_install_cost_authority",
+    "final_scoring_authority",
+    "bundle_id",
+    "generated_at",
+    "profile",
+    "configuration_slot",
+    "build_images_git_sha",
+    "inputs",
+    "plan",
+    "expected_repetitions",
+    "completed_repetitions",
+    "contracts",
+    "run_manifests",
+    "claim_boundary"
+  ],
+  "properties": {
+    "bundle_schema": { "const": "urn:kungfu-systems:build-images:comparator-qualification-bundle:v1" },
+    "schema_version": { "const": 1 },
+    "status": { "enum": ["complete", "incomplete"] },
+    "evidence_class": { "const": "containerized-user-outcome-qualification" },
+    "native_performance_authority": { "const": false },
+    "user_outcome_qualification_authority": { "type": "boolean" },
+    "fresh_install_cost_authority": { "const": false },
+    "final_scoring_authority": { "const": false },
+    "bundle_id": { "type": "string", "minLength": 1 },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "profile": { "enum": ["aeron", "clickhouse", "postgres", "kungfu"] },
+    "configuration_slot": { "enum": ["realistic-default", "expert-tuned"] },
+    "build_images_git_sha": { "pattern": "^[0-9a-f]{40}$" },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "compose",
+        "environment_lock",
+        "pilot_script",
+        "qualification_runner",
+        "runner_image",
+        "subject",
+        "subject_sha256"
+      ],
+      "properties": {
+        "compose": { "$ref": "#/$defs/fileRecord" },
+        "environment_lock": { "$ref": "#/$defs/fileRecord" },
+        "pilot_script": { "$ref": "#/$defs/fileRecord" },
+        "qualification_runner": { "$ref": "#/$defs/fileRecord" },
+        "runner_image": { "pattern": "@sha256:[0-9a-f]{64}$" },
+        "subject": { "type": "object" },
+        "subject_sha256": { "pattern": "^[0-9a-f]{64}$" }
+      }
+    },
+    "plan": { "type": "object" },
+    "expected_repetitions": { "type": "integer", "minimum": 3 },
+    "completed_repetitions": { "type": "integer", "minimum": 0 },
+    "contracts": { "type": "array", "minItems": 3 },
+    "run_manifests": { "type": "array", "minItems": 1 },
+    "claim_boundary": { "type": "string", "minLength": 1 }
+  },
+  "$defs": {
+    "fileRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "sha256": { "pattern": "^[0-9a-f]{64}$" }
+      }
+    }
+  }
+}

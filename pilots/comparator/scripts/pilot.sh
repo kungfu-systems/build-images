@@ -216,4 +216,15 @@ case "$profile" in
 esac
 
 compose ps --format json >"$report_dir/compose-ps.json"
+compose config --format json >"$report_dir/compose-config.json"
+docker version --format '{{json .}}' >"$report_dir/docker-version.json"
+docker compose version --short >"$report_dir/docker-compose-version.txt"
+uname -a >"$report_dir/host-kernel.txt"
+: >"$report_dir/docker-stats.jsonl"
+: >"$report_dir/container-inspect.jsonl"
+compose ps -q | while IFS= read -r container_id; do
+  [ -n "$container_id" ] || continue
+  docker stats --no-stream --format '{{json .}}' "$container_id" >>"$report_dir/docker-stats.jsonl"
+  docker inspect --format '{{json .}}' "$container_id" >>"$report_dir/container-inspect.jsonl"
+done
 echo "UNSCORED comparator smoke passed: $profile"

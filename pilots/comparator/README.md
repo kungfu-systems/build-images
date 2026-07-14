@@ -39,9 +39,10 @@ that project. It does not use privileged mode, host networking, a Docker socket
 mount, or global Docker cleanup.
 
 Generated manifests and logs are stored under `.artifacts/` and say
-`pilot_unscored: true` and `performance_authority: false`. Docker results cannot
-replace the designated native-host performance program, installation-cost
-study, or the final user-perspective comparison protocol.
+`pilot_unscored: true`, `native_performance_authority: false`, and
+`user_outcome_qualification_authority: false`. Docker results cannot replace
+the designated native-host performance program, installation-cost study, or
+the final user-perspective comparison protocol.
 
 `environment-manifest.schema.json` is the machine-readable handoff contract for
 each retained run manifest. `environment.lock.json` remains the immutable input
@@ -94,3 +95,62 @@ This Docker evidence remains explicitly unscored and non-authoritative for
 performance. Installation-cost comparisons must use the agreed user delivery
 path; neither upstream build time nor a prebuilt image's startup time should be
 silently substituted for that measurement.
+
+## Frozen-plan qualification
+
+`comparator_qualification.py` is a separate evidence path for a narrower claim:
+complete **containerized user-outcome qualification** from the same locked
+Compose environment. It does not relabel ordinary smoke output. A production
+plan must pin the charter, fixture set, `compose.yaml`, environment lock, runner
+image, configuration slot, ordered scenario steps, oracles, repetition count,
+timeouts, and retained artifacts.
+
+The comparator program outside this repository owns the frozen charter,
+product-advocate review, report, scoring, and Phase B join. build-images owns
+only reproducible execution and bundle integrity.
+
+```bash
+python3 pilots/comparator/scripts/comparator_qualification.py \
+  validate-plan --plan /path/to/frozen-plan.json
+
+python3 pilots/comparator/scripts/comparator_qualification.py \
+  plan --plan /path/to/frozen-plan.json
+
+python3 pilots/comparator/scripts/comparator_qualification.py \
+  run --plan /path/to/frozen-plan.json --execute
+
+python3 pilots/comparator/scripts/comparator_qualification.py \
+  verify-bundle --bundle pilots/comparator/.artifacts/<destination>/<bundle-id>
+```
+
+`validate-plan` and `plan` do not start Docker. `run` requires `--execute`, uses
+only this directory's `compose.yaml`, and delegates each allowlisted
+`profile-smoke` step to the existing profile adapter. Replacement Compose
+files, mismatched locks, unpinned images, `:latest`, fewer than three
+repetitions, missing oracles, missing artifacts, and digest mismatches fail
+closed.
+
+Each repetition retains step timing, process status, cleanup status, oracle
+results, service logs, Docker/Compose and kernel facts, Compose resource
+limits, container inspect data, CPU/memory observations, and SHA-256 records
+for every raw artifact. The self-contained bundle also retains the exact
+Compose file, environment lock, pilot adapter, qualification runner, and their
+digests. The bundle-level manifest becomes authoritative for containerized user
+outcomes only after all required repetitions verify offline. Individual
+repetitions never carry that authority, and production runs require a clean
+tracked checkout so the source SHA remains meaningful.
+
+The following boundaries are invariant:
+
+- `native_performance_authority=false` for every Docker run;
+- container startup is not fresh-install cost;
+- container results are not final product scores or winner declarations;
+- `realistic-default` remains the only active configuration slot;
+- `expert-tuned` remains unavailable until the environment lock activates a
+  separately reviewed tuning record;
+- Kungfu remains a checksum-verified package consumer and never builds source
+  inside the pilot.
+
+Checked-in plans under `tests/fixtures/qualification-plans/` are marked
+`test_only=true`. They prove that one runner resolves all four adapters but are
+explicitly forbidden from issuing qualification receipts.
