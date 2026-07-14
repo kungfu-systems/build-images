@@ -14,8 +14,15 @@ import subprocess
 import sys
 from typing import Any
 
+from postgres_phase_a_semantics import (
+    DECISION_LOGIC_VERSION,
+    SemanticError,
+    derive_job_verdict,
+    validate_execution_fixture,
+)
+
 ADAPTER_ID = "postgres-phase-a-v1"
-ADAPTER_VERSION = "1.0.0"
+ADAPTER_VERSION = "1.1.0"
 ENTRYPOINT = "postgres-phase-a-v1"
 ACTION = "workload-adapter"
 SCRIPT_PATH = pathlib.Path(__file__).resolve()
@@ -88,7 +95,7 @@ def adapter_binding(
     step_id: str,
 ) -> dict[str, Any]:
     payload = {
-        "schema": "urn:kungfu-systems:build-images:workload-binding:v1",
+        "schema": "urn:kungfu-systems:build-images:workload-binding:v2",
         "profile": "postgres",
         "scenario_id": scenario_id,
         "job_id": job_id,
@@ -99,7 +106,9 @@ def adapter_binding(
         "adapter_version": adapter["version"],
         "adapter_entrypoint": adapter["entrypoint"],
         "adapter_sha256": adapter["sha256"],
+        "semantics_sha256": adapter["semantics"]["sha256"],
         "fixture_sha256": adapter["fixture"]["sha256"],
+        "oracle_sha256": adapter["oracle"]["sha256"],
         "registry_sha256": registry_sha256,
     }
     return {"payload": payload, "sha256": sha256_json(payload)}
@@ -107,7 +116,7 @@ def adapter_binding(
 
 def validate_adapter(job_id: str, tier: str) -> tuple[dict[str, Any], pathlib.Path, dict[str, Any], str]:
     registry = load_json(REGISTRY_PATH)
-    if registry.get("schema") != "urn:kungfu-systems:build-images:workload-adapter-registry:v1":
+    if registry.get("schema") != "urn:kungfu-systems:build-images:workload-adapter-registry:v2":
         raise AdapterError("workload adapter registry schema is unsupported")
     adapter = registry.get("adapters", {}).get(ADAPTER_ID)
     if not isinstance(adapter, dict):
@@ -118,12 +127,23 @@ def validate_adapter(job_id: str, tier: str) -> tuple[dict[str, Any], pathlib.Pa
         raise AdapterError("adapter artifact path is not allowlisted")
     if adapter.get("sha256") != sha256_file(SCRIPT_PATH):
         raise AdapterError("adapter source digest does not match the registry")
+    semantics_record = adapter.get("semantics")
+    semantics_path = ADAPTER_DIR / "postgres_phase_a_semantics.py"
+    if not isinstance(semantics_record, dict) or semantics_record.get("path") != "workload-adapters/postgres_phase_a_semantics.py":
+        raise AdapterError("adapter semantics path is not allowlisted")
+    if semantics_record.get("sha256") != sha256_file(semantics_path):
+        raise AdapterError("adapter semantics digest does not match the registry")
     fixture_record = adapter.get("fixture")
     if not isinstance(fixture_record, dict) or fixture_record.get("path") != "workload-adapters/fixtures/postgres-phase-a-v1.json":
         raise AdapterError("adapter fixture path is not allowlisted")
     fixture_path = PILOT_DIR / fixture_record["path"]
     if fixture_record.get("sha256") != sha256_file(fixture_path):
         raise AdapterError("adapter fixture digest does not match the registry")
+    oracle_record = adapter.get("oracle")
+    if not isinstance(oracle_record, dict) or oracle_record.get("path") != "workload-adapters/oracles/postgres-phase-a-v1.json":
+        raise AdapterError("adapter oracle identity is not allowlisted")
+    if not SHA256.fullmatch(str(oracle_record.get("sha256", ""))):
+        raise AdapterError("adapter oracle digest is invalid")
     allowed = {
         (mapping.get("job_id"), allowed_tier)
         for mapping in adapter.get("mappings", [])
@@ -133,6 +153,10 @@ def validate_adapter(job_id: str, tier: str) -> tuple[dict[str, Any], pathlib.Pa
     if (job_id, tier) not in allowed:
         raise AdapterError(f"job/tier is not mapped by {ADAPTER_ID}: {job_id}/{tier}")
     fixture = load_json(fixture_path)
+    try:
+        validate_execution_fixture(fixture)
+    except SemanticError as error:
+        raise AdapterError(str(error)) from error
     if job_id not in fixture.get("jobs", {}):
         raise AdapterError(f"fixture does not define job: {job_id}")
     return adapter, fixture_path, fixture, sha256_file(REGISTRY_PATH)
@@ -205,7 +229,7 @@ def initialize_schema(project: ComposeProject, job_id: str, tier: str, facts: di
         "receipt_id bigserial PRIMARY KEY, job_id text NOT NULL, tier text NOT NULL, "
         "state text NOT NULL, payload jsonb NOT NULL, created_at timestamptz NOT NULL DEFAULT clock_timestamp());"
         f"INSERT INTO qualification_facts(job_id,tier,event_version,payload,evidence_ref) VALUES ("
-        f"{sql_literal(job_id)},{sql_literal(tier)},1,{payload}::jsonb,'fixture-v1');"
+        f"{sql_literal(job_id)},{sql_literal(tier)},1,{payload}::jsonb,'execution-input-v2');"
     )
 
 
@@ -288,26 +312,55 @@ def exercise_tier(project: ComposeProject, job_id: str, tier: str, facts: dict[s
     raise AdapterError(f"unsupported tier: {tier}")
 
 
-def job_receipt(job_id: str, fixture: dict[str, Any], tier: str, binding_sha256: str) -> dict[str, Any]:
-    expected = fixture["jobs"][job_id]["expected"]
-    receipt = {
-        "schema": "urn:kungfu-systems:build-images:postgres-job-receipt:v1",
+def observe_job_facts(project: ComposeProject, job_id: str, tier: str, binding_sha256: str) -> dict[str, Any]:
+    encoded = project.psql(
+        "SELECT payload::text FROM qualification_facts "
+        f"WHERE job_id={sql_literal(job_id)} AND tier={sql_literal(tier)} "
+        "AND event_version=1 AND evidence_ref='execution-input-v2' "
+        "ORDER BY seq LIMIT 1;"
+    )
+    if not encoded:
+        raise AdapterError("observed job facts query returned no execution input")
+    try:
+        facts = json.loads(encoded)
+    except json.JSONDecodeError as error:
+        raise AdapterError(f"observed job facts are not JSON: {error}") from error
+    if not isinstance(facts, dict):
+        raise AdapterError("observed job facts must be an object")
+    return {
+        "schema": "urn:kungfu-systems:build-images:postgres-observed-facts:v1",
         "job_id": job_id,
         "tier": tier,
-        "fixture_id": fixture["jobs"][job_id]["fixture_id"],
-        "state": expected["state"],
         "binding_sha256": binding_sha256,
+        "query_id": "execution-input-after-tier-event-v1",
+        "facts": facts,
+        "facts_sha256": sha256_json(facts),
     }
-    if job_id == "J1-multi-session-progress-triage":
-        receipt["required_findings"] = expected["required_findings"]
-        receipt["false_receipt_rejected"] = True
-    elif job_id == "J2-cross-repo-delivery-trust":
-        receipt["completion"] = expected["completion"]
-        receipt["only_blocker"] = expected["only_blocker"]
-    else:
-        receipt["final_ready"] = expected["final_ready"]
-        receipt["required_actions"] = expected["required_actions"]
-    return receipt
+
+
+def job_receipt(
+    job_id: str,
+    fixture_id: str,
+    facts: dict[str, Any],
+    tier: str,
+    binding_sha256: str,
+    tier_evidence: dict[str, Any],
+    observed_facts_artifact_sha256: str,
+    tier_evidence_sha256: str,
+) -> dict[str, Any]:
+    verdict = derive_job_verdict(job_id, facts, tier, tier_evidence)
+    return {
+        "schema": "urn:kungfu-systems:build-images:postgres-job-receipt:v2",
+        "job_id": job_id,
+        "tier": tier,
+        "fixture_id": fixture_id,
+        "binding_sha256": binding_sha256,
+        "decision_logic_version": DECISION_LOGIC_VERSION,
+        "observed_facts_sha256": sha256_json(facts),
+        "observed_facts_artifact_sha256": observed_facts_artifact_sha256,
+        "tier_evidence_sha256": tier_evidence_sha256,
+        **verdict,
+    }
 
 
 def run(args: argparse.Namespace) -> pathlib.Path:
@@ -347,11 +400,24 @@ def run(args: argparse.Namespace) -> pathlib.Path:
             "binding_sha256": binding["sha256"],
         }
     )
+    observed_facts = observe_job_facts(project, args.job_id, args.tier, binding["sha256"])
+    observed_facts_path = output_dir / "observed-facts.json"
+    write_json(observed_facts_path, observed_facts)
+    tier_evidence["observed_facts_sha256"] = observed_facts["facts_sha256"]
     write_json(output_dir / "tier-evidence.json", tier_evidence)
     receipt_name = JOB_RECEIPTS[args.job_id]
     write_json(
         output_dir / receipt_name,
-        job_receipt(args.job_id, fixture, args.tier, binding["sha256"]),
+        job_receipt(
+            args.job_id,
+            fixture["jobs"][args.job_id]["fixture_id"],
+            observed_facts["facts"],
+            args.tier,
+            binding["sha256"],
+            tier_evidence,
+            sha256_file(observed_facts_path),
+            sha256_file(output_dir / "tier-evidence.json"),
+        ),
     )
     adapter_receipt = {
         "schema": "urn:kungfu-systems:build-images:workload-adapter-receipt:v1",
@@ -359,8 +425,11 @@ def run(args: argparse.Namespace) -> pathlib.Path:
         **binding["payload"],
         "binding_sha256": binding["sha256"],
         "adapter_artifact": adapter["artifact"],
+        "semantics_artifact": adapter["semantics"]["path"],
         "fixture_path": adapter["fixture"]["path"],
+        "oracle_sha256": adapter["oracle"]["sha256"],
         "job_receipt": receipt_name,
+        "observed_facts": "observed-facts.json",
         "tier_evidence": "tier-evidence.json",
     }
     write_json(output_dir / "adapter-receipt.json", adapter_receipt)

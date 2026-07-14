@@ -181,7 +181,7 @@
     "workloadAdapter": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "version", "artifact", "sha256", "entrypoint", "profiles", "fixture", "mappings"],
+      "required": ["id", "version", "artifact", "sha256", "entrypoint", "profiles", "semantics", "fixture", "oracle", "mappings"],
       "properties": {
         "id": { "$ref": "#/$defs/id" },
         "version": { "type": "string", "minLength": 1 },
@@ -194,12 +194,30 @@
           "uniqueItems": true,
           "items": { "enum": ["aeron", "clickhouse", "postgres", "kungfu"] }
         },
+        "semantics": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["path", "sha256"],
+          "properties": {
+            "path": { "type": "string", "pattern": "^workload-adapters/[A-Za-z0-9._/-]+$" },
+            "sha256": { "$ref": "#/$defs/sha256" }
+          }
+        },
         "fixture": {
           "type": "object",
           "additionalProperties": false,
           "required": ["path", "sha256"],
           "properties": {
             "path": { "type": "string", "pattern": "^workload-adapters/fixtures/[A-Za-z0-9._/-]+$" },
+            "sha256": { "$ref": "#/$defs/sha256" }
+          }
+        },
+        "oracle": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["path", "sha256"],
+          "properties": {
+            "path": { "type": "string", "pattern": "^workload-adapters/oracles/[A-Za-z0-9._/-]+$" },
             "sha256": { "$ref": "#/$defs/sha256" }
           }
         },

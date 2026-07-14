@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import json
 import pathlib
 import subprocess
 import sys
@@ -18,6 +19,7 @@ sys.path.insert(0, str(ADAPTER_DIR))
 
 import comparator_qualification as qualification  # noqa: E402
 import postgres_phase_a_v1 as postgres_adapter  # noqa: E402
+import postgres_phase_a_semantics as postgres_semantics  # noqa: E402
 
 
 class QualificationPlanTests(unittest.TestCase):
@@ -103,6 +105,113 @@ class QualificationPlanTests(unittest.TestCase):
             qualification.validate_plan_document(plan)
 
 
+class WorkloadSemanticTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.fixture = qualification.load_json(
+            ADAPTER_DIR / "fixtures" / "postgres-phase-a-v1.json"
+        )
+        self.oracle = qualification.load_json(
+            ADAPTER_DIR / "oracles" / "postgres-phase-a-v1.json"
+        )
+
+    @staticmethod
+    def tier_evidence(tier: str = "normal") -> dict[str, object]:
+        evidence: dict[str, object] = {
+            "schema": "urn:kungfu-systems:build-images:postgres-tier-evidence:v1",
+            "job_id": "synthetic",
+            "tier": tier,
+            "binding_sha256": "b" * 64,
+            "observed_facts_sha256": "f" * 64,
+        }
+        if tier == "normal":
+            evidence.update(operation="current-fact-query", observed_rows=1)
+        elif tier == "concurrent":
+            evidence.update(operation="two-agent-concurrent-write", observed_rows=3, writers=2)
+        elif tier == "crash-recovery":
+            evidence.update(operation="sigkill-restart-query", observed_rows=1)
+        elif tier == "whole-root-restore":
+            evidence.update(
+                operation="whole-project-volume-recreate-and-restore",
+                observed_rows=1,
+                backup_sha256="a" * 64,
+            )
+        elif tier == "historical-query":
+            evidence.update(operation="ordered-history-query", observed_versions="1,2")
+        elif tier == "schema-evolution":
+            evidence.update(operation="additive-schema-migration", observed_schema_version=2)
+        elif tier == "new-agent-takeover":
+            evidence.update(operation="fresh-session-handoff-query", observed_state="handoff-ready")
+        return evidence
+
+    def verdict(self, job_id: str, facts: dict[str, object], tier: str = "normal") -> dict[str, object]:
+        return postgres_semantics.derive_job_verdict(job_id, facts, tier, self.tier_evidence(tier))
+
+    def test_execution_fixture_contains_no_answer_key(self) -> None:
+        postgres_semantics.validate_execution_fixture(self.fixture)
+        self.assertNotIn("expected", json.dumps(self.fixture))
+        poisoned = copy.deepcopy(self.fixture)
+        poisoned["jobs"][postgres_semantics.JOB_IDS[0]]["expected"] = {"state": "copied"}
+        with self.assertRaisesRegex(postgres_semantics.SemanticError, "forbidden answer field"):
+            postgres_semantics.validate_execution_fixture(poisoned)
+
+    def test_base_verdicts_match_the_independent_oracle_across_every_tier(self) -> None:
+        for job_id in postgres_semantics.JOB_IDS:
+            facts = self.fixture["jobs"][job_id]["facts"]
+            for tier in postgres_adapter.TIERS:
+                with self.subTest(job_id=job_id, tier=tier):
+                    self.assertEqual(self.verdict(job_id, facts, tier), self.oracle["jobs"][job_id])
+
+    def test_j1_healthy_sessions_change_the_verdict(self) -> None:
+        job_id = postgres_semantics.JOB_IDS[0]
+        verdict = self.verdict(job_id, {"sessions": []})
+        self.assertEqual(verdict["state"], "healthy")
+        self.assertEqual(verdict["required_findings"], [])
+        self.assertFalse(verdict["false_receipt_rejected"])
+        self.assertNotEqual(verdict, self.oracle["jobs"][job_id])
+
+    def test_j2_bound_runtime_receipt_completes_delivery(self) -> None:
+        job_id = postgres_semantics.JOB_IDS[1]
+        facts = copy.deepcopy(self.fixture["jobs"][job_id]["facts"])
+        facts["downstream_runtime_smoke_receipt"] = {
+            "status": "passed",
+            "source_sha": facts["source_sha"],
+            "runtime_sha": facts["runtime"]["sha"],
+            "package_sha256": facts["package"]["sha256"],
+        }
+        verdict = self.verdict(job_id, facts)
+        self.assertEqual(verdict["state"], "completed-trusted")
+        self.assertTrue(verdict["completion"])
+        self.assertEqual(verdict["blockers"], [])
+        self.assertIsNone(verdict["only_blocker"])
+
+    def test_j3_completed_goal_changes_the_handoff_verdict(self) -> None:
+        job_id = postgres_semantics.JOB_IDS[2]
+        facts = {
+            "goal_status": "completed",
+            "latest_marker": {"status": "merged", "ready": False},
+            "source_worktree": {"path_state": "removed", "dirty_state": "clean"},
+            "source_branch": {"exists": False, "contained_in_main": True},
+            "latest_validation": "all checks passed",
+            "remaining_risk": "none",
+        }
+        verdict = self.verdict(job_id, facts)
+        self.assertEqual(verdict["state"], "completed")
+        self.assertTrue(verdict["final_ready"])
+        self.assertEqual(verdict["required_actions"], [])
+
+    def test_semantically_wrong_tier_evidence_fails_closed(self) -> None:
+        job_id = postgres_semantics.JOB_IDS[0]
+        evidence = self.tier_evidence("crash-recovery")
+        evidence["observed_rows"] = 0
+        with self.assertRaisesRegex(postgres_semantics.SemanticError, "postcondition"):
+            postgres_semantics.derive_job_verdict(
+                job_id,
+                self.fixture["jobs"][job_id]["facts"],
+                "crash-recovery",
+                evidence,
+            )
+
+
 class QualificationExecutionTests(unittest.TestCase):
     def test_controlled_environment_drops_ad_hoc_compose_inputs(self) -> None:
         with mock.patch.dict(
@@ -160,6 +269,7 @@ class QualificationBundleTests(unittest.TestCase):
         fixture_plan["scenarios"] = fixture_plan["scenarios"][:1]
         fixture_plan["artifact_retention"]["required_patterns"] = [
             "raw/**/adapter-receipt.json",
+            "raw/**/observed-facts.json",
             "raw/**/tier-evidence.json",
             "raw/**/j1-decision-receipt.json",
         ]
@@ -192,13 +302,19 @@ class QualificationBundleTests(unittest.TestCase):
             scenario,
             step,
         )
+        self.fixture_plan = fixture_plan
+        self.scenario = scenario
+        self.step = step
+        self.binding = binding
         adapter_evidence = {
             "id": fixture_plan["workload_adapter"]["id"],
             "version": fixture_plan["workload_adapter"]["version"],
             "entrypoint": fixture_plan["workload_adapter"]["entrypoint"],
             "artifact": fixture_plan["workload_adapter"]["artifact"],
             "artifact_sha256": fixture_plan["workload_adapter"]["sha256"],
+            "semantics": fixture_plan["workload_adapter"]["semantics"],
             "fixture": fixture_plan["workload_adapter"]["fixture"],
+            "oracle": fixture_plan["workload_adapter"]["oracle"],
             "registry_sha256": fixture_plan["adapter_registry"]["sha256"],
             "binding_sha256": binding["sha256"],
             "receipt_path": "adapter-receipt.json",
@@ -207,6 +323,46 @@ class QualificationBundleTests(unittest.TestCase):
             repetition_dir = self.bundle_dir / f"repetition-{repetition:03d}"
             raw = repetition_dir / "raw" / scenario["id"] / step["id"]
             raw.mkdir(parents=True)
+            execution_fixture = qualification.load_json(
+                ADAPTER_DIR / "fixtures" / "postgres-phase-a-v1.json"
+            )
+            job_input = execution_fixture["jobs"][scenario["job_id"]]
+            observed_facts = {
+                "schema": "urn:kungfu-systems:build-images:postgres-observed-facts:v1",
+                "job_id": scenario["job_id"],
+                "tier": scenario["tier"],
+                "binding_sha256": binding["sha256"],
+                "query_id": "execution-input-after-tier-event-v1",
+                "facts": job_input["facts"],
+                "facts_sha256": qualification.sha256_json(job_input["facts"]),
+            }
+            qualification.write_json(raw / "observed-facts.json", observed_facts)
+            tier_evidence = {
+                "schema": "urn:kungfu-systems:build-images:postgres-tier-evidence:v1",
+                "job_id": scenario["job_id"],
+                "tier": scenario["tier"],
+                "binding_sha256": binding["sha256"],
+                "operation": "current-fact-query",
+                "observed_rows": 1,
+                "observed_facts_sha256": observed_facts["facts_sha256"],
+            }
+            qualification.write_json(
+                raw / "tier-evidence.json",
+                tier_evidence,
+            )
+            qualification.write_json(
+                raw / "j1-decision-receipt.json",
+                postgres_adapter.job_receipt(
+                    scenario["job_id"],
+                    job_input["fixture_id"],
+                    job_input["facts"],
+                    scenario["tier"],
+                    binding["sha256"],
+                    tier_evidence,
+                    qualification.sha256_file(raw / "observed-facts.json"),
+                    qualification.sha256_file(raw / "tier-evidence.json"),
+                ),
+            )
             qualification.write_json(
                 raw / "adapter-receipt.json",
                 {
@@ -215,32 +371,12 @@ class QualificationBundleTests(unittest.TestCase):
                     **binding["payload"],
                     "binding_sha256": binding["sha256"],
                     "adapter_artifact": fixture_plan["workload_adapter"]["artifact"],
+                    "semantics_artifact": fixture_plan["workload_adapter"]["semantics"]["path"],
                     "fixture_path": fixture_plan["workload_adapter"]["fixture"]["path"],
+                    "oracle_sha256": fixture_plan["workload_adapter"]["oracle"]["sha256"],
                     "job_receipt": "j1-decision-receipt.json",
+                    "observed_facts": "observed-facts.json",
                     "tier_evidence": "tier-evidence.json",
-                },
-            )
-            qualification.write_json(
-                raw / "j1-decision-receipt.json",
-                {
-                    "schema": "urn:kungfu-systems:build-images:postgres-job-receipt:v1",
-                    "job_id": scenario["job_id"],
-                    "tier": scenario["tier"],
-                    "fixture_id": "F1-session-triage",
-                    "state": "mixed-action-required",
-                    "binding_sha256": binding["sha256"],
-                    "required_findings": ["reject false receipt"],
-                    "false_receipt_rejected": True,
-                },
-            )
-            qualification.write_json(
-                raw / "tier-evidence.json",
-                {
-                    "schema": "urn:kungfu-systems:build-images:postgres-tier-evidence:v1",
-                    "job_id": scenario["job_id"],
-                    "tier": scenario["tier"],
-                    "binding_sha256": binding["sha256"],
-                    "operation": "normal-query",
                 },
             )
             manifest = {
@@ -310,6 +446,15 @@ class QualificationBundleTests(unittest.TestCase):
                             raw,
                             0,
                             step["oracles"],
+                            {
+                                "job_id": scenario["job_id"],
+                                "tier": scenario["tier"],
+                                "binding_sha256": binding["sha256"],
+                                "fixture_id": job_input["fixture_id"],
+                                "semantics_path": ADAPTER_DIR / "postgres_phase_a_semantics.py",
+                                "semantics_sha256": fixture_plan["workload_adapter"]["semantics"]["sha256"],
+                                "oracle_path": ADAPTER_DIR / "oracles" / "postgres-phase-a-v1.json",
+                            },
                         ),
                         "passed": True,
                     }
@@ -413,6 +558,76 @@ class QualificationBundleTests(unittest.TestCase):
         target.write_text(target.read_text(encoding="utf-8") + "\n# tampered\n", encoding="utf-8")
         with self.assertRaisesRegex(qualification.QualificationError, "adapter digest mismatch"):
             qualification.verify_bundle(self.bundle_dir)
+
+    def test_offline_verification_rejects_semantically_contradictory_observations_with_refreshed_hashes(self) -> None:
+        raw = self.bundle_dir / "repetition-001" / "raw" / "j1-normal" / "execute"
+        observed_path = raw / "observed-facts.json"
+        tier_path = raw / "tier-evidence.json"
+        receipt_path = raw / "j1-decision-receipt.json"
+        observed = qualification.load_json(observed_path)
+        observed["facts"] = {"sessions": []}
+        observed["facts_sha256"] = qualification.sha256_json(observed["facts"])
+        qualification.write_json(observed_path, observed)
+        tier = qualification.load_json(tier_path)
+        tier["observed_facts_sha256"] = observed["facts_sha256"]
+        qualification.write_json(tier_path, tier)
+        receipt = qualification.load_json(receipt_path)
+        receipt["observed_facts_sha256"] = observed["facts_sha256"]
+        receipt["observed_facts_artifact_sha256"] = qualification.sha256_file(observed_path)
+        receipt["tier_evidence_sha256"] = qualification.sha256_file(tier_path)
+        qualification.write_json(receipt_path, receipt)
+        self._refresh_run_manifest(1)
+        with self.assertRaisesRegex(qualification.QualificationError, "oracle evidence"):
+            qualification.verify_bundle(self.bundle_dir)
+
+    def test_mutating_only_the_oracle_does_not_change_the_execution_receipt(self) -> None:
+        raw = self.bundle_dir / "repetition-001" / "raw" / "j1-normal" / "execute"
+        receipt_path = raw / "j1-decision-receipt.json"
+        receipt_before = receipt_path.read_bytes()
+        oracle = qualification.load_json(ADAPTER_DIR / "oracles" / "postgres-phase-a-v1.json")
+        oracle["jobs"][self.scenario["job_id"]]["state"] = "healthy"
+        oracle_path = self.bundle_dir / "mutated-oracle.json"
+        qualification.write_json(oracle_path, oracle)
+        execution_fixture = qualification.load_json(
+            ADAPTER_DIR / "fixtures" / "postgres-phase-a-v1.json"
+        )
+        with self.assertRaisesRegex(qualification.QualificationError, "verifier-only oracle"):
+            qualification.verify_semantic_evidence(
+                raw,
+                {
+                    "job_id": self.scenario["job_id"],
+                    "tier": self.scenario["tier"],
+                    "binding_sha256": self.binding["sha256"],
+                    "fixture_id": execution_fixture["jobs"][self.scenario["job_id"]]["fixture_id"],
+                    "semantics_path": ADAPTER_DIR / "postgres_phase_a_semantics.py",
+                    "semantics_sha256": qualification.sha256_file(
+                        ADAPTER_DIR / "postgres_phase_a_semantics.py"
+                    ),
+                    "oracle_path": oracle_path,
+                },
+            )
+        self.assertEqual(receipt_path.read_bytes(), receipt_before)
+
+    def test_semantic_verification_rejects_a_different_implementation(self) -> None:
+        raw = self.bundle_dir / "repetition-001" / "raw" / "j1-normal" / "execute"
+        execution_fixture = qualification.load_json(
+            ADAPTER_DIR / "fixtures" / "postgres-phase-a-v1.json"
+        )
+        different_semantics = self.bundle_dir / "different-semantics.py"
+        different_semantics.write_text("# different verifier\n", encoding="utf-8")
+        with self.assertRaisesRegex(qualification.QualificationError, "frozen bundle"):
+            qualification.verify_semantic_evidence(
+                raw,
+                {
+                    "job_id": self.scenario["job_id"],
+                    "tier": self.scenario["tier"],
+                    "binding_sha256": self.binding["sha256"],
+                    "fixture_id": execution_fixture["jobs"][self.scenario["job_id"]]["fixture_id"],
+                    "semantics_path": different_semantics,
+                    "semantics_sha256": qualification.sha256_file(different_semantics),
+                    "oracle_path": ADAPTER_DIR / "oracles" / "postgres-phase-a-v1.json",
+                },
+            )
 
     def _refresh_run_manifest(self, repetition: int) -> None:
         repetition_dir = self.bundle_dir / f"repetition-{repetition:03d}"
