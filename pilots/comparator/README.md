@@ -8,7 +8,7 @@ program. It does **not** produce performance evidence.
 
 | Profile | Lock | Current state | Pilot coverage |
 | --- | --- | --- | --- |
-| Aeron | 1.52.2 JAR + SHA-256; Temurin image digest | Ready | embedded recording, forced restart, archive copy/restore entry |
+| Aeron | 1.52.2 JAR + SHA-256; Temurin image digest | Ready | recorded publisher, forced driver restart, archive copy/restore entry |
 | ClickHouse | 26.3.10.60 LTS image digest | Ready | create/insert/query, forced restart, Native export/import |
 | PostgreSQL | 18.4 Bookworm image digest | Ready | create/insert/query, forced restart, `pg_dump`/restore |
 | Kungfu | Formal product artifact + SHA-256 + evidence required | Blocked | deliberately unavailable until a formal product artifact is published |
