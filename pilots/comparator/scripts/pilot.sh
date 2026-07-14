@@ -47,7 +47,7 @@ with open(sys.argv[1], encoding="utf-8") as handle:
     print(json.load(handle)["profiles"][sys.argv[2]]["status"])
 PY
 )
-if [ "$status" != "ready" ]; then
+if [ "$status" != "ready" ] && [ "$profile:$status" != "kungfu:package-input-required" ]; then
   reason=$(python3 - "$PILOT_DIR/environment.lock.json" "$profile" <<'PY'
 import json
 import sys
@@ -78,6 +78,10 @@ print_plan() {
   echo "<profile-specific normal, SIGKILL/restart, recovery, and export/restore probes>"
   echo "docker compose -f $COMPOSE_FILE --project-name $project --profile $profile down --volumes --remove-orphans"
   echo "No host networking, privileged mode, Docker socket mount, or global cleanup is used."
+  if [ "$profile" = "kungfu" ]; then
+    echo "Kungfu requires a prebuilt kungfu-episodes-cli-linux-x64.tar.gz plus version, source SHA, package SHA-256, and evidence URL inputs."
+    echo "Kungfu source is not compiled by this Docker pilot."
+  fi
 }
 
 if [ "$action" = "plan" ]; then
@@ -160,6 +164,54 @@ case "$profile" in
     compose exec -T aeron mkdir -p /var/lib/aeron/restore
     compose cp "$report_dir/aeron-archive/." aeron:/var/lib/aeron/restore/
     compose exec -T aeron sh -c "test -n \"\$(find /var/lib/aeron/restore -type f -print -quit)\""
+    ;;
+  kungfu)
+    episode_id=424242
+    primary_home=/var/lib/kungfu/primary
+    bundle=/var/lib/kungfu/episode-${episode_id}.json
+    restore_workspace=/var/lib/kungfu/restore-workspace
+    restore_home=${restore_workspace}/.kungfu
+    compose exec -T kungfu kungfu -H "$primary_home" storage episode begin \
+      --episode-id "$episode_id" \
+      --title "comparator pilot" \
+      --actor "unscored-docker" \
+      --source "build-images" \
+      --json | tee "$report_dir/kungfu-episode-begin.json"
+    compose exec -T kungfu kungfu -H "$primary_home" storage episode end \
+      --episode-id "$episode_id" \
+      --reason "pilot-complete" \
+      --json | tee "$report_dir/kungfu-episode-end.json"
+    compose exec -T kungfu kungfu -H "$primary_home" storage episode rebuild-projection \
+      --json | tee "$report_dir/kungfu-projection-before-restart.json"
+    compose exec -T kungfu kungfu -H "$primary_home" query prove \
+      --episode-id "$episode_id" \
+      --json | tee "$report_dir/kungfu-query-proof-before-restart.json"
+    compose exec -T kungfu kungfu -H "$primary_home" storage export \
+      --scope episode \
+      --episode-id "$episode_id" \
+      --format bundle-json \
+      --out "$bundle" \
+      --json | tee "$report_dir/kungfu-export.json"
+    compose kill -s SIGKILL kungfu
+    compose --profile kungfu up -d --wait kungfu
+    compose exec -T kungfu kungfu -H "$primary_home" storage episode inspect \
+      --episode-id "$episode_id" \
+      --json | tee "$report_dir/kungfu-inspect-after-restart.json"
+    compose exec -T kungfu kungfu -H "$primary_home" storage fsck \
+      --scope episode \
+      --episode-id "$episode_id" \
+      --json | tee "$report_dir/kungfu-fsck-after-restart.json"
+    compose exec -T kungfu kungfu -H "$primary_home" storage import \
+      --from "$bundle" \
+      --execute \
+      --workspace "$restore_workspace" \
+      --json | tee "$report_dir/kungfu-import.json"
+    compose exec -T kungfu kungfu -H "$restore_home" storage episode inspect \
+      --episode-id "$episode_id" \
+      --json | tee "$report_dir/kungfu-restored-episode.json"
+    grep -Fq "\"episode_id\": $episode_id" "$report_dir/kungfu-inspect-after-restart.json"
+    grep -Fq '"ok": true' "$report_dir/kungfu-fsck-after-restart.json"
+    grep -Fq "\"episode_id\": $episode_id" "$report_dir/kungfu-restored-episode.json"
     ;;
 esac
 

@@ -32,12 +32,23 @@
       "source": "https://www.postgresql.org/docs/release/18.4/"
     },
     "kungfu": {
-      "status": "blocked-unpublished",
+      "status": "package-input-required",
       "version": null,
-      "artifact_url": null,
-      "artifact_sha256": null,
-      "release_evidence_url": null,
-      "blocked_reason": "No public formal Kungfu product artifact is currently available. The shifu-v4.0.0-alpha.0 launcher release and disposable ADR-0049 qualification packages are not substitutes."
+      "distribution_mode": "prebuilt-cli-package",
+      "package_filename": "kungfu-episodes-cli-linux-x64.tar.gz",
+      "package_schema": "kungfu.product.cli/v1",
+      "package_sha256": null,
+      "source_sha": null,
+      "evidence_url": null,
+      "runtime_image": "ghcr.io/kungfu-systems/build-images/kungfu-verify@sha256:cb6d939d567c129903d6e3ad858e2c09a9475b3b8f81b1aad10279d0e63a920d",
+      "required_runtime_inputs": [
+        "KUNGFU_CLI_ARTIFACT_NAME",
+        "KUNGFU_CLI_PACKAGE_SHA256",
+        "KUNGFU_CLI_VERSION",
+        "KUNGFU_CLI_SOURCE_SHA",
+        "KUNGFU_CLI_EVIDENCE_URL"
+      ],
+      "claim_boundary": "Prebuilt CLI package functional and recovery qualification; package production is outside this Docker pilot and results are not performance authority"
     }
   },
   "configuration_slots": {

@@ -99,8 +99,9 @@ services:
     build:
       context: ./images/kungfu
       args:
-        KUNGFU_ARTIFACT_URL: ${KUNGFU_ARTIFACT_URL:-BLOCKED_NO_FORMAL_ARTIFACT}
-        KUNGFU_ARTIFACT_SHA256: ${KUNGFU_ARTIFACT_SHA256:-BLOCKED_NO_FORMAL_ARTIFACT}
+        KUNGFU_CLI_PACKAGE_SHA256: ${KUNGFU_CLI_PACKAGE_SHA256:-INPUT_REQUIRED}
+        KUNGFU_CLI_VERSION: ${KUNGFU_CLI_VERSION:-INPUT_REQUIRED}
+        KUNGFU_CLI_SOURCE_SHA: ${KUNGFU_CLI_SOURCE_SHA:-INPUT_REQUIRED}
     platform: linux/amd64
     command: ["sh", "-c", "trap 'exit 0' TERM INT; while :; do sleep 30; done"]
     profiles: ["kungfu"]
