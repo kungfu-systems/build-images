@@ -1,0 +1,59 @@
+{
+  "plan_schema": "urn:kungfu-systems:build-images:comparator-qualification-plan:v1",
+  "schema_version": 1,
+  "test_only": true,
+  "evidence_class": "containerized-user-outcome-qualification",
+  "charter": {
+    "id": "phase-a-test-charter",
+    "version": "1",
+    "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+  },
+  "fixture_set": {
+    "id": "postgres-test-fixture",
+    "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+  },
+  "profile": "postgres",
+  "configuration_slot": "realistic-default",
+  "environment": {
+    "compose_path": "compose.yaml",
+    "compose_sha256": "7b50d657773295f3b534bf0809da5c7c4e726251c034b1e7f8e7c08396fe8aaf",
+    "environment_lock_path": "environment.lock.json",
+    "environment_lock_sha256": "d729ac7393e1a485ed20c33231ccd95c507cb6f8c6a57aba362d9c99d2fa4cad",
+    "runner_image": "ghcr.io/kungfu-systems/build-images/kungfu-verify@sha256:cb6d939d567c129903d6e3ad858e2c09a9475b3b8f81b1aad10279d0e63a920d"
+  },
+  "repetitions": 3,
+  "scenarios": [
+    {
+      "id": "dump-restore-recovery",
+      "job_id": "postgres-qualification",
+      "steps": [
+        {
+          "id": "smoke",
+          "action": "profile-smoke",
+          "timeout_seconds": 1200,
+          "oracles": [
+            { "type": "exit-code", "expected": 0 },
+            { "type": "artifact-exists", "path": "pilot/postgres-restore-value.txt", "expected": true },
+            { "type": "artifact-text-contains", "path": "pilot/postgres-restore-value.txt", "expected": "seed" }
+          ]
+        }
+      ]
+    }
+  ],
+  "artifact_retention": {
+    "destination": "qualification-tests/postgres",
+    "required_patterns": [
+      "raw/**/pilot/environment-manifest.json",
+      "raw/**/pilot/postgres-restore-value.txt",
+      "raw/**/pilot/docker-stats.jsonl",
+      "raw/**/pilot/compose.log"
+    ],
+    "retention_days": 7
+  },
+  "claim_boundary": {
+    "native_performance_authority": false,
+    "user_outcome_qualification_authority_requested": true,
+    "fresh_install_cost_authority": false,
+    "final_scoring_authority": false
+  }
+}

@@ -41,8 +41,16 @@ def validate() -> dict:
         errors.append("environment manifest schema must require pilot_unscored=true")
     if manifest_schema.get("properties", {}).get("performance_authority", {}).get("const") is not False:
         errors.append("environment manifest schema must require performance_authority=false")
+    if manifest_schema.get("properties", {}).get("native_performance_authority", {}).get("const") is not False:
+        errors.append("environment manifest schema must require native_performance_authority=false")
+    if manifest_schema.get("properties", {}).get("user_outcome_qualification_authority", {}).get("const") is not False:
+        errors.append("ordinary pilot manifests must not carry user-outcome qualification authority")
     pilot = lock.get("pilot", {})
-    if pilot.get("status") != "unscored" or pilot.get("performance_authority") is not False:
+    if (
+        pilot.get("status") != "unscored"
+        or pilot.get("performance_authority") is not False
+        or pilot.get("native_performance_authority") is not False
+    ):
         errors.append("pilot must remain unscored and non-authoritative")
 
     runner = lock.get("runner", {}).get("image", "")
@@ -144,6 +152,8 @@ def resolve_subject(lock: dict, profile: str) -> dict:
     for field, value in supplied.items():
         if not value:
             raise ValueError(f"kungfu package run requires {field}")
+    if supplied["artifact_name"] != selected.get("package_filename"):
+        raise ValueError("kungfu artifact name must match the fixed package filename")
     if not SHA256.fullmatch(supplied["package_sha256"]):
         raise ValueError("kungfu package run requires an exact SHA-256")
     if not GIT_SHA.fullmatch(supplied["source_sha"]):
@@ -166,8 +176,13 @@ def emit_manifest(profile: str, project: str, output: pathlib.Path) -> None:
     manifest = {
         "manifest_schema": MANIFEST_SCHEMA_ID,
         "schema_version": 1,
+        "evidence_class": "unscored-pilot",
         "pilot_unscored": True,
         "performance_authority": False,
+        "native_performance_authority": False,
+        "user_outcome_qualification_authority": False,
+        "fresh_install_cost_authority": False,
+        "final_scoring_authority": False,
         "profile": profile,
         "project": project,
         "configuration_slot": "realistic-default",

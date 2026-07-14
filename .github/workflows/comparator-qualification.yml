@@ -1,0 +1,49 @@
+name: Comparator Qualification Contracts
+
+on:
+  pull_request:
+    paths:
+      - "pilots/comparator/**"
+      - ".github/workflows/comparator-qualification.yml"
+      - "package.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: comparator-qualification-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contracts:
+    name: frozen-plan-and-offline-verifier
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Validate qualification contracts and fail-closed fixtures
+        run: python3 -m unittest discover -s pilots/comparator/tests -p 'test_*.py' -v
+
+      - name: Resolve every profile through the same runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          for profile in aeron clickhouse postgres kungfu; do
+            python3 pilots/comparator/scripts/comparator_qualification.py validate-plan \
+              --plan "pilots/comparator/tests/fixtures/qualification-plans/${profile}.json"
+            python3 pilots/comparator/scripts/comparator_qualification.py plan \
+              --plan "pilots/comparator/tests/fixtures/qualification-plans/${profile}.json" \
+              >"${RUNNER_TEMP}/${profile}-qualification-plan.json"
+          done
+
+      - name: Prove test fixtures cannot issue receipts
+        shell: bash
+        run: |
+          set -euo pipefail
+          if python3 pilots/comparator/scripts/comparator_qualification.py run \
+            --plan pilots/comparator/tests/fixtures/qualification-plans/aeron.json --execute; then
+            echo "::error::test-only qualification plan unexpectedly executed"
+            exit 1
+          fi

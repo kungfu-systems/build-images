@@ -4,6 +4,7 @@
     "name": "kungfu-comparator-docker-pilot",
     "status": "unscored",
     "performance_authority": false,
+    "native_performance_authority": false,
     "purpose": "Disposable functional and recovery-path qualification only",
     "platform": "linux/amd64"
   },
