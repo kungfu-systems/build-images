@@ -324,10 +324,8 @@ class QualificationExecutionTests(unittest.TestCase):
     def test_crash_recovery_waits_for_sigkill_before_restart(self) -> None:
         project = mock.Mock()
         project.psql.side_effect = ["", "1"]
-        project.command.side_effect = [
-            mock.Mock(returncode=0),
-            mock.Mock(returncode=137),
-        ]
+        project.container_id.return_value = "a" * 64
+        project.wait_container.return_value = 137
 
         evidence = postgres_adapter.exercise_tier(project, "J1", "crash-recovery", {})
 
@@ -335,13 +333,31 @@ class QualificationExecutionTests(unittest.TestCase):
             project.method_calls,
             [
                 mock.call.psql(mock.ANY),
+                mock.call.container_id("postgres"),
                 mock.call.command("kill", "-s", "SIGKILL", "postgres"),
-                mock.call.command("wait", "postgres", check=False),
+                mock.call.wait_container("a" * 64, "postgres"),
                 mock.call.up("postgres"),
                 mock.call.psql("SELECT count(*) FROM qualification_facts;"),
             ],
         )
         self.assertEqual(evidence["observed_rows"], 1)
+
+    def test_docker_wait_uses_the_fixed_container_id_and_records_exit_code(self) -> None:
+        completed = subprocess.CompletedProcess([], 0, "137\n", "")
+        with tempfile.TemporaryDirectory() as temporary:
+            output_dir = pathlib.Path(temporary)
+            project = postgres_adapter.ComposeProject(
+                "kf-qual-postgres-docker-wait",
+                output_dir,
+            )
+            with mock.patch.object(postgres_adapter.subprocess, "run", return_value=completed) as run:
+                exit_code = project.wait_container("a" * 64, "postgres")
+            self.assertEqual(exit_code, 137)
+            self.assertEqual(run.call_args.args[0], ["docker", "wait", "a" * 64])
+            self.assertEqual(run.call_args.kwargs["timeout"], 120)
+            record = qualification.load_json(output_dir / "commands" / "001.json")
+            self.assertEqual(record["argv"], ["docker", "wait", "<postgres-container>"])
+            self.assertFalse(record["timed_out"])
 
     def test_project_resource_check_proves_zero_scoped_resources(self) -> None:
         empty = subprocess.CompletedProcess([], 0, "", "")
