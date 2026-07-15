@@ -12,7 +12,7 @@
     "id": "kungfu-agent-work-charter-pilot-v1",
     "sha256": "e1c401462a7a0c623df1ec8bac60ce0b4a9b64407d8a7866f77dc388d73627a0"
   },
-  "profile": "postgres",
+  "profile": "clickhouse",
   "configuration_slot": "realistic-default",
   "environment": {
     "compose_path": "compose.yaml",
@@ -26,26 +26,26 @@
     "sha256": "1ed85006a3ea300b21bc91a5efca361693f515ba9219cdb776aa5ee689640746"
   },
   "workload_adapter": {
-    "id": "postgres-phase-a-v1",
+    "id": "clickhouse-phase-a-v1",
     "version": "1.2.0",
-    "artifact": "workload-adapters/postgres_phase_a_v1.py",
-    "sha256": "9e9929c8a3dae78d38c1e62ba48cf77f615a1d56e530ecb47f9db3eb485e6efb",
-    "entrypoint": "postgres-phase-a-v1",
+    "artifact": "workload-adapters/clickhouse_phase_a_v1.py",
+    "sha256": "72173efd638ebb13f3551a8659824af0a5bc8ca42cc4d84832049174ba384baa",
+    "entrypoint": "clickhouse-phase-a-v1",
     "profiles": [
-      "postgres"
+      "clickhouse"
     ],
     "semantics": {
-      "module": "postgres-phase-a-semantics-v1",
-      "path": "workload-adapters/postgres_phase_a_semantics.py",
-      "sha256": "1c01eaf26e916e70e2b3b14023266e598845207bf05b7d976172d9530ef12130"
+      "module": "clickhouse-phase-a-semantics-v1",
+      "path": "workload-adapters/clickhouse_phase_a_semantics.py",
+      "sha256": "97fa63d3eb19bb1a8acd31d7fba132773aa2d82d5d11d565fe615b9d6ad82395"
     },
     "fixture": {
-      "path": "workload-adapters/fixtures/postgres-phase-a-v1.json",
-      "sha256": "bef708da5886bf48f3bfca6045f499c75ad76807f218133569bf2aa323915738"
+      "path": "workload-adapters/fixtures/clickhouse-phase-a-v1.json",
+      "sha256": "ddb45a961b0c56ff8b2044f8150b0e19aedc3993a377ce5afc9309c6c5f86e60"
     },
     "oracle": {
-      "path": "workload-adapters/oracles/postgres-phase-a-v1.json",
-      "sha256": "ffd8fc9f0fa77c4541694da78789c50e01c6603bae173996f029a8e5760098f6"
+      "path": "workload-adapters/oracles/clickhouse-phase-a-v1.json",
+      "sha256": "e27cf401e5960c12fc7c4a2766d18e16469080bb3b735897f3a8961fe4470563"
     },
     "mappings": [
       {
@@ -96,7 +96,7 @@
         {
           "id": "execute",
           "action": "workload-adapter",
-          "adapter_id": "postgres-phase-a-v1",
+          "adapter_id": "clickhouse-phase-a-v1",
           "timeout_seconds": 1800,
           "oracles": [
             {
@@ -134,7 +134,7 @@
         {
           "id": "execute",
           "action": "workload-adapter",
-          "adapter_id": "postgres-phase-a-v1",
+          "adapter_id": "clickhouse-phase-a-v1",
           "timeout_seconds": 1800,
           "oracles": [
             {
@@ -172,7 +172,7 @@
         {
           "id": "execute",
           "action": "workload-adapter",
-          "adapter_id": "postgres-phase-a-v1",
+          "adapter_id": "clickhouse-phase-a-v1",
           "timeout_seconds": 1800,
           "oracles": [
             {
@@ -210,7 +210,7 @@
         {
           "id": "execute",
           "action": "workload-adapter",
-          "adapter_id": "postgres-phase-a-v1",
+          "adapter_id": "clickhouse-phase-a-v1",
           "timeout_seconds": 1800,
           "oracles": [
             {
@@ -248,7 +248,7 @@
         {
           "id": "execute",
           "action": "workload-adapter",
-          "adapter_id": "postgres-phase-a-v1",
+          "adapter_id": "clickhouse-phase-a-v1",
           "timeout_seconds": 1800,
           "oracles": [
             {
@@ -286,7 +286,7 @@
         {
           "id": "execute",
           "action": "workload-adapter",
-          "adapter_id": "postgres-phase-a-v1",
+          "adapter_id": "clickhouse-phase-a-v1",
           "timeout_seconds": 1800,
           "oracles": [
             {
@@ -324,7 +324,7 @@
         {
           "id": "execute",
           "action": "workload-adapter",
-          "adapter_id": "postgres-phase-a-v1",
+          "adapter_id": "clickhouse-phase-a-v1",
           "timeout_seconds": 1800,
           "oracles": [
             {
@@ -362,7 +362,7 @@
         {
           "id": "execute",
           "action": "workload-adapter",
-          "adapter_id": "postgres-phase-a-v1",
+          "adapter_id": "clickhouse-phase-a-v1",
           "timeout_seconds": 1800,
           "oracles": [
             {
@@ -400,7 +400,7 @@
         {
           "id": "execute",
           "action": "workload-adapter",
-          "adapter_id": "postgres-phase-a-v1",
+          "adapter_id": "clickhouse-phase-a-v1",
           "timeout_seconds": 1800,
           "oracles": [
             {
@@ -438,7 +438,7 @@
         {
           "id": "execute",
           "action": "workload-adapter",
-          "adapter_id": "postgres-phase-a-v1",
+          "adapter_id": "clickhouse-phase-a-v1",
           "timeout_seconds": 1800,
           "oracles": [
             {
@@ -476,7 +476,7 @@
         {
           "id": "execute",
           "action": "workload-adapter",
-          "adapter_id": "postgres-phase-a-v1",
+          "adapter_id": "clickhouse-phase-a-v1",
           "timeout_seconds": 1800,
           "oracles": [
             {
@@ -514,7 +514,7 @@
         {
           "id": "execute",
           "action": "workload-adapter",
-          "adapter_id": "postgres-phase-a-v1",
+          "adapter_id": "clickhouse-phase-a-v1",
           "timeout_seconds": 1800,
           "oracles": [
             {
@@ -552,7 +552,7 @@
         {
           "id": "execute",
           "action": "workload-adapter",
-          "adapter_id": "postgres-phase-a-v1",
+          "adapter_id": "clickhouse-phase-a-v1",
           "timeout_seconds": 1800,
           "oracles": [
             {
@@ -590,7 +590,7 @@
         {
           "id": "execute",
           "action": "workload-adapter",
-          "adapter_id": "postgres-phase-a-v1",
+          "adapter_id": "clickhouse-phase-a-v1",
           "timeout_seconds": 1800,
           "oracles": [
             {
@@ -628,7 +628,7 @@
         {
           "id": "execute",
           "action": "workload-adapter",
-          "adapter_id": "postgres-phase-a-v1",
+          "adapter_id": "clickhouse-phase-a-v1",
           "timeout_seconds": 1800,
           "oracles": [
             {
@@ -666,7 +666,7 @@
         {
           "id": "execute",
           "action": "workload-adapter",
-          "adapter_id": "postgres-phase-a-v1",
+          "adapter_id": "clickhouse-phase-a-v1",
           "timeout_seconds": 1800,
           "oracles": [
             {
@@ -704,7 +704,7 @@
         {
           "id": "execute",
           "action": "workload-adapter",
-          "adapter_id": "postgres-phase-a-v1",
+          "adapter_id": "clickhouse-phase-a-v1",
           "timeout_seconds": 1800,
           "oracles": [
             {
@@ -742,7 +742,7 @@
         {
           "id": "execute",
           "action": "workload-adapter",
-          "adapter_id": "postgres-phase-a-v1",
+          "adapter_id": "clickhouse-phase-a-v1",
           "timeout_seconds": 1800,
           "oracles": [
             {
@@ -780,7 +780,7 @@
         {
           "id": "execute",
           "action": "workload-adapter",
-          "adapter_id": "postgres-phase-a-v1",
+          "adapter_id": "clickhouse-phase-a-v1",
           "timeout_seconds": 1800,
           "oracles": [
             {
@@ -818,7 +818,7 @@
         {
           "id": "execute",
           "action": "workload-adapter",
-          "adapter_id": "postgres-phase-a-v1",
+          "adapter_id": "clickhouse-phase-a-v1",
           "timeout_seconds": 1800,
           "oracles": [
             {
@@ -856,7 +856,7 @@
         {
           "id": "execute",
           "action": "workload-adapter",
-          "adapter_id": "postgres-phase-a-v1",
+          "adapter_id": "clickhouse-phase-a-v1",
           "timeout_seconds": 1800,
           "oracles": [
             {
@@ -888,7 +888,7 @@
     }
   ],
   "artifact_retention": {
-    "destination": "qualification/postgres-phase-a-v1",
+    "destination": "qualification/clickhouse-phase-a-v1",
     "required_patterns": [
       "raw/**/adapter-receipt.json",
       "raw/**/adapter-inputs.json",

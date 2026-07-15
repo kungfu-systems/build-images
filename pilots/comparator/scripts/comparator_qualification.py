@@ -7,6 +7,7 @@ import argparse
 import copy
 import datetime as dt
 import hashlib
+import importlib.util
 import json
 import os
 import pathlib
@@ -31,18 +32,17 @@ RUN_SCHEMA_PATH = PILOT_DIR / "qualification-run-manifest.schema.json"
 BUNDLE_SCHEMA_PATH = PILOT_DIR / "qualification-bundle-manifest.schema.json"
 ADAPTER_REGISTRY_PATH = PILOT_DIR / "workload-adapters" / "registry.json"
 ADAPTER_DIR = PILOT_DIR / "workload-adapters"
-SEMANTICS_IMPLEMENTATION_PATH = ADAPTER_DIR / "postgres_phase_a_semantics.py"
 
 PLAN_SCHEMA_ID = "urn:kungfu-systems:build-images:comparator-qualification-plan:v1"
 RUN_SCHEMA_ID = "urn:kungfu-systems:build-images:comparator-qualification-run:v1"
 BUNDLE_SCHEMA_ID = "urn:kungfu-systems:build-images:comparator-qualification-bundle:v1"
 EVIDENCE_CLASS = "containerized-user-outcome-qualification"
 WORKLOAD_ACTION = "workload-adapter"
-JOB_RECEIPTS = {
-    "J1-multi-session-progress-triage": "j1-decision-receipt.json",
-    "J2-cross-repo-delivery-trust": "j2-delivery-receipt.json",
-    "J3-interrupted-go-recovery-handoff": "j3-handoff-receipt.json",
-}
+JOB_IDS = (
+    "J1-multi-session-progress-triage",
+    "J2-cross-repo-delivery-trust",
+    "J3-interrupted-go-recovery-handoff",
+)
 PROFILES = ("aeron", "clickhouse", "postgres", "kungfu")
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
 GIT_SHA = re.compile(r"^[0-9a-f]{40}$")
@@ -72,13 +72,6 @@ RUNTIME_ENV_ALLOWLIST = {
 sys.path.insert(0, str(SCRIPT_DIR))
 sys.path.insert(0, str(ADAPTER_DIR))
 import comparator_pilot  # noqa: E402
-from postgres_phase_a_semantics import (  # noqa: E402
-    DECISION_LOGIC_VERSION,
-    JOB_IDS,
-    SemanticError,
-    derive_job_verdict,
-    validate_execution_fixture,
-)
 
 
 class QualificationError(ValueError):
@@ -183,18 +176,54 @@ def validate_digest_identity(value: Any, context: str, *, versioned: bool) -> di
     return value
 
 
-def validate_verifier_oracle(oracle: dict[str, Any]) -> None:
+def load_semantics_module(
+    semantics_path: pathlib.Path,
+    semantics_sha256: str,
+    semantics_module_id: str,
+) -> Any:
+    if not semantics_path.is_file() or sha256_file(semantics_path) != semantics_sha256:
+        raise QualificationError("verifier semantics implementation does not match the frozen bundle")
+    module_name = f"comparator_semantics_{semantics_sha256}"
+    spec = importlib.util.spec_from_file_location(module_name, semantics_path)
+    if spec is None or spec.loader is None:
+        raise QualificationError("verifier semantics implementation cannot be loaded")
+    module = importlib.util.module_from_spec(spec)
+    try:
+        spec.loader.exec_module(module)
+    except Exception as error:
+        raise QualificationError(f"verifier semantics implementation failed to load: {error}") from error
+    required = (
+        "SEMANTICS_MODULE_ID", "DECISION_LOGIC_VERSION", "EXECUTION_FIXTURE_SCHEMA",
+        "VERIFIER_ORACLE_SCHEMA", "OBSERVED_FACTS_SCHEMA", "JOB_RECEIPT_SCHEMA",
+        "JOB_IDS", "JOB_RECEIPTS", "SemanticError", "derive_job_verdict",
+        "validate_execution_fixture",
+    )
+    if any(not hasattr(module, name) for name in required):
+        raise QualificationError("verifier semantics implementation does not satisfy the frozen bundle contract")
+    if module.SEMANTICS_MODULE_ID != semantics_module_id:
+        raise QualificationError("verifier semantics module identity does not match the registry")
+    if tuple(module.JOB_IDS) != JOB_IDS or set(module.JOB_RECEIPTS) != set(JOB_IDS):
+        raise QualificationError("verifier semantics job contract is incomplete or unexpected")
+    return module
+
+
+def validate_verifier_oracle(oracle: dict[str, Any], semantics: Any) -> None:
     require_keys(oracle, {"schema", "jobs"}, set(), "workload verifier oracle")
-    if oracle["schema"] != "urn:kungfu-systems:build-images:postgres-phase-a-verifier-oracle:v1":
+    if oracle["schema"] != semantics.VERIFIER_ORACLE_SCHEMA:
         raise QualificationError("workload verifier oracle schema is unsupported")
     jobs = oracle["jobs"]
-    if not isinstance(jobs, dict) or set(jobs) != set(JOB_IDS):
+    if not isinstance(jobs, dict) or set(jobs) != set(semantics.JOB_IDS):
         raise QualificationError("workload verifier oracle job set is incomplete or unexpected")
     if any(not isinstance(verdict, dict) or not verdict for verdict in jobs.values()):
         raise QualificationError("workload verifier oracle contains an invalid verdict")
 
 
-def validate_adapter_registry(registry_path: pathlib.Path, root: pathlib.Path) -> dict[str, dict[str, Any]]:
+def validate_adapter_registry(
+    registry_path: pathlib.Path,
+    root: pathlib.Path,
+    *,
+    selected_adapter_id: str | None = None,
+) -> dict[str, dict[str, Any]]:
     registry = load_json(registry_path)
     require_keys(registry, {"schema", "schema_version", "adapters"}, set(), "workload adapter registry")
     if registry["schema"] != "urn:kungfu-systems:build-images:workload-adapter-registry:v2":
@@ -203,6 +232,7 @@ def validate_adapter_registry(registry_path: pathlib.Path, root: pathlib.Path) -
         raise QualificationError("workload adapter registry is empty or has an unsupported version")
     resolved: dict[str, dict[str, Any]] = {}
     for adapter_id, adapter in registry["adapters"].items():
+        selected = selected_adapter_id is None or selected_adapter_id == adapter_id
         require_id(adapter_id, "workload adapter id")
         if not isinstance(adapter, dict):
             raise QualificationError(f"workload adapter record must be an object: {adapter_id}")
@@ -223,19 +253,28 @@ def validate_adapter_registry(registry_path: pathlib.Path, root: pathlib.Path) -
             raise QualificationError(f"workload adapter artifact is outside the allowlisted directory: {adapter_id}")
         artifact_path = root / pathlib.Path(*artifact_relative.parts)
         require_sha256(adapter["sha256"], f"workload adapter {adapter_id}.sha256")
-        if not artifact_path.is_file() or sha256_file(artifact_path) != adapter["sha256"]:
+        if selected and (not artifact_path.is_file() or sha256_file(artifact_path) != adapter["sha256"]):
             raise QualificationError(f"workload adapter artifact digest mismatch: {adapter_id}")
         semantics = adapter["semantics"]
         if not isinstance(semantics, dict):
             raise QualificationError(f"workload adapter semantics are invalid: {adapter_id}")
-        require_keys(semantics, {"path", "sha256"}, set(), f"workload adapter {adapter_id}.semantics")
+        require_keys(semantics, {"module", "path", "sha256"}, set(), f"workload adapter {adapter_id}.semantics")
+        require_id(semantics["module"], f"workload adapter {adapter_id}.semantics.module")
         semantics_relative = safe_relative(semantics["path"], f"workload adapter {adapter_id}.semantics.path")
         if not semantics_relative.as_posix().startswith("workload-adapters/"):
             raise QualificationError(f"workload adapter semantics are outside the allowlisted directory: {adapter_id}")
         semantics_path = root / pathlib.Path(*semantics_relative.parts)
         require_sha256(semantics["sha256"], f"workload adapter {adapter_id}.semantics.sha256")
-        if not semantics_path.is_file() or sha256_file(semantics_path) != semantics["sha256"]:
-            raise QualificationError(f"workload adapter semantics digest mismatch: {adapter_id}")
+        semantics_module = None
+        if selected:
+            try:
+                semantics_module = load_semantics_module(
+                    semantics_path,
+                    semantics["sha256"],
+                    semantics["module"],
+                )
+            except QualificationError as error:
+                raise QualificationError(f"workload adapter semantics digest mismatch: {adapter_id}: {error}") from error
         fixture = adapter["fixture"]
         if not isinstance(fixture, dict):
             raise QualificationError(f"workload adapter fixture is invalid: {adapter_id}")
@@ -245,12 +284,13 @@ def validate_adapter_registry(registry_path: pathlib.Path, root: pathlib.Path) -
             raise QualificationError(f"workload adapter fixture is outside the allowlisted directory: {adapter_id}")
         fixture_path = root / pathlib.Path(*fixture_relative.parts)
         require_sha256(fixture["sha256"], f"workload adapter {adapter_id}.fixture.sha256")
-        if not fixture_path.is_file() or sha256_file(fixture_path) != fixture["sha256"]:
-            raise QualificationError(f"workload adapter fixture digest mismatch: {adapter_id}")
-        try:
-            validate_execution_fixture(load_json(fixture_path))
-        except SemanticError as error:
-            raise QualificationError(str(error)) from error
+        if selected:
+            if not fixture_path.is_file() or sha256_file(fixture_path) != fixture["sha256"]:
+                raise QualificationError(f"workload adapter fixture digest mismatch: {adapter_id}")
+            try:
+                semantics_module.validate_execution_fixture(load_json(fixture_path))
+            except semantics_module.SemanticError as error:
+                raise QualificationError(str(error)) from error
         oracle = adapter["oracle"]
         if not isinstance(oracle, dict):
             raise QualificationError(f"workload adapter oracle is invalid: {adapter_id}")
@@ -260,9 +300,10 @@ def validate_adapter_registry(registry_path: pathlib.Path, root: pathlib.Path) -
             raise QualificationError(f"workload adapter oracle is outside the verifier-only directory: {adapter_id}")
         oracle_path = root / pathlib.Path(*oracle_relative.parts)
         require_sha256(oracle["sha256"], f"workload adapter {adapter_id}.oracle.sha256")
-        if not oracle_path.is_file() or sha256_file(oracle_path) != oracle["sha256"]:
-            raise QualificationError(f"workload adapter oracle digest mismatch: {adapter_id}")
-        validate_verifier_oracle(load_json(oracle_path))
+        if selected:
+            if not oracle_path.is_file() or sha256_file(oracle_path) != oracle["sha256"]:
+                raise QualificationError(f"workload adapter oracle digest mismatch: {adapter_id}")
+            validate_verifier_oracle(load_json(oracle_path), semantics_module)
         profiles = adapter["profiles"]
         if not isinstance(profiles, list) or not profiles or any(profile not in PROFILES for profile in profiles):
             raise QualificationError(f"workload adapter profiles are invalid: {adapter_id}")
@@ -287,6 +328,8 @@ def validate_adapter_registry(registry_path: pathlib.Path, root: pathlib.Path) -
                     raise QualificationError(f"duplicate workload adapter mapping: {adapter_id}/{job_id}/{tier_id}")
                 seen_mappings.add(pair)
         resolved[adapter_id] = copy.deepcopy(adapter)
+    if selected_adapter_id is not None and selected_adapter_id not in resolved:
+        raise QualificationError(f"selected workload adapter is not registered: {selected_adapter_id}")
     return resolved
 
 
@@ -425,7 +468,8 @@ def validate_plan_document(plan: dict[str, Any]) -> None:
         semantics = adapter["semantics"]
         if not isinstance(semantics, dict):
             raise QualificationError("workload_adapter.semantics must be an object")
-        require_keys(semantics, {"path", "sha256"}, set(), "workload_adapter.semantics")
+        require_keys(semantics, {"module", "path", "sha256"}, set(), "workload_adapter.semantics")
+        require_id(semantics["module"], "workload_adapter.semantics.module")
         safe_relative(semantics["path"], "workload_adapter.semantics.path")
         require_sha256(semantics["sha256"], "workload_adapter.semantics.sha256")
         fixture = adapter["fixture"]
@@ -1095,22 +1139,21 @@ def verify_semantic_evidence(step_dir: pathlib.Path, context: dict[str, Any]) ->
     binding_sha256 = context["binding_sha256"]
     semantics_path = pathlib.Path(context["semantics_path"])
     semantics_sha256 = context["semantics_sha256"]
-    if (
-        not semantics_path.is_file()
-        or sha256_file(semantics_path) != semantics_sha256
-        or sha256_file(SEMANTICS_IMPLEMENTATION_PATH) != semantics_sha256
-    ):
-        raise QualificationError("verifier semantics implementation does not match the frozen bundle")
+    semantics = load_semantics_module(
+        semantics_path,
+        semantics_sha256,
+        context["semantics_module"],
+    )
     observed_path = step_dir / "observed-facts.json"
     tier_path = step_dir / "tier-evidence.json"
-    receipt_path = step_dir / JOB_RECEIPTS[job_id]
+    receipt_path = step_dir / semantics.JOB_RECEIPTS[job_id]
     if not observed_path.is_file() or not tier_path.is_file() or not receipt_path.is_file():
         raise QualificationError("semantic evidence is incomplete")
     observed = load_json(observed_path)
     tier_evidence = load_json(tier_path)
     receipt = load_json(receipt_path)
     observed_identity = {
-        "schema": "urn:kungfu-systems:build-images:postgres-observed-facts:v1",
+        "schema": semantics.OBSERVED_FACTS_SCHEMA,
         "job_id": job_id,
         "tier": tier,
         "binding_sha256": binding_sha256,
@@ -1130,16 +1173,16 @@ def verify_semantic_evidence(step_dir: pathlib.Path, context: dict[str, Any]) ->
     ):
         raise QualificationError("tier evidence is not bound to the observed job facts")
     try:
-        verdict = derive_job_verdict(job_id, facts, tier, tier_evidence)
-    except SemanticError as error:
+        verdict = semantics.derive_job_verdict(job_id, facts, tier, tier_evidence)
+    except semantics.SemanticError as error:
         raise QualificationError(str(error)) from error
     expected_receipt = {
-        "schema": "urn:kungfu-systems:build-images:postgres-job-receipt:v2",
+        "schema": semantics.JOB_RECEIPT_SCHEMA,
         "job_id": job_id,
         "tier": tier,
         "fixture_id": context["fixture_id"],
         "binding_sha256": binding_sha256,
-        "decision_logic_version": DECISION_LOGIC_VERSION,
+        "decision_logic_version": semantics.DECISION_LOGIC_VERSION,
         "observed_facts_sha256": observed["facts_sha256"],
         "observed_facts_artifact_sha256": sha256_file(observed_path),
         "tier_evidence_sha256": sha256_file(tier_path),
@@ -1151,7 +1194,7 @@ def verify_semantic_evidence(step_dir: pathlib.Path, context: dict[str, Any]) ->
     if not oracle_path.is_file():
         raise QualificationError("verifier-only oracle is missing")
     oracle = load_json(oracle_path)
-    validate_verifier_oracle(oracle)
+    validate_verifier_oracle(oracle, semantics)
     if oracle["jobs"].get(job_id) != verdict:
         raise QualificationError("derived job verdict does not match the verifier-only oracle")
     return {
@@ -1279,6 +1322,7 @@ def execute_step(
             "fixture_id": execution_fixture["jobs"][scenario["job_id"]]["fixture_id"],
             "semantics_path": PILOT_DIR / pathlib.Path(*safe_relative(adapter["semantics"]["path"], "adapter semantics").parts),
             "semantics_sha256": adapter["semantics"]["sha256"],
+            "semantics_module": adapter["semantics"]["module"],
             "oracle_path": PILOT_DIR / pathlib.Path(*safe_relative(adapter["oracle"]["path"], "adapter oracle").parts),
         }
     else:
@@ -1946,17 +1990,23 @@ def verify_bundle(bundle_dir: pathlib.Path, *, require_authority: bool = True) -
     registered_adapters = validate_adapter_registry(
         copied_adapter_paths["registry"],
         bundle_dir / "inputs",
+        selected_adapter_id=plan["workload_adapter"]["id"],
     )
     adapter_id = plan["workload_adapter"]["id"]
     expected_adapter = {"id": adapter_id, **registered_adapters.get(adapter_id, {})}
     if copied_adapter["identity"] != expected_adapter or plan["workload_adapter"] != expected_adapter:
         raise QualificationError("bundle workload adapter identity does not match the copied registry")
+    copied_semantics = load_semantics_module(
+        copied_adapter_paths["semantics"],
+        plan["workload_adapter"]["semantics"]["sha256"],
+        plan["workload_adapter"]["semantics"]["module"],
+    )
     copied_execution_fixture = load_json(copied_adapter_paths["fixture"])
     try:
-        validate_execution_fixture(copied_execution_fixture)
-    except SemanticError as error:
+        copied_semantics.validate_execution_fixture(copied_execution_fixture)
+    except copied_semantics.SemanticError as error:
         raise QualificationError(str(error)) from error
-    validate_verifier_oracle(load_json(copied_adapter_paths["oracle"]))
+    validate_verifier_oracle(load_json(copied_adapter_paths["oracle"]), copied_semantics)
 
     contracts = bundle.get("contracts")
     if not isinstance(contracts, list) or len(contracts) != 3:
@@ -2141,6 +2191,7 @@ def verify_bundle(bundle_dir: pathlib.Path, *, require_authority: bool = True) -
                 "fixture_id": copied_execution_fixture["jobs"][planned_scenario["job_id"]]["fixture_id"],
                 "semantics_path": copied_adapter_paths["semantics"],
                 "semantics_sha256": plan["workload_adapter"]["semantics"]["sha256"],
+                "semantics_module": plan["workload_adapter"]["semantics"]["module"],
                 "oracle_path": copied_adapter_paths["oracle"],
             }
             recomputed_oracles = evaluate_oracles(

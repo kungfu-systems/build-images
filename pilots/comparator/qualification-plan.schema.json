@@ -197,8 +197,9 @@
         "semantics": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["path", "sha256"],
+          "required": ["module", "path", "sha256"],
           "properties": {
+            "module": { "$ref": "#/$defs/id" },
             "path": { "type": "string", "pattern": "^workload-adapters/[A-Za-z0-9._/-]+$" },
             "sha256": { "$ref": "#/$defs/sha256" }
           }

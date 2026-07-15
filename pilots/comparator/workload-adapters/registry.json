@@ -5,14 +5,15 @@
     "postgres-phase-a-v1": {
       "version": "1.2.0",
       "artifact": "workload-adapters/postgres_phase_a_v1.py",
-      "sha256": "7d50b57cdce4289731c8afbf2523ebcdb5c3fc1e67c7a0ca63da72263600c128",
+      "sha256": "9e9929c8a3dae78d38c1e62ba48cf77f615a1d56e530ecb47f9db3eb485e6efb",
       "entrypoint": "postgres-phase-a-v1",
       "profiles": [
         "postgres"
       ],
       "semantics": {
+        "module": "postgres-phase-a-semantics-v1",
         "path": "workload-adapters/postgres_phase_a_semantics.py",
-        "sha256": "4fc5ef31be09b04c86e04fc30dbd4211ab8c1fabdad5e4883d0cb8c626ca2168"
+        "sha256": "1c01eaf26e916e70e2b3b14023266e598845207bf05b7d976172d9530ef12130"
       },
       "fixture": {
         "path": "workload-adapters/fixtures/postgres-phase-a-v1.json",
@@ -21,6 +22,66 @@
       "oracle": {
         "path": "workload-adapters/oracles/postgres-phase-a-v1.json",
         "sha256": "ffd8fc9f0fa77c4541694da78789c50e01c6603bae173996f029a8e5760098f6"
+      },
+      "mappings": [
+        {
+          "job_id": "J1-multi-session-progress-triage",
+          "tiers": [
+            "normal",
+            "concurrent",
+            "crash-recovery",
+            "whole-root-restore",
+            "historical-query",
+            "schema-evolution",
+            "new-agent-takeover"
+          ]
+        },
+        {
+          "job_id": "J2-cross-repo-delivery-trust",
+          "tiers": [
+            "normal",
+            "concurrent",
+            "crash-recovery",
+            "whole-root-restore",
+            "historical-query",
+            "schema-evolution",
+            "new-agent-takeover"
+          ]
+        },
+        {
+          "job_id": "J3-interrupted-go-recovery-handoff",
+          "tiers": [
+            "normal",
+            "concurrent",
+            "crash-recovery",
+            "whole-root-restore",
+            "historical-query",
+            "schema-evolution",
+            "new-agent-takeover"
+          ]
+        }
+      ]
+    },
+    "clickhouse-phase-a-v1": {
+      "version": "1.2.0",
+      "artifact": "workload-adapters/clickhouse_phase_a_v1.py",
+      "sha256": "72173efd638ebb13f3551a8659824af0a5bc8ca42cc4d84832049174ba384baa",
+      "entrypoint": "clickhouse-phase-a-v1",
+      "profiles": [
+        "clickhouse"
+      ],
+      "semantics": {
+        "module": "clickhouse-phase-a-semantics-v1",
+        "path": "workload-adapters/clickhouse_phase_a_semantics.py",
+        "sha256": "97fa63d3eb19bb1a8acd31d7fba132773aa2d82d5d11d565fe615b9d6ad82395"
+      },
+      "fixture": {
+        "path": "workload-adapters/fixtures/clickhouse-phase-a-v1.json",
+        "sha256": "ddb45a961b0c56ff8b2044f8150b0e19aedc3993a377ce5afc9309c6c5f86e60"
+      },
+      "oracle": {
+        "path": "workload-adapters/oracles/clickhouse-phase-a-v1.json",
+        "sha256": "e27cf401e5960c12fc7c4a2766d18e16469080bb3b735897f3a8961fe4470563"
       },
       "mappings": [
         {

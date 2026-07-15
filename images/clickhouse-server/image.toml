@@ -15,7 +15,3 @@ test_commands = [
   "clickhouse-server --version",
   "clickhouse-client --version",
 ]
-
-[lock]
-status = "pending-first-publish"
-reason = "The first reviewed alpha establishes the build-images-owned immutable ClickHouse mirror digest."
