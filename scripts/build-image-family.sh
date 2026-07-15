@@ -139,6 +139,11 @@ while [ "$i" -lt "$image_count" ]; do
   action="$(json_field "$plan_path" "$i" action)"
   platform="$(json_field "$plan_path" "$i" platform)"
   contract_major="$(json_field "$plan_path" "$i" contract_major)"
+  lock_status="$(python3 - "$repo_root/$image_path/image.toml" <<'PY'
+import sys, tomllib
+print(tomllib.load(open(sys.argv[1], "rb")).get("lock", {}).get("status", ""))
+PY
+)"
   image_repository="${registry}/${image_name}"
   image_ref="${image_repository}:${image_tag}"
   parent_digest=""
@@ -161,11 +166,17 @@ while [ "$i" -lt "$image_count" ]; do
   mkdir -p "$evidence_dir"
 
   if [ "$push_images" = "true" ]; then
+    target_manifest_args=(
+      --repository "$image_repository"
+      --ref "$image_tag"
+      --allow-missing
+      --output "$target_manifest"
+    )
+    if [ "$lock_status" = "pending-first-publish" ]; then
+      target_manifest_args+=(--allow-missing-package)
+    fi
     python3 "$repo_root/scripts/ghcr-manifest.py" \
-      --repository "$image_repository" \
-      --ref "$image_tag" \
-      --allow-missing \
-      --output "$target_manifest" >/dev/null
+      "${target_manifest_args[@]}" >/dev/null
   fi
 
   if [ "$action" = "reused" ]; then

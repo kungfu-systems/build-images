@@ -16,6 +16,7 @@ WRITE_EVIDENCE = ROOT / "scripts" / "write-publish-evidence.py"
 VERIFY_IMAGE = ROOT / "scripts" / "verify-published-image.py"
 ACCEPT_IMAGE = ROOT / "scripts" / "accept-image-summary.py"
 BUILD_FAMILY = ROOT / "scripts" / "build-image-family.sh"
+GHCR_MANIFEST = ROOT / "scripts" / "ghcr-manifest.py"
 BUILDCHAIN_PUBLISH_TRANSACTION = (
     ROOT / "node_modules" / "@kungfu-tech" / "buildchain" / "packages" / "core" / "publish-transaction.js"
 )
@@ -592,6 +593,36 @@ def assert_digest_preserving_alias() -> None:
     assert "imagetools create --prefer-index=false" in script
 
 
+def assert_first_publish_missing_package() -> None:
+    spec = importlib.util.spec_from_file_location("ghcr_manifest_first_publish", GHCR_MANIFEST)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    def forbidden(*_args, **_kwargs):
+        raise module.urllib.error.HTTPError("https://ghcr.io/token", 403, "Forbidden", {}, None)
+
+    module.request = forbidden
+    payload = module.inspect_manifest(
+        "ghcr.io/kungfu-systems/build-images/clickhouse-server",
+        "v1.2.4-alpha.14",
+        allow_missing_package=True,
+    )
+    assert payload["exists"] is False
+    assert payload["public_manifest"] is False
+    assert payload["missing_reason"] == "package-not-yet-publicly-addressable"
+
+    try:
+        module.inspect_manifest(
+            "ghcr.io/kungfu-systems/build-images/base-linux",
+            "v1.2.4-alpha.14",
+        )
+    except RuntimeError as exc:
+        assert "token request failed" in str(exc)
+    else:
+        raise AssertionError("ordinary package token 403 must fail closed")
+
+
 def main() -> int:
     plan = assert_selective_plan()
     assert_fail_closed_baselines()
@@ -602,7 +633,8 @@ def main() -> int:
     assert_evidence(plan)
     assert_image_inspect_fixture()
     assert_digest_preserving_alias()
-    print("publish provenance fixtures passed: 8")
+    assert_first_publish_missing_package()
+    print("publish provenance fixtures passed: 9")
     return 0
 
 
