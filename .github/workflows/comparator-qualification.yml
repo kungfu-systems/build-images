@@ -91,7 +91,8 @@ jobs:
     name: postgres-3x21-lifecycle
     if: >-
       (github.event_name == 'workflow_dispatch' && inputs.run_lifecycle) ||
-      (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'run-comparator-lifecycle'))
+      (github.event_name == 'pull_request' && github.event.action == 'labeled' &&
+      github.event.label.name == 'run-comparator-lifecycle')
     runs-on: ubuntu-24.04
     timeout-minutes: 360
     steps:
