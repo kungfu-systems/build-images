@@ -34,7 +34,7 @@ if ! grep -Fq "release-passport-impact-json: \${{ contains(steps.target_ref.outp
 fi
 # shellcheck disable=SC2016
 if ! grep -Fq "publish-required-artifacts-json: \${{ contains(steps.target_ref.outputs.target_ref, '/v1.2') && steps.required_artifacts.outputs.json || '' }}" "$promotion_workflow"; then
-  echo "Buildchain promotion must require the exact five-image OCI family" >&2
+  echo "Buildchain promotion must require the exact manifest-declared OCI family" >&2
   exit 1
 fi
 # shellcheck disable=SC2016

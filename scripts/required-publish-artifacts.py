@@ -50,7 +50,7 @@ def main() -> int:
         ] if isinstance(observed, list) else observed
         if observed != expected:
             raise SystemExit(
-                "BUILDCHAIN_REQUIRED_ARTIFACTS does not match the exact five-image manifest declaration"
+                "BUILDCHAIN_REQUIRED_ARTIFACTS does not match the exact publishable image manifest declaration"
             )
     if args.github_output:
         with Path(args.github_output).open("a", encoding="utf-8") as handle:
