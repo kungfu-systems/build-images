@@ -14,10 +14,12 @@ PILOT_DIR = pathlib.Path(__file__).resolve().parents[1]
 ADAPTER_DIR = PILOT_DIR / "workload-adapters"
 FIXTURE_DIR = pathlib.Path(__file__).resolve().parent / "fixtures" / "qualification-plans"
 PRODUCTION_PLAN = PILOT_DIR / "plans" / "postgres-phase-a-v1.json"
+CLICKHOUSE_PRODUCTION_PLAN = PILOT_DIR / "plans" / "clickhouse-phase-a-v1.json"
 sys.path.insert(0, str(SCRIPT_DIR))
 sys.path.insert(0, str(ADAPTER_DIR))
 
 import comparator_qualification as qualification  # noqa: E402
+import clickhouse_phase_a_v1 as clickhouse_adapter  # noqa: E402
 import postgres_phase_a_v1 as postgres_adapter  # noqa: E402
 import postgres_phase_a_semantics as postgres_semantics  # noqa: E402
 
@@ -58,37 +60,46 @@ class QualificationPlanTests(unittest.TestCase):
             qualification.validate_plan_document(plan)
 
     def test_production_plan_covers_every_declared_job_and_tier(self) -> None:
-        plan, resolved = qualification.resolve_plan(PRODUCTION_PLAN)
-        expected = {
-            (mapping["job_id"], tier)
-            for mapping in plan["workload_adapter"]["mappings"]
-            for tier in mapping["tiers"]
-        }
-        observed = {(scenario["job_id"], scenario["tier"]) for scenario in plan["scenarios"]}
-        self.assertEqual(observed, expected)
-        self.assertEqual(len(observed), 21)
-        self.assertEqual(resolved["workload_adapter"]["identity"], plan["workload_adapter"])
+        for plan_path in (PRODUCTION_PLAN, CLICKHOUSE_PRODUCTION_PLAN):
+            with self.subTest(plan=plan_path.name):
+                plan, resolved = qualification.resolve_plan(plan_path)
+                expected = {
+                    (mapping["job_id"], tier)
+                    for mapping in plan["workload_adapter"]["mappings"]
+                    for tier in mapping["tiers"]
+                }
+                observed = {(scenario["job_id"], scenario["tier"]) for scenario in plan["scenarios"]}
+                self.assertEqual(observed, expected)
+                self.assertEqual(len(observed), 21)
+                self.assertEqual(plan["repetitions"], 3)
+                self.assertEqual(resolved["workload_adapter"]["identity"], plan["workload_adapter"])
 
     def test_runner_and_adapter_compute_the_same_workload_binding(self) -> None:
-        plan = qualification.load_json(PRODUCTION_PLAN)
-        scenario = plan["scenarios"][0]
-        step = scenario["steps"][0]
-        runner_binding = qualification.workload_binding(
-            plan["profile"],
-            plan["adapter_registry"]["sha256"],
-            plan["workload_adapter"],
-            scenario,
-            step,
+        cases = (
+            (PRODUCTION_PLAN, postgres_adapter),
+            (CLICKHOUSE_PRODUCTION_PLAN, clickhouse_adapter),
         )
-        adapter_binding = postgres_adapter.adapter_binding(
-            plan["adapter_registry"]["sha256"],
-            plan["workload_adapter"],
-            scenario["id"],
-            scenario["job_id"],
-            scenario["tier"],
-            step["id"],
-        )
-        self.assertEqual(adapter_binding, runner_binding)
+        for plan_path, adapter_module in cases:
+            with self.subTest(plan=plan_path.name):
+                plan = qualification.load_json(plan_path)
+                scenario = plan["scenarios"][0]
+                step = scenario["steps"][0]
+                runner_binding = qualification.workload_binding(
+                    plan["profile"],
+                    plan["adapter_registry"]["sha256"],
+                    plan["workload_adapter"],
+                    scenario,
+                    step,
+                )
+                adapter_binding = adapter_module.adapter_binding(
+                    plan["adapter_registry"]["sha256"],
+                    plan["workload_adapter"],
+                    scenario["id"],
+                    scenario["job_id"],
+                    scenario["tier"],
+                    step["id"],
+                )
+                self.assertEqual(adapter_binding, runner_binding)
 
     def test_production_plan_rejects_missing_adapter_mapping(self) -> None:
         plan = qualification.load_json(PRODUCTION_PLAN)
@@ -769,6 +780,7 @@ class QualificationBundleTests(unittest.TestCase):
                                 "fixture_id": job_input["fixture_id"],
                                 "semantics_path": ADAPTER_DIR / "postgres_phase_a_semantics.py",
                                 "semantics_sha256": fixture_plan["workload_adapter"]["semantics"]["sha256"],
+                                "semantics_module": fixture_plan["workload_adapter"]["semantics"]["module"],
                                 "oracle_path": ADAPTER_DIR / "oracles" / "postgres-phase-a-v1.json",
                             },
                         ),
@@ -823,6 +835,66 @@ class QualificationBundleTests(unittest.TestCase):
     def test_offline_verification_accepts_complete_three_repetition_bundle(self) -> None:
         bundle = qualification.verify_bundle(self.bundle_dir)
         self.assertTrue(bundle["user_outcome_qualification_authority"])
+
+    def test_two_adapter_registry_allows_a_self_contained_selected_bundle(self) -> None:
+        registry_record = self.bundle_inputs["workload_adapter"]["registry"]
+        registry_path = self.bundle_dir / registry_record["path"]
+        registry = qualification.load_json(registry_path)
+        self.assertEqual(set(registry["adapters"]), {"postgres-phase-a-v1", "clickhouse-phase-a-v1"})
+        self.assertFalse(
+            (self.bundle_dir / "inputs/workload-adapters/clickhouse_phase_a_v1.py").exists()
+        )
+        verified = qualification.verify_bundle(self.bundle_dir)
+        self.assertTrue(verified["user_outcome_qualification_authority"])
+
+    def test_clickhouse_selected_adapter_inputs_are_self_contained(self) -> None:
+        plan = qualification.load_json(CLICKHOUSE_PRODUCTION_PLAN)
+        target = pathlib.Path(self.temporary.name) / "clickhouse-inputs"
+        target.mkdir()
+        inputs = qualification.copy_bundle_inputs(
+            target,
+            {
+                "runner_image": plan["environment"]["runner_image"],
+                "subject": qualification.load_json(qualification.LOCK_PATH)["profiles"]["clickhouse"],
+                "workload_adapter": {
+                    "registry_sha256": plan["adapter_registry"]["sha256"],
+                    "identity": plan["workload_adapter"],
+                },
+            },
+        )
+        selected = inputs["workload_adapter"]
+        registry_path = target / selected["registry"]["path"]
+        resolved = qualification.validate_adapter_registry(
+            registry_path,
+            target / "inputs",
+            selected_adapter_id="clickhouse-phase-a-v1",
+        )
+        expected = copy.deepcopy(plan["workload_adapter"])
+        expected.pop("id")
+        self.assertEqual(resolved["clickhouse-phase-a-v1"], expected)
+        self.assertFalse((target / "inputs/workload-adapters/postgres_phase_a_v1.py").exists())
+
+    def test_selected_semantics_module_substitution_is_rejected(self) -> None:
+        registry_record = self.bundle_inputs["workload_adapter"]["registry"]
+        registry_path = self.bundle_dir / registry_record["path"]
+        registry = qualification.load_json(registry_path)
+        registry["adapters"]["postgres-phase-a-v1"]["semantics"]["module"] = "clickhouse-phase-a-semantics-v1"
+        qualification.write_json(registry_path, registry)
+        with self.assertRaisesRegex(qualification.QualificationError, "module identity"):
+            qualification.validate_adapter_registry(
+                registry_path,
+                self.bundle_dir / "inputs",
+                selected_adapter_id="postgres-phase-a-v1",
+            )
+
+    def test_unrelated_registry_tamper_is_rejected_by_bundle_digest(self) -> None:
+        registry_record = self.bundle_inputs["workload_adapter"]["registry"]
+        registry_path = self.bundle_dir / registry_record["path"]
+        registry = qualification.load_json(registry_path)
+        registry["adapters"]["clickhouse-phase-a-v1"]["version"] = "tampered"
+        qualification.write_json(registry_path, registry)
+        with self.assertRaisesRegex(qualification.QualificationError, "adapter digest mismatch: registry"):
+            qualification.verify_bundle(self.bundle_dir)
 
     def test_retry_preparation_artifacts_are_unique_and_verifiable(self) -> None:
         preparation = qualification.load_json(
@@ -990,6 +1062,7 @@ class QualificationBundleTests(unittest.TestCase):
                     "semantics_sha256": qualification.sha256_file(
                         ADAPTER_DIR / "postgres_phase_a_semantics.py"
                     ),
+                    "semantics_module": "postgres-phase-a-semantics-v1",
                     "oracle_path": oracle_path,
                 },
             )
@@ -1012,6 +1085,7 @@ class QualificationBundleTests(unittest.TestCase):
                     "fixture_id": execution_fixture["jobs"][self.scenario["job_id"]]["fixture_id"],
                     "semantics_path": different_semantics,
                     "semantics_sha256": qualification.sha256_file(different_semantics),
+                    "semantics_module": "postgres-phase-a-semantics-v1",
                     "oracle_path": ADAPTER_DIR / "oracles" / "postgres-phase-a-v1.json",
                 },
             )

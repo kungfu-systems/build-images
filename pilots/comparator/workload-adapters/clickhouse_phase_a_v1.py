@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the fixed PostgreSQL Phase A workload inside one comparator Compose project."""
+"""Run the fixed ClickHouse Phase A workload inside one comparator Compose project."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ import subprocess
 import sys
 from typing import Any
 
-from postgres_phase_a_semantics import (
+from clickhouse_phase_a_semantics import (
     DECISION_LOGIC_VERSION,
     JOB_RECEIPT_SCHEMA,
     OBSERVED_FACTS_SCHEMA,
@@ -24,9 +24,9 @@ from postgres_phase_a_semantics import (
     validate_execution_fixture,
 )
 
-ADAPTER_ID = "postgres-phase-a-v1"
+ADAPTER_ID = "clickhouse-phase-a-v1"
 ADAPTER_VERSION = "1.2.0"
-ENTRYPOINT = "postgres-phase-a-v1"
+ENTRYPOINT = "clickhouse-phase-a-v1"
 ACTION = "workload-adapter"
 SCRIPT_PATH = pathlib.Path(__file__).resolve()
 ADAPTER_DIR = SCRIPT_PATH.parent
@@ -95,7 +95,7 @@ def sha256_json(value: Any) -> str:
 
 
 def sql_literal(value: str) -> str:
-    return "'" + value.replace("'", "''") + "'"
+    return "'" + value.replace("\\", "\\\\").replace("'", "\\'") + "'"
 
 
 def adapter_binding(
@@ -108,7 +108,7 @@ def adapter_binding(
 ) -> dict[str, Any]:
     payload = {
         "schema": "urn:kungfu-systems:build-images:workload-binding:v2",
-        "profile": "postgres",
+        "profile": "clickhouse",
         "scenario_id": scenario_id,
         "job_id": job_id,
         "tier": tier,
@@ -135,28 +135,28 @@ def validate_adapter(job_id: str, tier: str) -> tuple[dict[str, Any], pathlib.Pa
         raise AdapterError(f"adapter is not registered: {ADAPTER_ID}")
     if adapter.get("version") != ADAPTER_VERSION or adapter.get("entrypoint") != ENTRYPOINT:
         raise AdapterError("adapter version or entrypoint does not match the fixed implementation")
-    if adapter.get("artifact") != "workload-adapters/postgres_phase_a_v1.py":
+    if adapter.get("artifact") != "workload-adapters/clickhouse_phase_a_v1.py":
         raise AdapterError("adapter artifact path is not allowlisted")
     if adapter.get("sha256") != sha256_file(SCRIPT_PATH):
         raise AdapterError("adapter source digest does not match the registry")
     semantics_record = adapter.get("semantics")
-    semantics_path = ADAPTER_DIR / "postgres_phase_a_semantics.py"
+    semantics_path = ADAPTER_DIR / "clickhouse_phase_a_semantics.py"
     if (
         not isinstance(semantics_record, dict)
         or semantics_record.get("module") != SEMANTICS_MODULE_ID
-        or semantics_record.get("path") != "workload-adapters/postgres_phase_a_semantics.py"
+        or semantics_record.get("path") != "workload-adapters/clickhouse_phase_a_semantics.py"
     ):
         raise AdapterError("adapter semantics path is not allowlisted")
     if semantics_record.get("sha256") != sha256_file(semantics_path):
         raise AdapterError("adapter semantics digest does not match the registry")
     fixture_record = adapter.get("fixture")
-    if not isinstance(fixture_record, dict) or fixture_record.get("path") != "workload-adapters/fixtures/postgres-phase-a-v1.json":
+    if not isinstance(fixture_record, dict) or fixture_record.get("path") != "workload-adapters/fixtures/clickhouse-phase-a-v1.json":
         raise AdapterError("adapter fixture path is not allowlisted")
     fixture_path = PILOT_DIR / fixture_record["path"]
     if fixture_record.get("sha256") != sha256_file(fixture_path):
         raise AdapterError("adapter fixture digest does not match the registry")
     oracle_record = adapter.get("oracle")
-    if not isinstance(oracle_record, dict) or oracle_record.get("path") != "workload-adapters/oracles/postgres-phase-a-v1.json":
+    if not isinstance(oracle_record, dict) or oracle_record.get("path") != "workload-adapters/oracles/clickhouse-phase-a-v1.json":
         raise AdapterError("adapter oracle identity is not allowlisted")
     if not SHA256.fullmatch(str(oracle_record.get("sha256", ""))):
         raise AdapterError("adapter oracle digest is invalid")
@@ -254,7 +254,7 @@ class ComposeProject:
                 raise AdapterError("counted Compose up commands must use --pull never")
         command = [
             "docker", "compose", "-f", str(COMPOSE_PATH),
-            "--project-name", self.project, "--profile", "postgres", *arguments,
+            "--project-name", self.project, "--profile", "clickhouse", *arguments,
         ]
         return self._run_fixed_command(
             command,
@@ -288,47 +288,56 @@ class ComposeProject:
 
     def up(self, *services: str) -> None:
         self.command("config", "--quiet")
-        self.command("up", "-d", "--wait", "--pull", "never", *(services or ("runner", "postgres")))
+        self.command("up", "-d", "--wait", "--pull", "never", *(services or ("runner", "clickhouse")))
 
-    def psql(self, sql: str, *, application_name: str = "phase-a-adapter") -> str:
+    def query(self, sql: str, *, query_id: str = "phase-a-adapter", input_text: str | None = None) -> str:
         process = self.command(
-            "exec", "-T", "-e", f"PGAPPNAME={application_name}",
-            "postgres", "psql", "-X", "-U", "pilot", "-d", "pilot",
-            "-v", "ON_ERROR_STOP=1", "-At", "-c", sql,
+            "exec", "-T", "clickhouse", "clickhouse-client",
+            "--user", "pilot", "--password", "pilot-local-only", "--database", "pilot",
+            "--multiquery", "--query_id", query_id, "--format", "TabSeparatedRaw", "--query", sql,
+            input_text=input_text,
         )
         return process.stdout.strip()
 
 
+def create_schema(project: ComposeProject) -> None:
+    project.query(
+        "CREATE TABLE qualification_facts ("
+        "seq UInt64, job_id String, tier LowCardinality(String), event_version UInt32, "
+        "payload String, evidence_ref String, created_at DateTime64(3) DEFAULT now64(3)) "
+        "ENGINE=MergeTree ORDER BY (job_id,tier,seq);"
+        "CREATE TABLE qualification_receipts ("
+        "receipt_id UInt64, job_id String, tier LowCardinality(String), state String, "
+        "payload String, created_at DateTime64(3) DEFAULT now64(3)) "
+        "ENGINE=MergeTree ORDER BY (job_id,tier,receipt_id);"
+    )
+
+
 def initialize_schema(project: ComposeProject, job_id: str, tier: str, facts: dict[str, Any]) -> None:
     payload = sql_literal(json.dumps(facts, sort_keys=True, separators=(",", ":")))
-    project.psql(
-        "CREATE TABLE qualification_facts ("
-        "seq bigserial PRIMARY KEY, job_id text NOT NULL, tier text NOT NULL, "
-        "event_version integer NOT NULL, payload jsonb NOT NULL, evidence_ref text NOT NULL, "
-        "created_at timestamptz NOT NULL DEFAULT clock_timestamp());"
-        "CREATE TABLE qualification_receipts ("
-        "receipt_id bigserial PRIMARY KEY, job_id text NOT NULL, tier text NOT NULL, "
-        "state text NOT NULL, payload jsonb NOT NULL, created_at timestamptz NOT NULL DEFAULT clock_timestamp());"
-        f"INSERT INTO qualification_facts(job_id,tier,event_version,payload,evidence_ref) VALUES ("
-        f"{sql_literal(job_id)},{sql_literal(tier)},1,{payload}::jsonb,'execution-input-v2');"
+    create_schema(project)
+    project.query(
+        "INSERT INTO qualification_facts(seq,job_id,tier,event_version,payload,evidence_ref) VALUES ("
+        f"1,{sql_literal(job_id)},{sql_literal(tier)},1,{payload},'execution-input-v2');"
     )
 
 
 def exercise_tier(project: ComposeProject, job_id: str, tier: str, facts: dict[str, Any]) -> dict[str, Any]:
     initialize_schema(project, job_id, tier, facts)
     if tier == "normal":
-        observed = project.psql("SELECT count(*) FROM qualification_facts;")
+        observed = project.query("SELECT count(*) FROM qualification_facts;")
         return {"operation": "current-fact-query", "observed_rows": int(observed)}
     if tier == "concurrent":
         sql_template = (
-            "INSERT INTO qualification_facts(job_id,tier,event_version,payload,evidence_ref) VALUES ("
-            f"{sql_literal(job_id)},{sql_literal(tier)},2,'{{\"writer\":\"%s\"}}'::jsonb,%s);"
+            "INSERT INTO qualification_facts(seq,job_id,tier,event_version,payload,evidence_ref) VALUES ("
+            f"%s,{sql_literal(job_id)},{sql_literal(tier)},2,'{{\"writer\":\"%s\"}}',%s);"
         )
         def write_concurrently(writer: str) -> subprocess.CompletedProcess[str]:
+            writer_number = "2" if writer == "agent-a" else "3"
             return project.command(
-                "exec", "-T", "postgres", "psql", "-X", "-U", "pilot", "-d", "pilot",
-                "-v", "ON_ERROR_STOP=1", "-c",
-                sql_template % (writer, sql_literal(f"concurrent-{writer}")),
+                "exec", "-T", "clickhouse", "clickhouse-client",
+                "--user", "pilot", "--password", "pilot-local-only", "--database", "pilot",
+                "--query", sql_template % (writer_number, writer, sql_literal(f"concurrent-{writer}")),
                 record=False,
             )
         with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
@@ -338,68 +347,70 @@ def exercise_tier(project: ComposeProject, job_id: str, tier: str, facts: dict[s
                 raise AdapterError(f"concurrent writer {index} failed")
             (project.output_dir / f"concurrent-writer-{index}.stdout.log").write_text(result.stdout, encoding="utf-8")
             (project.output_dir / f"concurrent-writer-{index}.stderr.log").write_text(result.stderr, encoding="utf-8")
-        observed = project.psql("SELECT count(*) FROM qualification_facts;")
+        observed = project.query("SELECT count(*) FROM qualification_facts;")
         return {"operation": "two-agent-concurrent-write", "observed_rows": int(observed), "writers": 2}
     if tier == "crash-recovery":
-        container_id = project.container_id("postgres")
-        project.command("kill", "-s", "SIGKILL", "postgres")
-        exit_code = project.wait_container(container_id, "postgres")
+        container_id = project.container_id("clickhouse")
+        project.command("kill", "-s", "SIGKILL", "clickhouse")
+        exit_code = project.wait_container(container_id, "clickhouse")
         if exit_code != 137:
-            raise AdapterError(f"crash-recovery postgres exit code is not SIGKILL: {exit_code}")
-        project.up("postgres")
-        observed = project.psql("SELECT count(*) FROM qualification_facts;")
+            raise AdapterError(f"crash-recovery ClickHouse exit code is not SIGKILL: {exit_code}")
+        project.up("clickhouse")
+        observed = project.query("SELECT count(*) FROM qualification_facts;")
         return {"operation": "sigkill-restart-query", "observed_rows": int(observed)}
     if tier == "whole-root-restore":
-        dump = project.command(
-            "exec", "-T", "postgres", "pg_dump", "-U", "pilot", "-d", "pilot",
-            "--no-owner", "--no-privileges",
-        ).stdout
-        backup_path = project.output_dir / "whole-root-backup.sql"
+        dump = project.query("SELECT * FROM qualification_facts FORMAT JSONEachRow") + "\n"
+        backup_path = project.output_dir / "whole-root-backup.jsonl"
         backup_path.write_text(dump, encoding="utf-8")
         project.command("down", "--volumes", "--remove-orphans")
         project.up()
-        project.command(
-            "exec", "-T", "postgres", "psql", "-X", "-U", "pilot", "-d", "pilot",
-            "-v", "ON_ERROR_STOP=1", input_text=dump,
+        create_schema(project)
+        project.query(
+            "INSERT INTO qualification_facts FORMAT JSONEachRow",
+            query_id="phase-a-logical-restore",
+            input_text=dump,
         )
-        observed = project.psql("SELECT count(*) FROM qualification_facts;")
+        observed = project.query("SELECT count(*) FROM qualification_facts;")
         return {
             "operation": "whole-project-volume-recreate-and-restore",
             "observed_rows": int(observed),
             "backup_sha256": sha256_file(backup_path),
         }
     if tier == "historical-query":
-        project.psql(
-            "INSERT INTO qualification_facts(job_id,tier,event_version,payload,evidence_ref) "
-            f"VALUES ({sql_literal(job_id)},{sql_literal(tier)},2,'{{\"revision\":2}}'::jsonb,'history-v2');"
+        project.query(
+            "INSERT INTO qualification_facts(seq,job_id,tier,event_version,payload,evidence_ref) "
+            f"VALUES (2,{sql_literal(job_id)},{sql_literal(tier)},2,'{{\"revision\":2}}','history-v2');"
         )
-        versions = project.psql("SELECT string_agg(event_version::text, ',' ORDER BY event_version) FROM qualification_facts;")
+        versions = project.query(
+            "SELECT arrayStringConcat(arrayMap(x -> toString(x), arraySort(groupArray(event_version))), ',') "
+            "FROM qualification_facts;"
+        )
         return {"operation": "ordered-history-query", "observed_versions": versions}
     if tier == "schema-evolution":
-        project.psql(
-            "ALTER TABLE qualification_facts ADD COLUMN schema_version integer NOT NULL DEFAULT 1;"
-            "UPDATE qualification_facts SET schema_version=2;"
+        project.query(
+            "ALTER TABLE qualification_facts ADD COLUMN schema_version UInt32 DEFAULT 1;"
+            "ALTER TABLE qualification_facts UPDATE schema_version=2 WHERE 1 SETTINGS mutations_sync=2;"
         )
-        observed = project.psql(
+        observed = project.query(
             "SELECT schema_version FROM qualification_facts ORDER BY seq LIMIT 1;"
         )
         return {"operation": "additive-schema-migration", "observed_schema_version": int(observed)}
     if tier == "new-agent-takeover":
-        project.psql(
-            "INSERT INTO qualification_receipts(job_id,tier,state,payload) VALUES ("
-            f"{sql_literal(job_id)},{sql_literal(tier)},'handoff-ready','{{\"owner\":\"agent-a\"}}'::jsonb);"
+        project.query(
+            "INSERT INTO qualification_receipts(receipt_id,job_id,tier,state,payload) VALUES ("
+            f"1,{sql_literal(job_id)},{sql_literal(tier)},'handoff-ready','{{\"owner\":\"agent-a\"}}');"
         )
-        observed = project.psql(
+        observed = project.query(
             "SELECT state FROM qualification_receipts ORDER BY receipt_id DESC LIMIT 1;",
-            application_name="new-agent-takeover",
+            query_id="new-agent-takeover",
         )
         return {"operation": "fresh-session-handoff-query", "observed_state": observed}
     raise AdapterError(f"unsupported tier: {tier}")
 
 
 def observe_job_facts(project: ComposeProject, job_id: str, tier: str, binding_sha256: str) -> dict[str, Any]:
-    encoded = project.psql(
-        "SELECT payload::text FROM qualification_facts "
+    encoded = project.query(
+        "SELECT payload FROM qualification_facts "
         f"WHERE job_id={sql_literal(job_id)} AND tier={sql_literal(tier)} "
         "AND event_version=1 AND evidence_ref='execution-input-v2' "
         "ORDER BY seq LIMIT 1;"
@@ -479,7 +490,7 @@ def run(args: argparse.Namespace) -> pathlib.Path:
     )
     tier_evidence.update(
         {
-            "schema": "urn:kungfu-systems:build-images:postgres-tier-evidence:v1",
+            "schema": "urn:kungfu-systems:build-images:clickhouse-tier-evidence:v1",
             "job_id": args.job_id,
             "tier": args.tier,
             "binding_sha256": binding["sha256"],
@@ -553,7 +564,7 @@ def main() -> int:
         else:
             run(args)
     except (AdapterError, OSError, subprocess.SubprocessError) as error:
-        print(f"postgres phase-a adapter error: {error}", file=sys.stderr)
+        print(f"clickhouse phase-a adapter error: {error}", file=sys.stderr)
         return 1
     return 0
 
