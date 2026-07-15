@@ -1,16 +1,16 @@
-"""Deterministic job verdicts for the PostgreSQL Phase A workload adapter."""
+"""Deterministic job verdicts for the ClickHouse Phase A workload adapter."""
 
 from __future__ import annotations
 
 import re
 from typing import Any
 
-SEMANTICS_MODULE_ID = "postgres-phase-a-semantics-v1"
-DECISION_LOGIC_VERSION = "postgres-phase-a-decisions-v2"
-EXECUTION_FIXTURE_SCHEMA = "urn:kungfu-systems:build-images:postgres-phase-a-execution-input:v2"
-VERIFIER_ORACLE_SCHEMA = "urn:kungfu-systems:build-images:postgres-phase-a-verifier-oracle:v1"
-OBSERVED_FACTS_SCHEMA = "urn:kungfu-systems:build-images:postgres-observed-facts:v1"
-JOB_RECEIPT_SCHEMA = "urn:kungfu-systems:build-images:postgres-job-receipt:v2"
+SEMANTICS_MODULE_ID = "clickhouse-phase-a-semantics-v1"
+DECISION_LOGIC_VERSION = "clickhouse-phase-a-decisions-v2"
+EXECUTION_FIXTURE_SCHEMA = "urn:kungfu-systems:build-images:clickhouse-phase-a-execution-input:v2"
+VERIFIER_ORACLE_SCHEMA = "urn:kungfu-systems:build-images:clickhouse-phase-a-verifier-oracle:v1"
+OBSERVED_FACTS_SCHEMA = "urn:kungfu-systems:build-images:clickhouse-observed-facts:v1"
+JOB_RECEIPT_SCHEMA = "urn:kungfu-systems:build-images:clickhouse-job-receipt:v2"
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
 JOB_IDS = (
     "J1-multi-session-progress-triage",

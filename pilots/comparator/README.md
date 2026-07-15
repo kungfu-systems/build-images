@@ -109,7 +109,15 @@ fixture SHA-256, verifier-only oracle SHA-256, and job/tier mapping.
 
 The comparator program outside this repository owns the frozen charter,
 product-advocate review, report, scoring, and Phase B join. build-images owns
-only reproducible execution and bundle integrity.
+only reproducible execution and bundle integrity. Production plans exist for
+both PostgreSQL and ClickHouse. Each plan binds its selected adapter,
+digest-loaded semantics module, execution fixture, verifier-only oracle,
+Compose file, environment lock, exact subject image, and exact runner image.
+
+The ClickHouse subject is the build-images-owned `clickhouse-server` GHCR
+mirror. Its Dockerfile pins the reviewed upstream `26.3.10.60-lts` digest, and
+the production plan consumes an accepted GHCR digest from an earlier reviewed
+alpha. Formal hosts therefore never need an unbounded direct Docker Hub pull.
 
 ```bash
 python3 pilots/comparator/scripts/comparator_qualification.py \
@@ -162,7 +170,10 @@ retained separately. The execution fixture contains no expected outcome. The
 self-contained bundle also retains the exact Compose file, environment lock,
 pilot adapter, qualification runner, workload adapter registry, adapter
 artifact, semantic evaluator, execution fixture, verifier-only oracle, and
-their digests. It also binds the verified image-preparation manifest and its raw
+their digests. The full registry is digest-bound, while offline validation is
+scoped to the selected adapter closure; unrelated adapter files are not hidden
+dependencies of a self-contained bundle. It also binds the verified
+image-preparation manifest and its raw
 logs; the offline verifier rejects missing, altered, or extra preparation
 artifacts. Every run binds the scenario, declared job, tier, action,
 adapter inputs, observed facts, and tier evidence into SHA-256 receipts. The
@@ -189,13 +200,14 @@ Checked-in plans under `tests/fixtures/qualification-plans/` are marked
 `test_only=true`. They prove that one runner resolves all four adapters but are
 explicitly forbidden from issuing qualification receipts. They remain generic
 `profile-smoke` checks and cannot be relabelled as declared comparator jobs. The
-non-test `plans/postgres-phase-a-v1.json` plan covers J1/J2/J3 across all seven
-Phase A tiers through the digest-locked PostgreSQL adapter.
+non-test `plans/postgres-phase-a-v1.json` and
+`plans/clickhouse-phase-a-v1.json` plans each cover J1/J2/J3 across all seven
+Phase A tiers through their digest-locked adapters.
 
 The `Comparator Qualification Contracts` workflow exposes a separately gated
-`run_lifecycle` dispatch input and the `run-comparator-lifecycle` pull-request
-label. Either gate runs the complete frozen 3x21 PostgreSQL plan on a
-GitHub-hosted Docker worker, verifies the resulting bundle offline, injects a
-separate workload failure, proves that its scoped containers, volumes, and
+`run_lifecycle` dispatch input plus PostgreSQL and ClickHouse pull-request
+labels. The dispatch runs both complete frozen 3x21 plans on a GitHub-hosted
+Docker worker, verifies each resulting bundle offline, injects a separate
+PostgreSQL workload failure, proves that its scoped containers, volumes, and
 networks are also gone, and retains all evidence as a 30-day workflow artifact.
 Ordinary pull requests do not start this long-running lifecycle job.

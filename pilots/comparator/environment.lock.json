@@ -23,7 +23,7 @@
     "clickhouse": {
       "status": "ready",
       "version": "26.3.10.60-lts",
-      "image": "clickhouse/clickhouse-server:26.3.10.60@sha256:92098d3b31dd01ba7d176faa3278d3577de9e32d847cd4b840dae8087b8d35b4",
+      "image": "ghcr.io/kungfu-systems/build-images/clickhouse-server@sha256:964dfcdf7f33ed509f50757061456618e1a13d99340e86c678130f9bd235cdc8",
       "source": "https://github.com/ClickHouse/ClickHouse/releases/tag/v26.3.10.60-lts"
     },
     "postgres": {

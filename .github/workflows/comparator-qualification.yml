@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       run_lifecycle:
-        description: Run the complete 3x21 PostgreSQL lifecycle qualification
+        description: Run both complete 3x21 production lifecycle qualifications
         required: true
         type: boolean
         default: false
@@ -76,6 +76,13 @@ jobs:
             --project-name "${project}" \
             --profile postgres \
             config --quiet
+
+      - name: Validate both production qualification plans
+        run: |
+          python3 pilots/comparator/scripts/comparator_qualification.py validate-plan \
+            --plan pilots/comparator/plans/postgres-phase-a-v1.json
+          python3 pilots/comparator/scripts/comparator_qualification.py validate-plan \
+            --plan pilots/comparator/plans/clickhouse-phase-a-v1.json
 
       - name: Prove test fixtures cannot issue receipts
         shell: bash
@@ -162,5 +169,41 @@ jobs:
         with:
           name: comparator-postgres-phase-a-${{ github.run_id }}
           path: pilots/comparator/.artifacts/qualification/postgres-phase-a-v1/
+          if-no-files-found: error
+          retention-days: 30
+
+  clickhouse-lifecycle:
+    name: clickhouse-3x21-lifecycle
+    if: >-
+      (github.event_name == 'workflow_dispatch' && inputs.run_lifecycle) ||
+      (github.event_name == 'pull_request' && github.event.action == 'labeled' &&
+      github.event.label.name == 'run-clickhouse-lifecycle')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Run the frozen ClickHouse qualification
+        run: |
+          python3 pilots/comparator/scripts/comparator_qualification.py run \
+            --plan pilots/comparator/plans/clickhouse-phase-a-v1.json \
+            --execute
+
+      - name: Verify the retained qualification bundle offline
+        shell: bash
+        run: |
+          set -euo pipefail
+          bundle="$(find pilots/comparator/.artifacts/qualification/clickhouse-phase-a-v1 \
+            -mindepth 1 -maxdepth 1 -type d -name 'qual-clickhouse-*' -print -quit)"
+          test -n "${bundle}"
+          python3 pilots/comparator/scripts/comparator_qualification.py \
+            verify-bundle --bundle "${bundle}"
+
+      - name: Upload qualification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: comparator-clickhouse-phase-a-${{ github.run_id }}
+          path: pilots/comparator/.artifacts/qualification/clickhouse-phase-a-v1/
           if-no-files-found: error
           retention-days: 30
