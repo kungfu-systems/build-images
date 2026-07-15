@@ -174,7 +174,7 @@
         "roleValid": true,
         "package": {
           "name": "@kungfu-tech/buildchain",
-          "version": "2.12.7-alpha.8"
+          "version": "2.12.7-alpha.9"
         },
         "repository": "https://github.com/kungfu-systems/buildchain",
         "kfd": {
@@ -442,7 +442,7 @@
         "kfd"
       ],
       "packageVersions": {
-        "buildchain": "2.12.7-alpha.8",
+        "buildchain": "2.12.7-alpha.9",
         "kfd": "1.0.0-alpha.21"
       },
       "status": "collected"
