@@ -1,0 +1,11 @@
+#!/bin/sh
+set -eu
+
+kit_root="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
+java_bin="${AERON_NATIVE_KIT_JAVA:-${kit_root}/jre/bin/java}"
+
+exec "${java_bin}" \
+  --add-opens java.base/jdk.internal.misc=ALL-UNNAMED \
+  --add-opens java.base/java.util.zip=ALL-UNNAMED \
+  -cp "${kit_root}/lib/aeron-qualification-harness.jar:${kit_root}/lib/aeron-all.jar" \
+  io.kungfu.aeron.QualificationHarness "$@"
