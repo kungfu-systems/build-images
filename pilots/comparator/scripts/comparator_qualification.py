@@ -58,6 +58,7 @@ TRANSIENT_PULL_ERROR = re.compile(
 IMAGE_PREPARATION_SCHEMA = "urn:kungfu-systems:build-images:comparator-image-preparation:v1"
 PULL_MAX_ATTEMPTS = 3
 PULL_RETRY_DELAYS_SECONDS = (2, 5)
+PROJECT_RESOURCE_CHECK_TIMEOUT_SECONDS = 15
 CLAIM_BOUNDARY = (
     "Containerized user-outcome qualification only; native-host performance, "
     "fresh-install cost, final scoring, and winner declarations remain outside this bundle."
@@ -738,6 +739,58 @@ def normalize_timeout_output(value: str | bytes | None) -> str:
     return value.decode("utf-8", errors="replace") if isinstance(value, bytes) else value
 
 
+def inspect_project_resources(
+    project: str,
+    environment: dict[str, str],
+    *,
+    timeout_seconds: int = PROJECT_RESOURCE_CHECK_TIMEOUT_SECONDS,
+) -> dict[str, Any]:
+    label = f"label=com.docker.compose.project={project}"
+    commands = {
+        "containers": ["docker", "ps", "-aq", "--filter", label],
+        "volumes": ["docker", "volume", "ls", "-q", "--filter", label],
+        "networks": ["docker", "network", "ls", "-q", "--filter", label],
+    }
+    checks: dict[str, Any] = {}
+    for resource, command in commands.items():
+        timed_out = False
+        try:
+            process = subprocess.run(
+                command,
+                cwd=REPO_ROOT,
+                env=environment,
+                capture_output=True,
+                text=True,
+                timeout=timeout_seconds,
+            )
+            stdout = process.stdout
+            stderr = process.stderr
+            exit_code = process.returncode
+        except subprocess.TimeoutExpired as error:
+            timed_out = True
+            stdout = normalize_timeout_output(error.stdout)
+            stderr = normalize_timeout_output(error.stderr) + "\nproject resource check timed out\n"
+            exit_code = 124
+        checks[resource] = {
+            "argv": command,
+            "exit_code": exit_code,
+            "timed_out": timed_out,
+            "timeout_seconds": timeout_seconds,
+            "stdout": stdout,
+            "stderr": stderr,
+            "resources": [line for line in stdout.splitlines() if line],
+        }
+    return {
+        "schema": "urn:kungfu-systems:build-images:comparator-project-cleanup:v1",
+        "project": project,
+        "checks": checks,
+        "passed": all(
+            check["exit_code"] == 0 and not check["resources"]
+            for check in checks.values()
+        ),
+    }
+
+
 def controlled_environment() -> dict[str, str]:
     return {name: value for name, value in os.environ.items() if name in RUNTIME_ENV_ALLOWLIST}
 
@@ -1278,6 +1331,11 @@ def execute_step(
         cleanup_exit_code = 124
         cleanup_stdout = normalize_timeout_output(error.stdout)
         cleanup_stderr = normalize_timeout_output(error.stderr) + "\nproject cleanup timed out\n"
+    cleanup_resources = inspect_project_resources(project, environment)
+    cleanup_resources_path = step_dir / "cleanup.resources.json"
+    write_json(cleanup_resources_path, cleanup_resources)
+    if not cleanup_resources["passed"] and cleanup_exit_code == 0:
+        cleanup_exit_code = 125
     duration = round(time.monotonic() - started, 6)
     (step_dir / "stdout.log").write_text(stdout, encoding="utf-8")
     (step_dir / "stderr.log").write_text(stderr, encoding="utf-8")
@@ -1302,6 +1360,11 @@ def execute_step(
         "timed_out": timed_out,
         "exit_code": exit_code,
         "cleanup_exit_code": cleanup_exit_code,
+        "cleanup_resources": {
+            "path": cleanup_resources_path.name,
+            "sha256": sha256_file(cleanup_resources_path),
+            "passed": cleanup_resources["passed"],
+        },
         "oracles": oracle_results,
         "passed": cleanup_exit_code == 0 and exit_code == 0 and all(result["passed"] for result in oracle_results),
     }
@@ -1980,8 +2043,6 @@ def verify_bundle(bundle_dir: pathlib.Path, *, require_authority: bool = True) -
         if observed_steps != expected_steps:
             raise QualificationError(f"run manifest step order does not match the plan: {relative}")
         for observed_step, (planned_scenario, planned_step) in zip(steps, plan_steps):
-            if observed_step.get("cleanup_exit_code") != 0:
-                raise QualificationError(f"run manifest project cleanup failed: {relative}")
             step_dir = run_path.parent / "raw" / planned_scenario["id"] / planned_step["id"]
             binding = workload_binding(
                 bundle["profile"],
@@ -2006,6 +2067,40 @@ def verify_bundle(bundle_dir: pathlib.Path, *, require_authority: bool = True) -
             }
             if observed_adapter != expected_adapter_evidence:
                 raise QualificationError(f"run manifest workload binding does not match the plan: {relative}")
+            if observed_step.get("exit_code") != 0 or not all(
+                oracle.get("passed") is True for oracle in observed_step.get("oracles", [])
+            ):
+                raise QualificationError(
+                    "run manifest contains a failed step/oracle: "
+                    f"{relative} ({planned_scenario['id']}/{planned_step['id']})"
+                )
+            if observed_step.get("cleanup_exit_code") != 0:
+                raise QualificationError(f"run manifest project cleanup failed: {relative}")
+            cleanup_path = step_dir / "cleanup.resources.json"
+            cleanup_binding = observed_step.get("cleanup_resources")
+            expected_cleanup_binding = {
+                "path": "cleanup.resources.json",
+                "sha256": sha256_file(cleanup_path) if cleanup_path.is_file() else "",
+                "passed": True,
+            }
+            if cleanup_binding != expected_cleanup_binding:
+                raise QualificationError(f"run manifest cleanup resource evidence mismatch: {relative}")
+            cleanup_evidence = load_json(cleanup_path)
+            cleanup_checks = cleanup_evidence.get("checks")
+            if (
+                cleanup_evidence.get("project") != observed_step.get("project")
+                or cleanup_evidence.get("passed") is not True
+                or not isinstance(cleanup_checks, dict)
+                or set(cleanup_checks) != {"containers", "volumes", "networks"}
+                or any(
+                    not isinstance(check, dict)
+                    or check.get("exit_code") != 0
+                    or check.get("timed_out") is not False
+                    or check.get("resources") != []
+                    for check in cleanup_checks.values()
+                )
+            ):
+                raise QualificationError(f"run manifest project resources remain after cleanup: {relative}")
             receipt_path = step_dir / "adapter-receipt.json"
             tier_evidence_path = step_dir / "tier-evidence.json"
             observed_facts_path = step_dir / "observed-facts.json"

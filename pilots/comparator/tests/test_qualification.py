@@ -279,6 +279,95 @@ class QualificationExecutionTests(unittest.TestCase):
             with self.assertRaisesRegex(postgres_adapter.AdapterError, "--pull never"):
                 project.command("up", "-d")
 
+    def test_postgres_healthcheck_waits_for_the_final_server_process(self) -> None:
+        compose = qualification.COMPOSE_PATH.read_text(encoding="utf-8")
+        self.assertIn("cat /proc/1/comm", compose)
+        self.assertIn("= postgres && pg_isready -U pilot -d pilot", compose)
+
+    def test_runner_pid_one_exits_directly_on_sigterm(self) -> None:
+        compose = qualification.COMPOSE_PATH.read_text(encoding="utf-8")
+        self.assertIn('command: ["sleep", "infinity"]', compose)
+        self.assertIn("stop_grace_period: 5s", compose)
+
+    def test_compose_command_timeout_records_partial_output_and_fails_closed(self) -> None:
+        timeout = subprocess.TimeoutExpired(
+            ["docker", "compose", "down"],
+            120,
+            output="partial stdout",
+            stderr="daemon blocked",
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            output_dir = pathlib.Path(temporary)
+            project = postgres_adapter.ComposeProject(
+                "kf-qual-postgres-command-timeout",
+                output_dir,
+            )
+            with mock.patch.object(postgres_adapter.subprocess, "run", side_effect=timeout) as run:
+                with self.assertRaisesRegex(
+                    postgres_adapter.AdapterError,
+                    "timed out after 120s: down --volumes",
+                ):
+                    project.command("down", "--volumes", check=False)
+            self.assertEqual(run.call_args.kwargs["timeout"], 120)
+            self.assertEqual(
+                (output_dir / "commands" / "001.stdout.log").read_text(encoding="utf-8"),
+                "partial stdout",
+            )
+            self.assertIn(
+                "daemon blocked",
+                (output_dir / "commands" / "001.stderr.log").read_text(encoding="utf-8"),
+            )
+            record = qualification.load_json(output_dir / "commands" / "001.json")
+            self.assertEqual(record["exit_code"], 124)
+            self.assertTrue(record["timed_out"])
+
+    def test_crash_recovery_waits_for_sigkill_before_restart(self) -> None:
+        project = mock.Mock()
+        project.psql.side_effect = ["", "1"]
+        project.command.side_effect = [
+            mock.Mock(returncode=0),
+            mock.Mock(returncode=137),
+        ]
+
+        evidence = postgres_adapter.exercise_tier(project, "J1", "crash-recovery", {})
+
+        self.assertEqual(
+            project.method_calls,
+            [
+                mock.call.psql(mock.ANY),
+                mock.call.command("kill", "-s", "SIGKILL", "postgres"),
+                mock.call.command("wait", "postgres", check=False),
+                mock.call.up("postgres"),
+                mock.call.psql("SELECT count(*) FROM qualification_facts;"),
+            ],
+        )
+        self.assertEqual(evidence["observed_rows"], 1)
+
+    def test_project_resource_check_proves_zero_scoped_resources(self) -> None:
+        empty = subprocess.CompletedProcess([], 0, "", "")
+        with mock.patch.object(qualification.subprocess, "run", side_effect=[empty, empty, empty]) as run:
+            evidence = qualification.inspect_project_resources(
+                "kf-qual-postgres-resource-proof",
+                {"PATH": "/usr/bin"},
+            )
+        self.assertTrue(evidence["passed"])
+        self.assertEqual(len(run.call_args_list), 3)
+        self.assertTrue(all(call.kwargs["timeout"] == 15 for call in run.call_args_list))
+
+    def test_project_resource_check_rejects_leftover_volume(self) -> None:
+        results = [
+            subprocess.CompletedProcess([], 0, "", ""),
+            subprocess.CompletedProcess([], 0, "leftover-volume\n", ""),
+            subprocess.CompletedProcess([], 0, "", ""),
+        ]
+        with mock.patch.object(qualification.subprocess, "run", side_effect=results):
+            evidence = qualification.inspect_project_resources(
+                "kf-qual-postgres-resource-leak",
+                {"PATH": "/usr/bin"},
+            )
+        self.assertFalse(evidence["passed"])
+        self.assertEqual(evidence["checks"]["volumes"]["resources"], ["leftover-volume"])
+
     def test_cold_host_pull_retry_finishes_before_all_63_formal_steps(self) -> None:
         plan, resolved = qualification.resolve_plan(PRODUCTION_PLAN)
         self.assertEqual(
@@ -359,7 +448,16 @@ class QualificationExecutionTests(unittest.TestCase):
         cleanup = mock.Mock(returncode=0, stdout="cleanup ok\n", stderr="")
         with tempfile.TemporaryDirectory() as temporary:
             repetition_dir = pathlib.Path(temporary) / "repetition-001"
-            with mock.patch.object(qualification.subprocess, "run", side_effect=[timeout, cleanup]) as run:
+            resource_evidence = {
+                "schema": "urn:kungfu-systems:build-images:comparator-project-cleanup:v1",
+                "project": "synthetic",
+                "checks": {},
+                "passed": True,
+            }
+            with (
+                mock.patch.object(qualification.subprocess, "run", side_effect=[timeout, cleanup]) as run,
+                mock.patch.object(qualification, "inspect_project_resources", return_value=resource_evidence),
+            ):
                 result = qualification.execute_step(
                     "aeron",
                     {},
@@ -375,6 +473,7 @@ class QualificationExecutionTests(unittest.TestCase):
             project_index = cleanup_command.index("--project-name") + 1
             self.assertEqual(result["exit_code"], 124)
             self.assertEqual(result["cleanup_exit_code"], 0)
+            self.assertTrue(result["cleanup_resources"]["passed"])
             self.assertFalse(result["passed"])
             self.assertIn("--project-name", cleanup_command)
             self.assertEqual(execution_environment["COMPARATOR_PROJECT_NAME"], cleanup_command[project_index])
@@ -553,6 +652,27 @@ class QualificationBundleTests(unittest.TestCase):
                     "tier_evidence": "tier-evidence.json",
                 },
             )
+            cleanup_path = raw / "cleanup.resources.json"
+            qualification.write_json(
+                cleanup_path,
+                {
+                    "schema": "urn:kungfu-systems:build-images:comparator-project-cleanup:v1",
+                    "project": f"synthetic-{repetition}",
+                    "checks": {
+                        resource: {
+                            "argv": ["docker", resource, "ls"],
+                            "exit_code": 0,
+                            "timed_out": False,
+                            "timeout_seconds": 15,
+                            "stdout": "",
+                            "stderr": "",
+                            "resources": [],
+                        }
+                        for resource in ("containers", "volumes", "networks")
+                    },
+                    "passed": True,
+                },
+            )
             manifest = {
                 "run_schema": qualification.RUN_SCHEMA_ID,
                 "schema_version": 1,
@@ -617,6 +737,11 @@ class QualificationBundleTests(unittest.TestCase):
                         "timed_out": False,
                         "exit_code": 0,
                         "cleanup_exit_code": 0,
+                        "cleanup_resources": {
+                            "path": "cleanup.resources.json",
+                            "sha256": qualification.sha256_file(cleanup_path),
+                            "passed": True,
+                        },
                         "oracles": qualification.evaluate_oracles(
                             raw,
                             0,
@@ -737,6 +862,46 @@ class QualificationBundleTests(unittest.TestCase):
         target = self.bundle_dir / "preparation" / "image-01.pull-01.stderr.log"
         target.write_text("tampered\n", encoding="utf-8")
         with self.assertRaisesRegex(qualification.QualificationError, "preparation artifact integrity"):
+            qualification.verify_bundle(self.bundle_dir)
+
+    def test_offline_verification_reports_failed_step_before_missing_receipt(self) -> None:
+        repetition_dir = self.bundle_dir / "repetition-001"
+        run_path = repetition_dir / "run-manifest.json"
+        run = qualification.load_json(run_path)
+        run["status"] = "failed"
+        run["qualification_candidate"] = False
+        run["steps"][0]["exit_code"] = 1
+        run["steps"][0]["passed"] = False
+        receipt = repetition_dir / "raw" / "j1-normal" / "execute" / "adapter-receipt.json"
+        receipt.unlink()
+        run["artifacts"] = qualification.artifact_records(repetition_dir, exclude={"run-manifest.json"})
+        qualification.write_json(run_path, run)
+        bundle_path = self.bundle_dir / "bundle-manifest.json"
+        bundle = qualification.load_json(bundle_path)
+        bundle["run_manifests"][0]["sha256"] = qualification.sha256_file(run_path)
+        bundle["run_manifests"][0]["status"] = "failed"
+        qualification.write_json(bundle_path, bundle)
+
+        with self.assertRaisesRegex(qualification.QualificationError, "failed step/oracle"):
+            qualification.verify_bundle(self.bundle_dir)
+
+    def test_offline_verification_rejects_relabelled_cleanup_resource_proof(self) -> None:
+        repetition_dir = self.bundle_dir / "repetition-001"
+        cleanup_path = repetition_dir / "raw" / "j1-normal" / "execute" / "cleanup.resources.json"
+        cleanup = qualification.load_json(cleanup_path)
+        cleanup["checks"]["volumes"]["resources"] = ["leftover-volume"]
+        qualification.write_json(cleanup_path, cleanup)
+        run_path = repetition_dir / "run-manifest.json"
+        run = qualification.load_json(run_path)
+        run["steps"][0]["cleanup_resources"]["sha256"] = qualification.sha256_file(cleanup_path)
+        run["artifacts"] = qualification.artifact_records(repetition_dir, exclude={"run-manifest.json"})
+        qualification.write_json(run_path, run)
+        bundle_path = self.bundle_dir / "bundle-manifest.json"
+        bundle = qualification.load_json(bundle_path)
+        bundle["run_manifests"][0]["sha256"] = qualification.sha256_file(run_path)
+        qualification.write_json(bundle_path, bundle)
+
+        with self.assertRaisesRegex(qualification.QualificationError, "resources remain"):
             qualification.verify_bundle(self.bundle_dir)
 
     def test_offline_verification_rejects_rebound_subject(self) -> None:

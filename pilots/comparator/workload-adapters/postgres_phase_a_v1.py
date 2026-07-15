@@ -48,10 +48,19 @@ JOB_RECEIPTS = {
     "J2-cross-repo-delivery-trust": "j2-delivery-receipt.json",
     "J3-interrupted-go-recovery-handoff": "j3-handoff-receipt.json",
 }
+COMPOSE_COMMAND_TIMEOUT_SECONDS = 120
 
 
 class AdapterError(ValueError):
     """A fixed adapter contract or execution failure."""
+
+
+def timeout_output(value: str | bytes | None) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, bytes):
+        return value.decode("utf-8", errors="replace")
+    return value
 
 
 def load_json(path: pathlib.Path) -> dict[str, Any]:
@@ -174,6 +183,7 @@ class ComposeProject:
         input_text: str | None = None,
         check: bool = True,
         record: bool = True,
+        timeout_seconds: int = COMPOSE_COMMAND_TIMEOUT_SECONDS,
     ) -> subprocess.CompletedProcess[str]:
         if arguments and arguments[0] == "up":
             pull_index = arguments.index("--pull") if "--pull" in arguments else -1
@@ -183,14 +193,26 @@ class ComposeProject:
             "docker", "compose", "-f", str(COMPOSE_PATH),
             "--project-name", self.project, "--profile", "postgres", *arguments,
         ]
-        process = subprocess.run(
-            command,
-            cwd=PILOT_DIR,
-            env={**os.environ, "COMPARATOR_PROJECT_NAME": self.project},
-            input=input_text,
-            capture_output=True,
-            text=True,
-        )
+        timed_out = False
+        try:
+            process = subprocess.run(
+                command,
+                cwd=PILOT_DIR,
+                env={**os.environ, "COMPARATOR_PROJECT_NAME": self.project},
+                input=input_text,
+                capture_output=True,
+                text=True,
+                timeout=timeout_seconds,
+            )
+        except subprocess.TimeoutExpired as error:
+            timed_out = True
+            process = subprocess.CompletedProcess(
+                command,
+                124,
+                timeout_output(error.stdout),
+                timeout_output(error.stderr)
+                + f"\nfixed Compose command timed out after {timeout_seconds}s: {' '.join(arguments)}\n",
+            )
         if record:
             self.command_index += 1
             prefix = self.output_dir / "commands" / f"{self.command_index:03d}"
@@ -203,7 +225,13 @@ class ComposeProject:
                     "argv": command[:3] + ["<fixed-compose>"] + command[4:],
                     "exit_code": process.returncode,
                     "stdin_supplied": input_text is not None,
+                    "timed_out": timed_out,
+                    "timeout_seconds": timeout_seconds,
                 },
+            )
+        if timed_out:
+            raise AdapterError(
+                f"fixed Compose command timed out after {timeout_seconds}s: {' '.join(arguments)}"
             )
         if check and process.returncode != 0:
             raise AdapterError(f"fixed Compose command failed ({process.returncode}): {' '.join(arguments)}")
@@ -265,6 +293,9 @@ def exercise_tier(project: ComposeProject, job_id: str, tier: str, facts: dict[s
         return {"operation": "two-agent-concurrent-write", "observed_rows": int(observed), "writers": 2}
     if tier == "crash-recovery":
         project.command("kill", "-s", "SIGKILL", "postgres")
+        stopped = project.command("wait", "postgres", check=False)
+        if stopped.returncode != 137:
+            raise AdapterError(f"crash-recovery postgres exit code is not SIGKILL: {stopped.returncode}")
         project.up("postgres")
         observed = project.psql("SELECT count(*) FROM qualification_facts;")
         return {"operation": "sigkill-restart-query", "observed_rows": int(observed)}

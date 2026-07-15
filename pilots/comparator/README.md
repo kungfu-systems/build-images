@@ -153,7 +153,10 @@ changes cannot enter a measured step.
 Each repetition retains step timing, process status, cleanup status, oracle
 results, service logs, Docker/Compose and kernel facts, Compose resource
 limits, container inspect data, CPU/memory observations, and SHA-256 records
-for every raw artifact. Every tier event is followed by the same job-specific
+for every raw artifact. Every step also retains a project-label-scoped cleanup
+record proving that no project containers, volumes, or networks remain; the
+offline verifier rejects missing, altered, timed-out, or non-empty cleanup
+evidence. Every tier event is followed by the same job-specific
 facts query; the exact query result, tier postcondition, and derived verdict are
 retained separately. The execution fixture contains no expected outcome. The
 self-contained bundle also retains the exact Compose file, environment lock,
@@ -188,3 +191,11 @@ explicitly forbidden from issuing qualification receipts. They remain generic
 `profile-smoke` checks and cannot be relabelled as declared comparator jobs. The
 non-test `plans/postgres-phase-a-v1.json` plan covers J1/J2/J3 across all seven
 Phase A tiers through the digest-locked PostgreSQL adapter.
+
+The `Comparator Qualification Contracts` workflow exposes a separately gated
+`run_lifecycle` dispatch input and the `run-comparator-lifecycle` pull-request
+label. Either gate runs the complete frozen 3x21 PostgreSQL plan on a
+GitHub-hosted Docker worker, verifies the resulting bundle offline, injects a
+separate workload failure, proves that its scoped containers, volumes, and
+networks are also gone, and retains all evidence as a 30-day workflow artifact.
+Ordinary pull requests do not start this long-running lifecycle job.

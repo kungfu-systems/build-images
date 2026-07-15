@@ -4,7 +4,8 @@ services:
   runner:
     image: ghcr.io/kungfu-systems/build-images/kungfu-verify@sha256:cb6d939d567c129903d6e3ad858e2c09a9475b3b8f81b1aad10279d0e63a920d
     platform: linux/amd64
-    command: ["sh", "-c", "trap 'exit 0' TERM INT; while :; do sleep 30; done"]
+    command: ["sleep", "infinity"]
+    stop_grace_period: 5s
     profiles: ["aeron", "clickhouse", "postgres", "kungfu"]
     read_only: true
     tmpfs:
@@ -83,7 +84,7 @@ services:
       POSTGRES_USER: pilot
       POSTGRES_PASSWORD: pilot-local-only
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U pilot -d pilot"]
+      test: ["CMD-SHELL", "test \"$(cat /proc/1/comm)\" = postgres && pg_isready -U pilot -d pilot"]
       interval: 2s
       timeout: 3s
       retries: 30
