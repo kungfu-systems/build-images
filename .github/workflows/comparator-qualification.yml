@@ -2,11 +2,18 @@ name: Comparator Qualification Contracts
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, labeled]
     paths:
       - "pilots/comparator/**"
       - ".github/workflows/comparator-qualification.yml"
       - "package.json"
   workflow_dispatch:
+    inputs:
+      run_lifecycle:
+        description: Run the complete 3x21 PostgreSQL lifecycle qualification
+        required: true
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -79,3 +86,80 @@ jobs:
             echo "::error::test-only qualification plan unexpectedly executed"
             exit 1
           fi
+
+  postgres-lifecycle:
+    name: postgres-3x21-lifecycle
+    if: >-
+      (github.event_name == 'workflow_dispatch' && inputs.run_lifecycle) ||
+      (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'run-comparator-lifecycle'))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Run the frozen PostgreSQL qualification
+        run: |
+          python3 pilots/comparator/scripts/comparator_qualification.py run \
+            --plan pilots/comparator/plans/postgres-phase-a-v1.json \
+            --execute
+
+      - name: Verify the retained qualification bundle offline
+        shell: bash
+        run: |
+          set -euo pipefail
+          bundle="$(find pilots/comparator/.artifacts/qualification/postgres-phase-a-v1 \
+            -mindepth 1 -maxdepth 1 -type d -name 'qual-postgres-*' -print -quit)"
+          test -n "${bundle}"
+          python3 pilots/comparator/scripts/comparator_qualification.py \
+            verify-bundle --bundle "${bundle}"
+
+      - name: Prove scoped cleanup after an injected workload failure
+        shell: bash
+        run: |
+          set -euo pipefail
+          project="kf-qual-injected-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          compose=(docker compose -f pilots/comparator/compose.yaml \
+            --project-name "${project}" --profile postgres)
+          cleanup() {
+            "${compose[@]}" down --volumes --remove-orphans
+          }
+          trap cleanup EXIT
+          "${compose[@]}" up -d --wait postgres runner
+          if "${compose[@]}" exec -T postgres \
+            psql -v ON_ERROR_STOP=1 -U pilot -d pilot \
+            -c 'SELECT * FROM deliberately_missing_table;'; then
+            echo "::error::injected PostgreSQL failure unexpectedly succeeded"
+            exit 1
+          fi
+          cleanup
+          trap - EXIT
+          PROJECT="${project}" python3 - <<'PY'
+          import json
+          import os
+          import pathlib
+          import sys
+
+          root = pathlib.Path.cwd()
+          sys.path.insert(0, str(root / "pilots/comparator/scripts"))
+          import comparator_qualification as qualification
+
+          evidence = qualification.inspect_project_resources(
+              os.environ["PROJECT"],
+              qualification.controlled_environment(),
+          )
+          destination = root / "pilots/comparator/.artifacts/qualification/postgres-phase-a-v1"
+          destination.mkdir(parents=True, exist_ok=True)
+          qualification.write_json(destination / "injected-failure-cleanup.json", evidence)
+          if not evidence["passed"]:
+              raise SystemExit("project resources remain after injected failure cleanup")
+          print(json.dumps(evidence, indent=2, sort_keys=True))
+          PY
+
+      - name: Upload qualification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: comparator-postgres-phase-a-${{ github.run_id }}
+          path: pilots/comparator/.artifacts/qualification/postgres-phase-a-v1/
+          if-no-files-found: error
+          retention-days: 30
