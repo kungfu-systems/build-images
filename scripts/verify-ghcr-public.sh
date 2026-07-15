@@ -9,9 +9,8 @@ usage() {
   cat <<'EOF'
 Usage: scripts/verify-ghcr-public.sh --tag <tag> [--registry <registry>]
 
-Verifies that all publishable image packages are public in GitHub Packages and
-that the just-published tag can be resolved through the anonymous GHCR pull
-path.
+Verifies that every just-published image tag can be resolved through the
+anonymous GHCR pull path.
 EOF
 }
 
@@ -62,14 +61,6 @@ if [ "$registry_host" != "ghcr.io" ] || [ "$owner" = "$registry_path" ] || [ -z 
   exit 2
 fi
 
-# The workflow token owns package access. Buildchain may also expose a narrower
-# promotion token as GH_TOKEN for Git ref updates.
-api_token="${GITHUB_TOKEN:-${GH_TOKEN:-}}"
-auth_args=()
-if [ -n "$api_token" ]; then
-  auth_args=(-H "Authorization: Bearer $api_token")
-fi
-
 plan_json="$(mktemp)"
 trap 'rm -f "$plan_json"' EXIT
 python3 "$repo_root/scripts/resolve-image-dag.py" --json > "$plan_json"
@@ -91,23 +82,6 @@ print(publishable[int(sys.argv[2])]["name"])
 PY
 )"
   package_name="${repo}/${image_name}"
-  package_path="${package_name//\//%2F}"
-
-  package_json="$(
-    curl -fsS \
-      "${auth_args[@]}" \
-      -H "Accept: application/vnd.github+json" \
-      -H "X-GitHub-Api-Version: 2022-11-28" \
-      "https://api.github.com/orgs/${owner}/packages/container/${package_path}"
-  )"
-  visibility="$(printf '%s' "$package_json" | jq -r '.visibility // empty')"
-  if [ "$visibility" != "public" ]; then
-    echo "GHCR package is not public: ${package_name} visibility=${visibility:-unknown}" >&2
-    echo "Open https://github.com/orgs/${owner}/packages/container/package/${package_path}/settings and change visibility to Public." >&2
-    echo "Also check https://github.com/organizations/${owner}/settings/packages for the organization package creation/default policy." >&2
-    exit 1
-  fi
-
   pull_repo="${owner}/${repo}/${image_name}"
   pull_token="$(curl -fsS "https://ghcr.io/token?scope=repository:${pull_repo}:pull" | jq -r '.token // empty')"
   if [ -z "$pull_token" ]; then
