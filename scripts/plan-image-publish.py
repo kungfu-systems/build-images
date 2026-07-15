@@ -82,7 +82,9 @@ def remove_path(value: dict, keys: tuple[str, ...]) -> dict:
     return normalized
 
 
-def version_only_change(base: str, current: str, path: str) -> bool:
+def image_neutral_change(base: str, current: str, path: str) -> bool:
+    if path.startswith(".buildchain/kfd/"):
+        return True
     fields = {
         "package.json": ("version",),
         ".buildchain/release-impact.json": ("release", "version"),
@@ -101,7 +103,7 @@ def version_only_change(base: str, current: str, path: str) -> bool:
 def changed_paths(base: str, current: str) -> list[str]:
     output = git("diff", "--name-only", "--diff-filter=ACDMRTUXB", base, current, "--")
     paths = [line for line in output.splitlines() if line]
-    return [path for path in paths if not version_only_change(base, current, path)]
+    return [path for path in paths if not image_neutral_change(base, current, path)]
 
 
 def resolve_git_changes(lock: dict, current_source: str) -> tuple[list[str], dict]:
