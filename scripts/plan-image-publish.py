@@ -248,10 +248,29 @@ def force_full(selection: dict, ordered: list[dict], reason: str, details: list[
     return result
 
 
+def trusted_empty_selection() -> dict:
+    return {
+        "mode": "selective",
+        "full_rebuild": False,
+        "changed_paths": [],
+        "direct_images": [],
+        "selected_images": [],
+        "invalidators": [],
+        "reasons": {},
+    }
+
+
 def build_plan(lock: dict, paths: list[str], current_source: str, baseline: dict) -> dict:
     manifests = DAG.load_manifests()
     ordered = DAG.topo_sort(manifests)
-    selection = DAG.plan_changed_paths(manifests, paths)
+    if (
+        not paths
+        and baseline.get("eligible") is True
+        and baseline.get("reason") == "reviewed-image-lock-acceptance"
+    ):
+        selection = trusted_empty_selection()
+    else:
+        selection = DAG.plan_changed_paths(manifests, paths)
     baseline_errors = validate_reuse_baseline(lock, manifests)
     if not selection["full_rebuild"] and (not baseline.get("eligible", True) or baseline_errors):
         details = baseline_errors or [str(baseline.get("reason", "baseline-ineligible"))]
