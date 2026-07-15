@@ -103,7 +103,7 @@ def assert_selective_plan() -> dict:
     actions = {image["name"]: image["action"] for image in plan["images"]}
     assert plan["selection"]["selected_images"] == ["latex-pdf-builder"]
     assert actions["latex-pdf-builder"] == "built"
-    assert sum(action == "reused" for action in actions.values()) == 4
+    assert sum(action == "reused" for action in actions.values()) == len(actions) - 1
     return plan
 
 
@@ -269,7 +269,7 @@ def assert_required_family() -> list[dict]:
         cwd=ROOT,
     )
     artifacts = json.loads(result.stdout)
-    assert len(artifacts) == 5
+    assert len(artifacts) == len(manifests())
     assert {artifact["ref_template"] for artifact in artifacts} == {"v{version}"}
     buildchain_resolution = """
 import { pathToFileURL } from 'node:url';
@@ -336,7 +336,7 @@ process.stdout.write(JSON.stringify(resolvePublishArtifactRequirements(artifacts
         env=unresolved_env,
     )
     assert unresolved.returncode != 0
-    assert "does not match the exact five-image" in unresolved.stderr
+    assert "does not match the exact publishable image" in unresolved.stderr
     return artifacts
 
 
@@ -424,7 +424,7 @@ def assert_evidence(plan: dict) -> None:
             env=env,
         )
         evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
-        assert len(evidence["artifacts"]) == 5
+        assert len(evidence["artifacts"]) == len(manifests())
         assert [item["action"] for item in evidence["artifacts"]].count("built") == 1
         assert all(item["verification"]["smoke"]["passed"] for item in evidence["artifacts"])
         assert evidence["artifacts"][0]["verification"]["evidence"] == "evidence.json#/artifacts/0/verification"
@@ -505,11 +505,12 @@ if (!result.valid) {
 
         duplicate = json.loads(evidence_path.read_text(encoding="utf-8"))
         duplicate["artifacts"][-1] = json.loads(json.dumps(duplicate["artifacts"][0]))
+        duplicate_index = len(duplicate["artifacts"]) - 1
         duplicate["artifacts"][-1]["verification"]["evidence"] = (
-            "evidence.json#/artifacts/4/verification"
+            f"evidence.json#/artifacts/{duplicate_index}/verification"
         )
         duplicate["artifacts"][-1]["verification"]["smoke"]["evidence"] = (
-            "evidence.json#/artifacts/4/verification/smoke"
+            f"evidence.json#/artifacts/{duplicate_index}/verification/smoke"
         )
         duplicate_path = Path(tmp) / "duplicate-evidence.json"
         duplicate_path.write_text(json.dumps(duplicate), encoding="utf-8")

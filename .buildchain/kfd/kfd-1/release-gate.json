@@ -54,13 +54,13 @@
       "standard": "KFD-1",
       "standardKey": "kfd-1",
       "result": "passed",
-      "preBuildWitnessSha256": "d601302bfa9032daae9abf67c4c904cb7845323724c3b39e21dfad2763d8368c",
+      "preBuildWitnessSha256": "0dae4917ac2e6a1b8e49d9d4f440990fb488e806a0e3c0304da6bc4881bc69c4",
       "sourceHashes": {
-        "sha256": "95396b24d9f1dbe41513e93312a6ae864f20a2aac58344b461d0305fc1c2a3b9",
+        "sha256": "2b6470d9fbef3b2d99a73785876dc48dc3f89279705be88fa1790b556a35f209",
         "surfaceCount": 6
       },
       "artifactHashes": {
-        "sha256": "55464288e7cccc5322711872c6030481d84af1c26a541f795a403c583c63ff24",
+        "sha256": "729f6cceaa92e196998a4adebcf046a2b4aee2a90068c5c9f169842db86e972a",
         "surfaceCount": 6
       },
       "witness": {
@@ -75,14 +75,14 @@
         },
         "contractWorld": {
           "schemaId": "https://kfd.libkungfu.dev/schemas/kfd-1/contract-world.schema.json",
-          "digest": "sha256:dc38feaad75c61b6e1675499981b386179ecfa55d4f29e857128d9524e2e6c8d"
+          "digest": "sha256:dcb041990cc3ef53e24c3f3d2c8b92ee318ec5252fd8c361b3727df0ab4220a9"
         },
         "standardContract": {
           "id": "",
           "schemaId": "https://kfd.libkungfu.dev/schemas/kfd-1/contract-world.schema.json",
           "path": "",
           "sha256": "",
-          "digest": "sha256:dc38feaad75c61b6e1675499981b386179ecfa55d4f29e857128d9524e2e6c8d"
+          "digest": "sha256:dcb041990cc3ef53e24c3f3d2c8b92ee318ec5252fd8c361b3727df0ab4220a9"
         },
         "selfHostingBoundary": {
           "mode": "external-contract-world",
@@ -141,9 +141,9 @@
           {
             "name": "image-lock",
             "sourcePath": "images.lock.json",
-            "sourceSha256": "c40a241e8d0e2f0ac2eaf6df51cfb5eb7a2ce09d6c4b888b0af00d83ff337d40",
+            "sourceSha256": "47418020ab65d7decf7c18465de3b4aea00e825bc53f45fa7542ab282be994f3",
             "artifactPath": "images.lock.json",
-            "expectedSha256": "c40a241e8d0e2f0ac2eaf6df51cfb5eb7a2ce09d6c4b888b0af00d83ff337d40",
+            "expectedSha256": "47418020ab65d7decf7c18465de3b4aea00e825bc53f45fa7542ab282be994f3",
             "byteForByte": true
           },
           {
@@ -178,7 +178,7 @@
         "schemaId": "https://kfd.libkungfu.dev/schemas/kfd-1/contract-world.schema.json",
         "path": "",
         "sha256": "",
-        "digest": "sha256:dc38feaad75c61b6e1675499981b386179ecfa55d4f29e857128d9524e2e6c8d"
+        "digest": "sha256:dcb041990cc3ef53e24c3f3d2c8b92ee318ec5252fd8c361b3727df0ab4220a9"
       },
       "selfHostingBoundary": {
         "mode": "external-contract-world",
@@ -232,8 +232,8 @@
           {
             "name": "image-lock",
             "sourcePath": "images.lock.json",
-            "expectedSha256": "c40a241e8d0e2f0ac2eaf6df51cfb5eb7a2ce09d6c4b888b0af00d83ff337d40",
-            "actualSha256": "c40a241e8d0e2f0ac2eaf6df51cfb5eb7a2ce09d6c4b888b0af00d83ff337d40",
+            "expectedSha256": "47418020ab65d7decf7c18465de3b4aea00e825bc53f45fa7542ab282be994f3",
+            "actualSha256": "47418020ab65d7decf7c18465de3b4aea00e825bc53f45fa7542ab282be994f3",
             "status": "passed",
             "reason": ""
           },
@@ -298,10 +298,10 @@
           {
             "name": "image-lock",
             "sourcePath": "images.lock.json",
-            "sourceSha256": "c40a241e8d0e2f0ac2eaf6df51cfb5eb7a2ce09d6c4b888b0af00d83ff337d40",
+            "sourceSha256": "47418020ab65d7decf7c18465de3b4aea00e825bc53f45fa7542ab282be994f3",
             "artifactPath": "images.lock.json",
-            "expectedSha256": "c40a241e8d0e2f0ac2eaf6df51cfb5eb7a2ce09d6c4b888b0af00d83ff337d40",
-            "actualSha256": "c40a241e8d0e2f0ac2eaf6df51cfb5eb7a2ce09d6c4b888b0af00d83ff337d40",
+            "expectedSha256": "47418020ab65d7decf7c18465de3b4aea00e825bc53f45fa7542ab282be994f3",
+            "actualSha256": "47418020ab65d7decf7c18465de3b4aea00e825bc53f45fa7542ab282be994f3",
             "byteForByte": true,
             "status": "passed",
             "reason": ""
