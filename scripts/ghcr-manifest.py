@@ -28,14 +28,37 @@ def request(url: str, *, method: str = "GET", headers: dict[str, str] | None = N
     )
 
 
-def inspect_manifest(repository: str, ref: str) -> dict:
+def missing_manifest(repository: str, ref: str, *, reason: str, public_manifest: bool) -> dict:
+    return {
+        "schema": 1,
+        "public_manifest": public_manifest,
+        "exists": False,
+        "repository": repository,
+        "ref": ref,
+        "digest": "",
+        "missing_reason": reason,
+        "observed_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+    }
+
+
+def inspect_manifest(repository: str, ref: str, *, allow_missing_package: bool = False) -> dict:
     prefix = "ghcr.io/"
     if not repository.startswith(prefix) or repository == prefix:
         raise ValueError(f"repository must start with {prefix}")
     path = repository[len(prefix) :]
     scope = urllib.parse.quote(f"repository:{path}:pull", safe=":")
-    with request(f"https://ghcr.io/token?scope={scope}") as response:
-        token = json.load(response).get("token", "")
+    try:
+        with request(f"https://ghcr.io/token?scope={scope}") as response:
+            token = json.load(response).get("token", "")
+    except urllib.error.HTTPError as exc:
+        if allow_missing_package and exc.code in {403, 404}:
+            return missing_manifest(
+                repository,
+                ref,
+                reason="package-not-yet-publicly-addressable",
+                public_manifest=False,
+            )
+        raise RuntimeError(f"GHCR token request failed for {repository}: HTTP {exc.code}") from exc
     if not token:
         raise RuntimeError(f"GHCR did not issue an anonymous pull token for {path}")
 
@@ -61,15 +84,12 @@ def inspect_manifest(repository: str, ref: str) -> dict:
             }
     except urllib.error.HTTPError as exc:
         if exc.code == 404:
-            return {
-                "schema": 1,
-                "public_manifest": True,
-                "exists": False,
-                "repository": repository,
-                "ref": ref,
-                "digest": "",
-                "observed_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
-            }
+            return missing_manifest(
+                repository,
+                ref,
+                reason="manifest-not-found",
+                public_manifest=True,
+            )
         raise RuntimeError(f"GHCR manifest request failed for {repository}:{ref}: HTTP {exc.code}") from exc
 
 
@@ -79,17 +99,24 @@ def main() -> int:
     parser.add_argument("--ref", required=True)
     parser.add_argument("--expected-digest", default="")
     parser.add_argument("--allow-missing", action="store_true")
+    parser.add_argument("--allow-missing-package", action="store_true")
     parser.add_argument("--attempts", type=int, default=1)
     parser.add_argument("--output")
     args = parser.parse_args()
     if args.attempts < 1:
         raise SystemExit("--attempts must be positive")
+    if args.allow_missing_package and not args.allow_missing:
+        raise SystemExit("--allow-missing-package requires --allow-missing")
 
     payload = None
     last_error = None
     for attempt in range(1, args.attempts + 1):
         try:
-            payload = inspect_manifest(args.repository, args.ref)
+            payload = inspect_manifest(
+                args.repository,
+                args.ref,
+                allow_missing_package=args.allow_missing_package,
+            )
             if payload["exists"] or args.allow_missing:
                 break
         except (OSError, RuntimeError, ValueError) as exc:
