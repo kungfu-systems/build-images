@@ -16,20 +16,20 @@
   "configuration_slot": "realistic-default",
   "environment": {
     "compose_path": "compose.yaml",
-    "compose_sha256": "7b50d657773295f3b534bf0809da5c7c4e726251c034b1e7f8e7c08396fe8aaf",
+    "compose_sha256": "674c3110d207c50e56d105b152d6e0f64fd8e525c1b86d713050c1bc070dcc12",
     "environment_lock_path": "environment.lock.json",
     "environment_lock_sha256": "d729ac7393e1a485ed20c33231ccd95c507cb6f8c6a57aba362d9c99d2fa4cad",
     "runner_image": "ghcr.io/kungfu-systems/build-images/kungfu-verify@sha256:cb6d939d567c129903d6e3ad858e2c09a9475b3b8f81b1aad10279d0e63a920d"
   },
   "adapter_registry": {
     "path": "workload-adapters/registry.json",
-    "sha256": "08022a0601ad2689c53526ffe1429e2ad94a7bcc6eda92aae7e9dfc8bb72a745"
+    "sha256": "b04c0c43894543e0336f116976fee2f0b82e31902dee67e3a4d17a75fb117caa"
   },
   "workload_adapter": {
     "id": "postgres-phase-a-v1",
     "version": "1.2.0",
     "artifact": "workload-adapters/postgres_phase_a_v1.py",
-    "sha256": "74a8634576df54430a1642eb364c7f3ef50ec869933b13ca0c8d33e4641e4812",
+    "sha256": "74559d24297f9854a905f65bd52e32b7a75b453d3e4165d0254dcad351bbabdc",
     "entrypoint": "postgres-phase-a-v1",
     "profiles": [
       "postgres"

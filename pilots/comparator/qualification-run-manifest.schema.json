@@ -99,7 +99,7 @@
         "required": [
           "scenario_id", "job_id", "tier", "step_id", "action", "adapter",
           "project", "started_at", "finished_at", "duration_seconds",
-          "timeout_seconds", "timed_out", "exit_code", "cleanup_exit_code",
+          "timeout_seconds", "timed_out", "exit_code", "cleanup_exit_code", "cleanup_resources",
           "oracles", "passed"
         ],
         "properties": {
@@ -137,6 +137,16 @@
           "timed_out": { "type": "boolean" },
           "exit_code": { "type": "integer" },
           "cleanup_exit_code": { "type": "integer" },
+          "cleanup_resources": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path", "sha256", "passed"],
+            "properties": {
+              "path": { "const": "cleanup.resources.json" },
+              "sha256": { "pattern": "^[0-9a-f]{64}$" },
+              "passed": { "type": "boolean" }
+            }
+          },
           "oracles": { "type": "array", "minItems": 2 },
           "passed": { "type": "boolean" }
         }
