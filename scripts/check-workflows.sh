@@ -46,3 +46,9 @@ if ! grep -Fq 'fetch-depth: 0' "$promotion_workflow"; then
   echo "Buildchain promotion must fetch history for the trusted lock acceptance baseline" >&2
   exit 1
 fi
+
+public_verifier="$repo_root/scripts/verify-ghcr-public.sh"
+if ! grep -Fq 'api_token="${GITHUB_TOKEN:-${GH_TOKEN:-}}"' "$public_verifier"; then
+  echo "GHCR visibility verification must prefer the workflow package token" >&2
+  exit 1
+fi
