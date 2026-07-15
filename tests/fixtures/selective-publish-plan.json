@@ -22,6 +22,16 @@
       "full_rebuild": false
     },
     {
+      "name": "aeron-native-kit-context-only",
+      "changed_paths": [
+        "images/aeron-native-kit/src/io/kungfu/aeron/QualificationHarness.java"
+      ],
+      "selected_images": [
+        "aeron-native-kit"
+      ],
+      "full_rebuild": false
+    },
+    {
       "name": "node-context-propagates-to-latex",
       "changed_paths": [
         "images/node24-pnpm/tests/smoke.sh"
@@ -62,6 +72,7 @@
         "images/node24-pnpm/image.toml"
       ],
       "selected_images": [
+        "aeron-native-kit",
         "base-linux",
         "clickhouse-server",
         "kungfu-verify",
@@ -77,6 +88,7 @@
         "scripts/resolve-image-dag.py"
       ],
       "selected_images": [
+        "aeron-native-kit",
         "base-linux",
         "clickhouse-server",
         "kungfu-verify",
@@ -92,6 +104,7 @@
         "scripts/publish-image-family.sh"
       ],
       "selected_images": [
+        "aeron-native-kit",
         "base-linux",
         "clickhouse-server",
         "kungfu-verify",
@@ -107,6 +120,7 @@
         ".buildchain/buildchain.toml"
       ],
       "selected_images": [
+        "aeron-native-kit",
         "base-linux",
         "clickhouse-server",
         "kungfu-verify",
@@ -122,6 +136,7 @@
         "docs/release-and-tags.md"
       ],
       "selected_images": [
+        "aeron-native-kit",
         "base-linux",
         "clickhouse-server",
         "kungfu-verify",
@@ -135,6 +150,7 @@
       "name": "empty-baseline-is-global",
       "changed_paths": [],
       "selected_images": [
+        "aeron-native-kit",
         "base-linux",
         "clickhouse-server",
         "kungfu-verify",

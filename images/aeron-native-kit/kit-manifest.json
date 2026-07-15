@@ -1,0 +1,21 @@
+{
+  "schema": "urn:kungfu-systems:build-images:aeron-native-kit:v1",
+  "schema_version": 1,
+  "authority": "distribution-only",
+  "aeron": {
+    "version": "1.52.2",
+    "jar_sha256": "f02b1cc8660ee24235f41000f3b4a7af90730cc467519f2344672208e7195a6f",
+    "source": "https://github.com/aeron-io/aeron/releases/tag/1.52.2"
+  },
+  "java": {
+    "vendor": "Eclipse Adoptium",
+    "version": "21.0.11+10-LTS",
+    "runtime_image": "eclipse-temurin:21.0.11_10-jre-jammy@sha256:d63bd8d9b171999cbed8576f2c76e874dd4856791a358536e5c4d407e77edc13",
+    "compiler_image": "eclipse-temurin:21.0.11_10-jdk-jammy@sha256:a5418a1fcf440bb273e1db3bce5b0794eb78bfc9d044ba740de76dcbe6075f50"
+  },
+  "harness": {
+    "main_class": "io.kungfu.aeron.QualificationHarness",
+    "protocol_version": 1
+  },
+  "claim_boundary": "This OCI image is an immutable distribution kit. Extraction and successful execution do not grant native performance authority."
+}
