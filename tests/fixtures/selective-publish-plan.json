@@ -3,25 +3,50 @@
   "cases": [
     {
       "name": "latex-context-only",
-      "changed_paths": ["images/latex-pdf-builder/Dockerfile"],
-      "selected_images": ["latex-pdf-builder"],
+      "changed_paths": [
+        "images/latex-pdf-builder/Dockerfile"
+      ],
+      "selected_images": [
+        "latex-pdf-builder"
+      ],
+      "full_rebuild": false
+    },
+    {
+      "name": "clickhouse-context-only",
+      "changed_paths": [
+        "images/clickhouse-server/Dockerfile"
+      ],
+      "selected_images": [
+        "clickhouse-server"
+      ],
       "full_rebuild": false
     },
     {
       "name": "node-context-propagates-to-latex",
-      "changed_paths": ["images/node24-pnpm/tests/smoke.sh"],
-      "selected_images": ["node24-pnpm", "latex-pdf-builder"],
+      "changed_paths": [
+        "images/node24-pnpm/tests/smoke.sh"
+      ],
+      "selected_images": [
+        "node24-pnpm",
+        "latex-pdf-builder"
+      ],
       "full_rebuild": false
     },
     {
       "name": "native-context-only",
-      "changed_paths": ["images/native-linux-x64/Dockerfile"],
-      "selected_images": ["native-linux-x64"],
+      "changed_paths": [
+        "images/native-linux-x64/Dockerfile"
+      ],
+      "selected_images": [
+        "native-linux-x64"
+      ],
       "full_rebuild": false
     },
     {
       "name": "base-context-propagates-to-family",
-      "changed_paths": ["images/base-linux/Dockerfile"],
+      "changed_paths": [
+        "images/base-linux/Dockerfile"
+      ],
       "selected_images": [
         "base-linux",
         "kungfu-verify",
@@ -29,13 +54,16 @@
         "latex-pdf-builder",
         "native-linux-x64"
       ],
-      "full_rebuild": true
+      "full_rebuild": false
     },
     {
       "name": "manifest-is-global",
-      "changed_paths": ["images/node24-pnpm/image.toml"],
+      "changed_paths": [
+        "images/node24-pnpm/image.toml"
+      ],
       "selected_images": [
         "base-linux",
+        "clickhouse-server",
         "kungfu-verify",
         "node24-pnpm",
         "latex-pdf-builder",
@@ -45,9 +73,12 @@
     },
     {
       "name": "dag-resolver-is-global",
-      "changed_paths": ["scripts/resolve-image-dag.py"],
+      "changed_paths": [
+        "scripts/resolve-image-dag.py"
+      ],
       "selected_images": [
         "base-linux",
+        "clickhouse-server",
         "kungfu-verify",
         "node24-pnpm",
         "latex-pdf-builder",
@@ -57,9 +88,12 @@
     },
     {
       "name": "publisher-is-global",
-      "changed_paths": ["scripts/publish-image-family.sh"],
+      "changed_paths": [
+        "scripts/publish-image-family.sh"
+      ],
       "selected_images": [
         "base-linux",
+        "clickhouse-server",
         "kungfu-verify",
         "node24-pnpm",
         "latex-pdf-builder",
@@ -69,9 +103,12 @@
     },
     {
       "name": "buildchain-config-is-global",
-      "changed_paths": [".buildchain/buildchain.toml"],
+      "changed_paths": [
+        ".buildchain/buildchain.toml"
+      ],
       "selected_images": [
         "base-linux",
+        "clickhouse-server",
         "kungfu-verify",
         "node24-pnpm",
         "latex-pdf-builder",
@@ -81,9 +118,12 @@
     },
     {
       "name": "unknown-path-is-global",
-      "changed_paths": ["docs/release-and-tags.md"],
+      "changed_paths": [
+        "docs/release-and-tags.md"
+      ],
       "selected_images": [
         "base-linux",
+        "clickhouse-server",
         "kungfu-verify",
         "node24-pnpm",
         "latex-pdf-builder",
@@ -96,6 +136,7 @@
       "changed_paths": [],
       "selected_images": [
         "base-linux",
+        "clickhouse-server",
         "kungfu-verify",
         "node24-pnpm",
         "latex-pdf-builder",
