@@ -5,7 +5,7 @@
     "postgres-phase-a-v1": {
       "version": "1.2.0",
       "artifact": "workload-adapters/postgres_phase_a_v1.py",
-      "sha256": "74559d24297f9854a905f65bd52e32b7a75b453d3e4165d0254dcad351bbabdc",
+      "sha256": "7d50b57cdce4289731c8afbf2523ebcdb5c3fc1e67c7a0ca63da72263600c128",
       "entrypoint": "postgres-phase-a-v1",
       "profiles": [
         "postgres"

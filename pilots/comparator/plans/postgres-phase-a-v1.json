@@ -23,13 +23,13 @@
   },
   "adapter_registry": {
     "path": "workload-adapters/registry.json",
-    "sha256": "b04c0c43894543e0336f116976fee2f0b82e31902dee67e3a4d17a75fb117caa"
+    "sha256": "4d216f33a5bcf6e59686c746b4c00ea5b80526c736469c0044e9385c14b80497"
   },
   "workload_adapter": {
     "id": "postgres-phase-a-v1",
     "version": "1.2.0",
     "artifact": "workload-adapters/postgres_phase_a_v1.py",
-    "sha256": "74559d24297f9854a905f65bd52e32b7a75b453d3e4165d0254dcad351bbabdc",
+    "sha256": "7d50b57cdce4289731c8afbf2523ebcdb5c3fc1e67c7a0ca63da72263600c128",
     "entrypoint": "postgres-phase-a-v1",
     "profiles": [
       "postgres"

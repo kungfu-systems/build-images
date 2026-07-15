@@ -177,22 +177,18 @@ class ComposeProject:
         self.output_dir = output_dir
         self.command_index = 0
 
-    def command(
+    def _run_fixed_command(
         self,
-        *arguments: str,
+        command: list[str],
+        recorded_argv: list[str],
+        operation: str,
+        *,
+        command_kind: str,
         input_text: str | None = None,
         check: bool = True,
         record: bool = True,
         timeout_seconds: int = COMPOSE_COMMAND_TIMEOUT_SECONDS,
     ) -> subprocess.CompletedProcess[str]:
-        if arguments and arguments[0] == "up":
-            pull_index = arguments.index("--pull") if "--pull" in arguments else -1
-            if pull_index < 0 or pull_index + 1 >= len(arguments) or arguments[pull_index + 1] != "never":
-                raise AdapterError("counted Compose up commands must use --pull never")
-        command = [
-            "docker", "compose", "-f", str(COMPOSE_PATH),
-            "--project-name", self.project, "--profile", "postgres", *arguments,
-        ]
         timed_out = False
         try:
             process = subprocess.run(
@@ -211,7 +207,7 @@ class ComposeProject:
                 124,
                 timeout_output(error.stdout),
                 timeout_output(error.stderr)
-                + f"\nfixed Compose command timed out after {timeout_seconds}s: {' '.join(arguments)}\n",
+                + f"\nfixed {command_kind} command timed out after {timeout_seconds}s: {operation}\n",
             )
         if record:
             self.command_index += 1
@@ -222,7 +218,7 @@ class ComposeProject:
             write_json(
                 prefix.with_suffix(".json"),
                 {
-                    "argv": command[:3] + ["<fixed-compose>"] + command[4:],
+                    "argv": recorded_argv,
                     "exit_code": process.returncode,
                     "stdin_supplied": input_text is not None,
                     "timed_out": timed_out,
@@ -231,11 +227,57 @@ class ComposeProject:
             )
         if timed_out:
             raise AdapterError(
-                f"fixed Compose command timed out after {timeout_seconds}s: {' '.join(arguments)}"
+                f"fixed {command_kind} command timed out after {timeout_seconds}s: {operation}"
             )
         if check and process.returncode != 0:
-            raise AdapterError(f"fixed Compose command failed ({process.returncode}): {' '.join(arguments)}")
+            raise AdapterError(f"fixed {command_kind} command failed ({process.returncode}): {operation}")
         return process
+
+    def command(
+        self,
+        *arguments: str,
+        input_text: str | None = None,
+        check: bool = True,
+        record: bool = True,
+        timeout_seconds: int = COMPOSE_COMMAND_TIMEOUT_SECONDS,
+    ) -> subprocess.CompletedProcess[str]:
+        if arguments and arguments[0] == "up":
+            pull_index = arguments.index("--pull") if "--pull" in arguments else -1
+            if pull_index < 0 or pull_index + 1 >= len(arguments) or arguments[pull_index + 1] != "never":
+                raise AdapterError("counted Compose up commands must use --pull never")
+        command = [
+            "docker", "compose", "-f", str(COMPOSE_PATH),
+            "--project-name", self.project, "--profile", "postgres", *arguments,
+        ]
+        return self._run_fixed_command(
+            command,
+            command[:3] + ["<fixed-compose>"] + command[4:],
+            " ".join(arguments),
+            command_kind="Compose",
+            input_text=input_text,
+            check=check,
+            record=record,
+            timeout_seconds=timeout_seconds,
+        )
+
+    def container_id(self, service: str) -> str:
+        container_id = self.command("ps", "-q", service).stdout.strip()
+        if not re.fullmatch(r"[0-9a-f]{12,64}", container_id):
+            raise AdapterError(f"fixed Compose service has no valid container id: {service}")
+        return container_id
+
+    def wait_container(self, container_id: str, service: str) -> int:
+        process = self._run_fixed_command(
+            ["docker", "wait", container_id],
+            ["docker", "wait", f"<{service}-container>"],
+            f"wait {service}",
+            command_kind="Docker",
+        )
+        try:
+            exit_code = int(process.stdout.strip())
+        except ValueError as error:
+            raise AdapterError(f"docker wait returned an invalid exit code for {service}") from error
+        return exit_code
 
     def up(self, *services: str) -> None:
         self.command("config", "--quiet")
@@ -292,10 +334,11 @@ def exercise_tier(project: ComposeProject, job_id: str, tier: str, facts: dict[s
         observed = project.psql("SELECT count(*) FROM qualification_facts;")
         return {"operation": "two-agent-concurrent-write", "observed_rows": int(observed), "writers": 2}
     if tier == "crash-recovery":
+        container_id = project.container_id("postgres")
         project.command("kill", "-s", "SIGKILL", "postgres")
-        stopped = project.command("wait", "postgres", check=False)
-        if stopped.returncode != 137:
-            raise AdapterError(f"crash-recovery postgres exit code is not SIGKILL: {stopped.returncode}")
+        exit_code = project.wait_container(container_id, "postgres")
+        if exit_code != 137:
+            raise AdapterError(f"crash-recovery postgres exit code is not SIGKILL: {exit_code}")
         project.up("postgres")
         observed = project.psql("SELECT count(*) FROM qualification_facts;")
         return {"operation": "sigkill-restart-query", "observed_rows": int(observed)}
