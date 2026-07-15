@@ -217,6 +217,12 @@ def assert_shallow_history_recovery() -> None:
         git(origin, "config", "user.email", "build-images-test@kungfu.invalid")
         release_sha = commit_file(origin, "release.txt", "release\n", "release")
         acceptance_sha = commit_file(origin, "images.lock.json", "{}\n", "accept image lock")
+        kfd_sha = commit_file(
+            origin,
+            ".buildchain/kfd/kfd-1/release-gate.json",
+            "{}\n",
+            "refresh generated kfd evidence",
+        )
         current_sha = commit_file(
             origin,
             "images/latex-pdf-builder/Dockerfile",
@@ -237,6 +243,14 @@ def assert_shallow_history_recovery() -> None:
         assert baseline["reason"] == "lock-source-missing"
 
         planner.fetch_git_history(current_sha)
+        paths, baseline = planner.resolve_git_changes({"source": release_sha}, kfd_sha)
+        assert paths == []
+        assert baseline == {
+            "eligible": True,
+            "reason": "reviewed-image-lock-acceptance",
+            "acceptance_sha": acceptance_sha,
+        }
+
         paths, baseline = planner.resolve_git_changes({"source": release_sha}, current_sha)
         assert paths == ["images/latex-pdf-builder/Dockerfile"]
         assert baseline == {
