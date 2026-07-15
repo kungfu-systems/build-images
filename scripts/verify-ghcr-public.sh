@@ -62,7 +62,9 @@ if [ "$registry_host" != "ghcr.io" ] || [ "$owner" = "$registry_path" ] || [ -z 
   exit 2
 fi
 
-api_token="${GH_TOKEN:-${GITHUB_TOKEN:-}}"
+# The workflow token owns package access. Buildchain may also expose a narrower
+# promotion token as GH_TOKEN for Git ref updates.
+api_token="${GITHUB_TOKEN:-${GH_TOKEN:-}}"
 auth_args=()
 if [ -n "$api_token" ]; then
   auth_args=(-H "Authorization: Bearer $api_token")
