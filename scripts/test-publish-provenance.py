@@ -121,6 +121,39 @@ def assert_fail_closed_baselines() -> None:
     assert plan["selection"]["full_rebuild"] is True
 
 
+def assert_trusted_empty_delta_reuses_family() -> None:
+    spec = importlib.util.spec_from_file_location("plan_image_publish_empty_delta", PLAN)
+    assert spec and spec.loader
+    planner = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(planner)
+
+    baseline = {
+        "eligible": True,
+        "reason": "reviewed-image-lock-acceptance",
+        "acceptance_sha": "e" * 40,
+    }
+    plan = planner.build_plan(complete_lock(), [], CURRENT_SOURCE, baseline)
+    assert plan["selection"] == {
+        "mode": "selective",
+        "full_rebuild": False,
+        "changed_paths": [],
+        "direct_images": [],
+        "selected_images": [],
+        "invalidators": [],
+        "reasons": {},
+    }
+    assert all(image["action"] == "reused" for image in plan["images"])
+
+    unproven = planner.build_plan(
+        complete_lock(),
+        [],
+        CURRENT_SOURCE,
+        {"eligible": True, "reason": "explicit-test-paths", "acceptance_sha": ""},
+    )
+    assert unproven["selection"]["full_rebuild"] is True
+    assert all(image["action"] == "built" for image in unproven["images"])
+
+
 def assert_git_baseline() -> None:
     head = subprocess.run(
         ["git", "rev-parse", "HEAD"],
@@ -547,6 +580,7 @@ def assert_digest_preserving_alias() -> None:
 def main() -> int:
     plan = assert_selective_plan()
     assert_fail_closed_baselines()
+    assert_trusted_empty_delta_reuses_family()
     assert_git_baseline()
     assert_shallow_history_recovery()
     assert_required_family()

@@ -143,9 +143,11 @@ The publish lifecycle uses the last commit that changed `images.lock.json` as
 the reviewed baseline. It proves that the lock's release source is an ancestor,
 allows only generated version-state and KFD/lock acceptance changes between the
 release source and that review point, then plans changes from the review point
-to the current source. Version-only changes in `package.json` and the Buildchain
-impact ledger do not rebuild image content; any other unknown path remains a
-global invalidator.
+to the current source. A proven empty delta from that reviewed anchor reuses the
+whole family; an empty path input without the Git proof remains a fail-closed
+full build. Version-only changes in `package.json` and the Buildchain impact
+ledger do not rebuild image content; any other unknown path remains a global
+invalidator.
 
 Selected images and their downstream closure are built. Every other image is
 reused only when the lock has a complete public digest, platform, contract
