@@ -1,28 +1,28 @@
 {
   "schema": 1,
-  "tag": "v1.2.4-alpha.7",
-  "source": "e6e9e3464825b912ac3c8990c21d00bf735f19c2",
-  "publish_run": "https://github.com/kungfu-systems/build-images/actions/runs/29379864758",
+  "tag": "v1.2.4-alpha.8",
+  "source": "21ef201178a662353d5726ae0817a9990069e36f",
+  "publish_run": "https://github.com/kungfu-systems/build-images/actions/runs/29380894566",
   "images": [
     {
       "name": "base-linux",
       "image": "ghcr.io/kungfu-systems/build-images/base-linux",
-      "digest": "sha256:11611536af8a84da482266687bcf4a86e3bbcc4104b0a79357249e5137efa2eb",
+      "digest": "sha256:b0b5cf53abdff5f64449c74379e0df3ab5162f7a0468567d776c84a563068d66",
       "platform": "linux/amd64",
       "contract_major": 1,
       "parent_digest": null,
       "content": {
-        "material_sha": "4b06756bb7255afc3595e842f277eb5a8dce3afe",
-        "ref": "v1.2.4-alpha.7",
-        "source_sha": "e6e9e3464825b912ac3c8990c21d00bf735f19c2",
-        "version": "1.2.4-alpha.7"
+        "material_sha": "0a01a21f71cca7139ea8975938e2b3c619364b40",
+        "ref": "v1.2.4-alpha.8",
+        "source_sha": "21ef201178a662353d5726ae0817a9990069e36f",
+        "version": "1.2.4-alpha.8"
       },
       "release": {
-        "material_sha": "4b06756bb7255afc3595e842f277eb5a8dce3afe",
-        "ref": "v1.2.4-alpha.7",
-        "source_sha": "e6e9e3464825b912ac3c8990c21d00bf735f19c2",
+        "material_sha": "0a01a21f71cca7139ea8975938e2b3c619364b40",
+        "ref": "v1.2.4-alpha.8",
+        "source_sha": "21ef201178a662353d5726ae0817a9990069e36f",
         "target_ref": "alpha/v1/v1.2",
-        "version": "1.2.4-alpha.7"
+        "version": "1.2.4-alpha.8"
       },
       "test_commands": [
         "cat /etc/os-release",
@@ -33,22 +33,22 @@
     {
       "name": "kungfu-verify",
       "image": "ghcr.io/kungfu-systems/build-images/kungfu-verify",
-      "digest": "sha256:cfc128bb7c8f8df3e904a930ac4a8eae36b1eca751ebdb76fff698061b72cad3",
+      "digest": "sha256:e1ac467aa87c210e2c6ed7ec839de1532408dda3c48203311b63a4f4a36bfc0f",
       "platform": "linux/amd64",
       "contract_major": 1,
-      "parent_digest": "sha256:11611536af8a84da482266687bcf4a86e3bbcc4104b0a79357249e5137efa2eb",
+      "parent_digest": "sha256:b0b5cf53abdff5f64449c74379e0df3ab5162f7a0468567d776c84a563068d66",
       "content": {
-        "material_sha": "4b06756bb7255afc3595e842f277eb5a8dce3afe",
-        "ref": "v1.2.4-alpha.7",
-        "source_sha": "e6e9e3464825b912ac3c8990c21d00bf735f19c2",
-        "version": "1.2.4-alpha.7"
+        "material_sha": "0a01a21f71cca7139ea8975938e2b3c619364b40",
+        "ref": "v1.2.4-alpha.8",
+        "source_sha": "21ef201178a662353d5726ae0817a9990069e36f",
+        "version": "1.2.4-alpha.8"
       },
       "release": {
-        "material_sha": "4b06756bb7255afc3595e842f277eb5a8dce3afe",
-        "ref": "v1.2.4-alpha.7",
-        "source_sha": "e6e9e3464825b912ac3c8990c21d00bf735f19c2",
+        "material_sha": "0a01a21f71cca7139ea8975938e2b3c619364b40",
+        "ref": "v1.2.4-alpha.8",
+        "source_sha": "21ef201178a662353d5726ae0817a9990069e36f",
         "target_ref": "alpha/v1/v1.2",
-        "version": "1.2.4-alpha.7"
+        "version": "1.2.4-alpha.8"
       },
       "test_commands": [
         "git --version",
@@ -61,22 +61,22 @@
     {
       "name": "latex-pdf-builder",
       "image": "ghcr.io/kungfu-systems/build-images/latex-pdf-builder",
-      "digest": "sha256:9a9ca64b3cc609414c6a7db5de144c7ad3fa14ac97c49a8bb29dd03d7e5ec610",
+      "digest": "sha256:cfe8e9585fa758ba542ac85faca5b7bf30ea242139cbc1ba8f95f0655c3543a7",
       "platform": "linux/amd64",
       "contract_major": 1,
-      "parent_digest": "sha256:2f2401676b128da7c8ce5cb368248732dc5efcef14e8058113d8dfad28a236c1",
+      "parent_digest": "sha256:92262261f323fa850bb9ef778234975b99e2f7358e9e117a23be93beebdf9ce2",
       "content": {
-        "material_sha": "4b06756bb7255afc3595e842f277eb5a8dce3afe",
-        "ref": "v1.2.4-alpha.7",
-        "source_sha": "e6e9e3464825b912ac3c8990c21d00bf735f19c2",
-        "version": "1.2.4-alpha.7"
+        "material_sha": "0a01a21f71cca7139ea8975938e2b3c619364b40",
+        "ref": "v1.2.4-alpha.8",
+        "source_sha": "21ef201178a662353d5726ae0817a9990069e36f",
+        "version": "1.2.4-alpha.8"
       },
       "release": {
-        "material_sha": "4b06756bb7255afc3595e842f277eb5a8dce3afe",
-        "ref": "v1.2.4-alpha.7",
-        "source_sha": "e6e9e3464825b912ac3c8990c21d00bf735f19c2",
+        "material_sha": "0a01a21f71cca7139ea8975938e2b3c619364b40",
+        "ref": "v1.2.4-alpha.8",
+        "source_sha": "21ef201178a662353d5726ae0817a9990069e36f",
         "target_ref": "alpha/v1/v1.2",
-        "version": "1.2.4-alpha.7"
+        "version": "1.2.4-alpha.8"
       },
       "test_commands": [
         "latexmk -version",
@@ -89,22 +89,22 @@
     {
       "name": "native-linux-x64",
       "image": "ghcr.io/kungfu-systems/build-images/native-linux-x64",
-      "digest": "sha256:23615a33fce07db8f182a57358508526b371be424ee9b817850606a8f48d107f",
+      "digest": "sha256:70493d8f7f7a233ff14de3fe5594b48dd0871aaacf0a4ef71270989158f3e703",
       "platform": "linux/amd64",
       "contract_major": 1,
-      "parent_digest": "sha256:11611536af8a84da482266687bcf4a86e3bbcc4104b0a79357249e5137efa2eb",
+      "parent_digest": "sha256:b0b5cf53abdff5f64449c74379e0df3ab5162f7a0468567d776c84a563068d66",
       "content": {
-        "material_sha": "4b06756bb7255afc3595e842f277eb5a8dce3afe",
-        "ref": "v1.2.4-alpha.7",
-        "source_sha": "e6e9e3464825b912ac3c8990c21d00bf735f19c2",
-        "version": "1.2.4-alpha.7"
+        "material_sha": "0a01a21f71cca7139ea8975938e2b3c619364b40",
+        "ref": "v1.2.4-alpha.8",
+        "source_sha": "21ef201178a662353d5726ae0817a9990069e36f",
+        "version": "1.2.4-alpha.8"
       },
       "release": {
-        "material_sha": "4b06756bb7255afc3595e842f277eb5a8dce3afe",
-        "ref": "v1.2.4-alpha.7",
-        "source_sha": "e6e9e3464825b912ac3c8990c21d00bf735f19c2",
+        "material_sha": "0a01a21f71cca7139ea8975938e2b3c619364b40",
+        "ref": "v1.2.4-alpha.8",
+        "source_sha": "21ef201178a662353d5726ae0817a9990069e36f",
         "target_ref": "alpha/v1/v1.2",
-        "version": "1.2.4-alpha.7"
+        "version": "1.2.4-alpha.8"
       },
       "test_commands": [
         "cmake --version",
@@ -116,22 +116,22 @@
     {
       "name": "node24-pnpm",
       "image": "ghcr.io/kungfu-systems/build-images/node24-pnpm",
-      "digest": "sha256:2f2401676b128da7c8ce5cb368248732dc5efcef14e8058113d8dfad28a236c1",
+      "digest": "sha256:92262261f323fa850bb9ef778234975b99e2f7358e9e117a23be93beebdf9ce2",
       "platform": "linux/amd64",
       "contract_major": 1,
-      "parent_digest": "sha256:11611536af8a84da482266687bcf4a86e3bbcc4104b0a79357249e5137efa2eb",
+      "parent_digest": "sha256:b0b5cf53abdff5f64449c74379e0df3ab5162f7a0468567d776c84a563068d66",
       "content": {
-        "material_sha": "4b06756bb7255afc3595e842f277eb5a8dce3afe",
-        "ref": "v1.2.4-alpha.7",
-        "source_sha": "e6e9e3464825b912ac3c8990c21d00bf735f19c2",
-        "version": "1.2.4-alpha.7"
+        "material_sha": "0a01a21f71cca7139ea8975938e2b3c619364b40",
+        "ref": "v1.2.4-alpha.8",
+        "source_sha": "21ef201178a662353d5726ae0817a9990069e36f",
+        "version": "1.2.4-alpha.8"
       },
       "release": {
-        "material_sha": "4b06756bb7255afc3595e842f277eb5a8dce3afe",
-        "ref": "v1.2.4-alpha.7",
-        "source_sha": "e6e9e3464825b912ac3c8990c21d00bf735f19c2",
+        "material_sha": "0a01a21f71cca7139ea8975938e2b3c619364b40",
+        "ref": "v1.2.4-alpha.8",
+        "source_sha": "21ef201178a662353d5726ae0817a9990069e36f",
         "target_ref": "alpha/v1/v1.2",
-        "version": "1.2.4-alpha.7"
+        "version": "1.2.4-alpha.8"
       },
       "test_commands": [
         "node --version",
