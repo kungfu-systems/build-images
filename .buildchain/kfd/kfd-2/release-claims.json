@@ -31,7 +31,7 @@
     {
       "id": "alpha-contract-lock",
       "path": ".buildchain/alpha-contract-lock.json",
-      "sha256": "d73ef3c794513537e17c7232663702d44802441d5f5f1f4155e22ac635bfb270"
+      "sha256": "a81a1e10900765cb8828362511f6ce118f69b9564d1ab7f3661e4463856bcf17"
     },
     {
       "id": "stable-contract-lock",
@@ -50,7 +50,7 @@
     {
       "id": "kfd-upstream-aggregate",
       "path": ".buildchain/kfd/kfd-2/kfd-upstream-aggregate.json",
-      "sha256": "536480ebae6b5a51273f0eb39ce672ea696e1bdefbb434e0d53097dd641f4e20",
+      "sha256": "0397ca507c4f9fec234049e2b1bf04278fc1fb4e0fe78931e66b707530f12fee",
       "contract": "kungfu-buildchain-kfd-upstream-aggregate",
       "status": "passed"
     },
@@ -64,9 +64,9 @@
   ],
   "hashes": {
     "kfd1WitnessSha256": "0ac5f70d0eef8025d53fd9421d57b69aa1b90bd8a97597a8f5f667fe445197f3",
-    "upstreamAggregateSha256": "f791da61c979d4000f4e97735d3f76b8258f41f95b2c40714e31d89455462e80",
-    "sourceBindingsSha256": "b05e8a2b30365fde2a42fe25364ce3d7faf2d557581a80ce61a6259a33da79ec",
-    "machineEvidenceSha256": "d080d07c8907c6902af1d627371731938c59d78a39d9bc7774ce16b215e591da"
+    "upstreamAggregateSha256": "7a9ccb0a010e00d848e2c79b06f2c253148ba87f7a30a97f78a4f599c1cc430c",
+    "sourceBindingsSha256": "4bfe3115501d7856e13362e3a780ed7a451325b3729ac9fffcf20c8c8967c22a",
+    "machineEvidenceSha256": "95516f5fe23399a33f263cf097ed028fcf6007b890264bd053c9f8e092aa81b6"
   },
   "artifacts": [
     {
