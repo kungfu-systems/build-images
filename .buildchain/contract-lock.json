@@ -3,13 +3,13 @@
   "contract": "kungfu-buildchain-contract-lock",
   "buildchain": {
     "ref": "v2",
-    "resolvedSha": "7c1b0059f239a6a8ab784dbaea926f9f9ab22294",
+    "resolvedSha": "52dba6d30051b53d6f6b723fa6e27b090ce4311f",
     "contract": "kungfu-buildchain-runtime-contract-world",
-    "contractDigest": "sha256:4c369ecd3bf25e43dc44f42c8cdd00924e8585e90c5300cba51b483054effd9d",
-    "compatibilityDigest": "sha256:2520207c5d6d6a737dd32251a42be9c5299644d9aebf690a8402ead1724ed495",
+    "contractDigest": "sha256:247a0f3dcfa7e066a3222f5fab5a46fa50a4870c97b1bc40001479044aed8619",
+    "compatibilityDigest": "sha256:af162b86ab4506e9b5f1d3c59b41f3fd57fbad79ff4d749a7f12ff16460517f8",
     "majorLine": "v2",
     "compatibilityPolicy": "major-compatible",
-    "acceptedAt": "2026-07-14T04:28:41.000Z",
+    "acceptedAt": "2026-07-15T13:53:31.000Z",
     "surfaces": [
       {
         "id": "reusable-build",
@@ -109,7 +109,7 @@
       {
         "id": "controller:web-surface",
         "kind": "controller",
-        "breakingDigest": "sha256:b48566da2325d9a6a603fbd444a8cc7deb8abed3e6c70a984259208fb0ed513c"
+        "breakingDigest": "sha256:f14825324a16b51c2e9ed708ebe64e1932e05b6d5e0866f83aea8439decb4a27"
       },
       {
         "id": "controller:publication-artifact",
@@ -119,12 +119,12 @@
       {
         "id": "controller:paper-release",
         "kind": "controller",
-        "breakingDigest": "sha256:18ed432e8f3dd55a80c7e94dadacc09ab0508f6226a882029ce582d590ac214b"
+        "breakingDigest": "sha256:0eb318df455ef9cb737a7c2515a2411b685d34ed0bde7b5f5b173a7a42513114"
       },
       {
         "id": "controller:release-candidate-promotion",
         "kind": "controller",
-        "breakingDigest": "sha256:63e4340f090bce35f5ab64f38fe16767725a39819498ed4d24c5c16de4083c23"
+        "breakingDigest": "sha256:46238f8fc3c20924decc57ecad142a462fc4739c6bc21409d5cd2457fc1c3cdd"
       },
       {
         "id": "controller:release-propagation",
