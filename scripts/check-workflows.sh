@@ -48,7 +48,8 @@ if ! grep -Fq 'fetch-depth: 0' "$promotion_workflow"; then
 fi
 
 public_verifier="$repo_root/scripts/verify-ghcr-public.sh"
-if ! grep -Fq 'api_token="${GITHUB_TOKEN:-${GH_TOKEN:-}}"' "$public_verifier"; then
-  echo "GHCR visibility verification must prefer the workflow package token" >&2
+if grep -Fq 'api.github.com/orgs/' "$public_verifier" ||
+   ! grep -Fq 'https://ghcr.io/token?scope=repository:' "$public_verifier"; then
+  echo "GHCR public verification must use anonymous registry authority without package API scope" >&2
   exit 1
 fi
