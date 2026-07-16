@@ -14,7 +14,3 @@ dockerfile = "Dockerfile"
 test_commands = [
   "/opt/aeron-native-kit/tests/smoke.sh",
 ]
-
-[lock]
-status = "pending-first-publish"
-reason = "The native qualification plan must bind the first reviewed GHCR digest from an earlier alpha."
