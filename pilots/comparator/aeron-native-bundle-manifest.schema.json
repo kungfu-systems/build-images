@@ -16,6 +16,12 @@
     "bundle_id",
     "generated_at",
     "build_images_git_sha",
+    "release_tag",
+    "release_authority",
+    "runner",
+    "release_passport",
+    "release_check_report",
+    "public_release_receipt",
     "plan",
     "preparation",
     "host_facts",
@@ -38,6 +44,12 @@
     "bundle_id": { "type": "string", "minLength": 1 },
     "generated_at": { "type": "string", "format": "date-time" },
     "build_images_git_sha": { "pattern": "^[0-9a-f]{40}$" },
+    "release_tag": { "pattern": "^v[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?$" },
+    "release_authority": { "$ref": "#/$defs/releaseAuthority" },
+    "runner": { "$ref": "#/$defs/sha256Binding" },
+    "release_passport": { "$ref": "#/$defs/sha256Binding" },
+    "release_check_report": { "$ref": "#/$defs/sha256Binding" },
+    "public_release_receipt": { "$ref": "#/$defs/sha256Binding" },
     "plan": { "type": "object" },
     "preparation": { "type": "object" },
     "host_facts": { "type": "object" },
@@ -47,5 +59,43 @@
     "results": { "type": "array" },
     "artifacts": { "type": "array" },
     "claim_boundary": { "type": "string", "minLength": 1 }
+  },
+  "$defs": {
+    "sha256Binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "sha256": { "pattern": "^[0-9a-f]{64}$" }
+      }
+    },
+    "releaseAuthority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tag",
+        "material_sha",
+        "source_sha",
+        "origin",
+        "tag_ref",
+        "api_url",
+        "passport_sha256",
+        "check_report_sha256"
+      ],
+      "properties": {
+        "tag": { "pattern": "^v[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?$" },
+        "material_sha": { "pattern": "^[0-9a-f]{40}$" },
+        "source_sha": { "pattern": "^[0-9a-f]{40}$" },
+        "origin": { "enum": [
+          "git@github.com:kungfu-systems/build-images.git",
+          "https://github.com/kungfu-systems/build-images.git"
+        ] },
+        "tag_ref": { "type": "string", "minLength": 1 },
+        "api_url": { "type": "string", "minLength": 1 },
+        "passport_sha256": { "pattern": "^[0-9a-f]{64}$" },
+        "check_report_sha256": { "pattern": "^[0-9a-f]{64}$" }
+      }
+    }
   }
 }
