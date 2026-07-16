@@ -42,7 +42,7 @@ import java.util.regex.Pattern;
 
 public final class QualificationHarness
 {
-    private static final String VERSION = "1.1.0";
+    private static final String VERSION = "1.1.1";
     private static final String IPC_CHANNEL = "aeron:ipc";
     private static final String ARCHIVE_CONTROL_REQUEST_CHANNEL = "aeron:udp?endpoint=localhost:8010";
     private static final String ARCHIVE_CONTROL_RESPONSE_CHANNEL = "aeron:udp?endpoint=localhost:0";
@@ -384,11 +384,28 @@ public final class QualificationHarness
             Subscription subscription = aeron.addSubscription(IPC_CHANNEL, 2001))
         {
             await(() -> publication.isConnected() && subscription.isConnected(), "IPC connection");
-            final long[] received = new long[1];
+            final long[] observed = new long[1];
+            final long[] expected = new long[1];
+            final long[] duplicates = new long[1];
+            final long[] reordered = new long[1];
             final FragmentHandler handler = (data, offset, length, header) ->
             {
+                final long sequence = data.getLong(offset);
                 final long sentNs = data.getLong(offset + 8);
-                received[0] = data.getLong(offset) + 1;
+                observed[0]++;
+                if (sequence < expected[0])
+                {
+                    duplicates[0]++;
+                }
+                else if (sequence != expected[0])
+                {
+                    reordered[0]++;
+                    expected[0] = sequence + 1;
+                }
+                else
+                {
+                    expected[0]++;
+                }
                 if (sentNs != 0)
                 {
                     histogram.recordValueWithExpectedInterval(Math.max(1, System.nanoTime() - sentNs), expectedInterval);
@@ -401,7 +418,10 @@ public final class QualificationHarness
                 {
                     histogram.reset();
                     histogram.setStartTimeStamp(System.currentTimeMillis());
-                    received[0] = 0;
+                    observed[0] = 0;
+                    expected[0] = 0;
+                    duplicates[0] = 0;
+                    reordered[0] = 0;
                 }
                 final long sequence = Math.max(0, i);
                 buffer.putLong(0, sequence);
@@ -432,6 +452,11 @@ public final class QualificationHarness
             }
         }
         histogram.setEndTimeStamp(System.currentTimeMillis());
+        final long loss = messages - observed[0];
+        if (loss != 0 || duplicates[0] != 0 || reordered[0] != 0 || expected[0] != messages)
+        {
+            fail("IPC sequence oracle failed");
+        }
 
         try (PrintStream stream = new PrintStream(Files.newOutputStream(histogramPath)))
         {
@@ -443,8 +468,9 @@ public final class QualificationHarness
         }
 
         System.out.printf(
-            "{\"schema\":\"aeron-ipc-measurement/v1\",\"messages\":%d,\"payload\":%d,\"offered_rate\":%d,\"samples\":%d,\"p50_ns\":%d,\"p95_ns\":%d,\"p99_ns\":%d,\"p999_ns\":%d,\"max_ns\":%d,\"backpressure\":%d,\"poll_failures\":%d,\"coordinated_omission\":\"expected-interval-correction\",\"histogram\":\"%s\",\"histogram_start_time_ms\":%d,\"histogram_end_time_ms\":%d}%n",
-            messages, payload, rate, histogram.getTotalCount(), histogram.getValueAtPercentile(50),
+            "{\"schema\":\"aeron-ipc-measurement/v1\",\"messages\":%d,\"observed\":%d,\"loss\":%d,\"duplicates\":%d,\"reordered\":%d,\"offer_failures\":0,\"payload\":%d,\"offered_rate\":%d,\"samples\":%d,\"p50_ns\":%d,\"p95_ns\":%d,\"p99_ns\":%d,\"p999_ns\":%d,\"max_ns\":%d,\"backpressure\":%d,\"poll_failures\":%d,\"coordinated_omission\":\"expected-interval-correction\",\"histogram\":\"%s\",\"histogram_start_time_ms\":%d,\"histogram_end_time_ms\":%d}%n",
+            messages, observed[0], loss, duplicates[0], reordered[0], payload, rate,
+            histogram.getTotalCount(), histogram.getValueAtPercentile(50),
             histogram.getValueAtPercentile(95), histogram.getValueAtPercentile(99),
             histogram.getValueAtPercentile(99.9), histogram.getMaxValue(), backpressure, pollFailures,
             json(histogramPath.toString()), histogram.getStartTimeStamp(), histogram.getEndTimeStamp());

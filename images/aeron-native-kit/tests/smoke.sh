@@ -74,7 +74,13 @@ ipc_output=$(/opt/aeron-native-kit/bin/aeron-native-harness ipc \
 printf '%s\n' "${ipc_output}"
 histogram_start=$(printf '%s\n' "${ipc_output}" | sed -n 's/.*"histogram_start_time_ms":\([0-9][0-9]*\).*/\1/p')
 histogram_end=$(printf '%s\n' "${ipc_output}" | sed -n 's/.*"histogram_end_time_ms":\([0-9][0-9]*\).*/\1/p')
+observed=$(printf '%s\n' "${ipc_output}" | sed -n 's/.*"observed":\([0-9][0-9]*\).*/\1/p')
 test -n "${histogram_start}"
 test -n "${histogram_end}"
+test "${observed}" -eq 500
+printf '%s\n' "${ipc_output}" | grep -q '"loss":0'
+printf '%s\n' "${ipc_output}" | grep -q '"duplicates":0'
+printf '%s\n' "${ipc_output}" | grep -q '"reordered":0'
+printf '%s\n' "${ipc_output}" | grep -q '"offer_failures":0'
 test "${histogram_end}" -ge "${histogram_start}"
 test -s /tmp/aeron-native-kit-smoke.hlog
