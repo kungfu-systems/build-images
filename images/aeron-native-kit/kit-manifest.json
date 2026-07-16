@@ -15,7 +15,28 @@
   },
   "harness": {
     "main_class": "io.kungfu.aeron.QualificationHarness",
-    "protocol_version": 1
+    "protocol_version": 2,
+    "capabilities": [
+      "bounded-ipc-histogram",
+      "live-driver-archive-health",
+      "marker-bound-record",
+      "marker-bound-replay"
+    ]
+  },
+  "configuration": {
+    "ipc_channel": "aeron:ipc",
+    "archive_control_channel": "aeron:udp?endpoint=localhost:8010",
+    "archive_control_response_channel": "aeron:udp?endpoint=localhost:0",
+    "archive_replication_channel": "aeron:udp?endpoint=localhost:0",
+    "driver_threading": "SHARED_NETWORK",
+    "archive_threading": "SHARED",
+    "idle_strategy": "backoff-100-10-1-100000ns",
+    "term_buffer_length": 16777216,
+    "segment_file_length": 16777216,
+    "sparse": false,
+    "file_sync_level": 1,
+    "catalog_sync_level": 1,
+    "spies_simulate_connection": true
   },
   "claim_boundary": "This OCI image is an immutable distribution kit. Extraction and successful execution do not grant native performance authority."
 }

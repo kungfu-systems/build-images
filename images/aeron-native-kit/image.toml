@@ -12,9 +12,7 @@ self_hosted_required = false
 context = "."
 dockerfile = "Dockerfile"
 test_commands = [
-  "/opt/aeron-native-kit/bin/aeron-native-harness version",
-  "/opt/aeron-native-kit/bin/aeron-native-harness ipc --root /tmp/aeron-kit-smoke --warmup 100 --messages 500 --payload 64 --rate 10000 --histogram /tmp/aeron-kit-smoke.hlog",
-  "test -s /tmp/aeron-kit-smoke.hlog",
+  "/opt/aeron-native-kit/tests/smoke.sh",
 ]
 
 [lock]

@@ -16,12 +16,13 @@ COPY --from=build /opt/build/aeron-all.jar /opt/aeron-native-kit/lib/aeron-all.j
 COPY --from=build /opt/build/aeron-qualification-harness.jar /opt/aeron-native-kit/lib/aeron-qualification-harness.jar
 COPY bin/aeron-native-harness /opt/aeron-native-kit/bin/aeron-native-harness
 COPY kit-manifest.json /opt/aeron-native-kit/kit-manifest.json
+COPY tests /opt/aeron-native-kit/tests
 
-RUN chmod 0755 /opt/aeron-native-kit/bin/aeron-native-harness
+RUN chmod 0755 /opt/aeron-native-kit/bin/aeron-native-harness \
+    /opt/aeron-native-kit/tests/smoke.sh
 
 ENV AERON_NATIVE_KIT_JAVA=/opt/java/openjdk/bin/java
-ENTRYPOINT ["/opt/aeron-native-kit/bin/aeron-native-harness"]
-CMD ["version"]
+CMD ["/opt/aeron-native-kit/bin/aeron-native-harness", "version"]
 
 LABEL org.opencontainers.image.source="https://github.com/kungfu-systems/build-images"
 LABEL org.opencontainers.image.version="aeron-1.52.2"
