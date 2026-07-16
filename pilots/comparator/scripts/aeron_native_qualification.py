@@ -640,6 +640,11 @@ def result_marker(plan_sha256: str, tier: str, repetition: int, variant: str) ->
     })
 
 
+def ipc_seed(marker: str) -> int:
+    require_sha256(marker, "native IPC marker")
+    return int(marker[:15], 16)
+
+
 def finalize_result(
     output_dir: pathlib.Path,
     tier: str,
@@ -683,6 +688,7 @@ def run_ipc_result(
 ) -> pathlib.Path:
     started_at = utc_now()
     marker = result_marker(plan_sha256, tier, repetition, variant)
+    seed = ipc_seed(marker)
     output_dir.mkdir(parents=True)
     histogram = output_dir / "latency.hlog"
     measurement, metrics = harness_json(
@@ -694,6 +700,7 @@ def run_ipc_result(
             "--messages", str(parameters["messages"]),
             "--payload", str(parameters["payload"]),
             "--rate", str(parameters["rate"]),
+            "--seed", str(seed),
             "--histogram", str(histogram),
         ],
         output_dir,
@@ -704,6 +711,8 @@ def run_ipc_result(
         raise NativeQualificationError("IPC result does not preserve coordinated-omission treatment")
     if measurement.get("messages") != parameters["messages"] or measurement.get("samples", 0) < parameters["messages"]:
         raise NativeQualificationError("IPC sample count is incomplete")
+    if measurement.get("seed") != seed:
+        raise NativeQualificationError("IPC result seed does not match the result marker")
     if not histogram.is_file() or histogram.stat().st_size == 0:
         raise NativeQualificationError("IPC raw HdrHistogram is missing")
     measurement.update({"variant": variant, "marker_binding": marker})
@@ -1078,6 +1087,8 @@ def verify_result(plan: dict[str, Any], path: pathlib.Path, expected: dict[str, 
                 raise NativeQualificationError(f"native IPC metric is invalid: {field}")
         if measurement["samples"] < measurement["messages"] or measurement.get("coordinated_omission") != "expected-interval-correction":
             raise NativeQualificationError("native IPC loss or coordinated-omission contract failed")
+        if measurement.get("seed") != ipc_seed(result["marker"]):
+            raise NativeQualificationError("native IPC seed binding failed")
         histogram = path.parent / "latency.hlog"
         if not histogram.is_file() or histogram.stat().st_size == 0:
             raise NativeQualificationError("native raw HdrHistogram is missing")
