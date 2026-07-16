@@ -44,6 +44,9 @@ public final class QualificationHarness
 {
     private static final String VERSION = "1.1.0";
     private static final String IPC_CHANNEL = "aeron:ipc";
+    private static final String ARCHIVE_CONTROL_REQUEST_CHANNEL = "aeron:udp?endpoint=localhost:8010";
+    private static final String ARCHIVE_CONTROL_RESPONSE_CHANNEL = "aeron:udp?endpoint=localhost:0";
+    private static final String ARCHIVE_REPLICATION_CHANNEL = "aeron:udp?endpoint=localhost:0";
     private static final int RECORDING_STREAM_ID = 1001;
     private static final int REPLAY_STREAM_ID = 1002;
     private static final long TIMEOUT_NS = TimeUnit.SECONDS.toNanos(30);
@@ -109,6 +112,10 @@ public final class QualificationHarness
             .deleteArchiveOnStart(false)
             .recordingEventsEnabled(false)
             .threadingMode(ArchiveThreadingMode.SHARED)
+            .controlChannel(ARCHIVE_CONTROL_REQUEST_CHANNEL)
+            .localControlChannel(IPC_CHANNEL)
+            .recordingEventsChannel(ARCHIVE_CONTROL_RESPONSE_CHANNEL)
+            .replicationChannel(ARCHIVE_REPLICATION_CHANNEL)
             .fileSyncLevel(fileSyncLevel)
             .catalogFileSyncLevel(catalogSyncLevel);
 
@@ -124,7 +131,7 @@ public final class QualificationHarness
         Runtime.getRuntime().addShutdownHook(new Thread(close, "aeron-server-shutdown"));
 
         try (Aeron aeron = Aeron.connect(new Aeron.Context().aeronDirectoryName(driverDir.toString()));
-            AeronArchive archive = AeronArchive.connect(new AeronArchive.Context().aeron(aeron)))
+            AeronArchive archive = AeronArchive.connect(archiveClientContext(aeron)))
         {
             final Path ready = root.resolve("server-ready.json");
             Files.writeString(ready, String.format(
@@ -144,7 +151,7 @@ public final class QualificationHarness
         final Path root = requiredPath(options, "root").toAbsolutePath();
         final String driverDir = root.resolve("driver").toString();
         try (Aeron aeron = Aeron.connect(new Aeron.Context().aeronDirectoryName(driverDir));
-            AeronArchive archive = AeronArchive.connect(new AeronArchive.Context().aeron(aeron)))
+            AeronArchive archive = AeronArchive.connect(archiveClientContext(aeron)))
         {
             System.out.printf(
                 "{\"schema\":\"aeron-live-health/v1\",\"status\":\"live\",\"checked_at\":\"%s\",\"archive_id\":%d}%n",
@@ -203,7 +210,7 @@ public final class QualificationHarness
         long receiptPosition;
         final long startNs = System.nanoTime();
         try (Aeron aeron = Aeron.connect(new Aeron.Context().aeronDirectoryName(driverDir));
-            AeronArchive archive = AeronArchive.connect(new AeronArchive.Context().aeron(aeron));
+            AeronArchive archive = AeronArchive.connect(archiveClientContext(aeron));
             ExclusivePublication publication = aeron.addExclusivePublication(IPC_CHANNEL, RECORDING_STREAM_ID))
         {
             final String sessionChannel = ChannelUri.addSessionId(IPC_CHANNEL, publication.sessionId());
@@ -269,7 +276,7 @@ public final class QualificationHarness
     {
         final Path root = requiredPath(options, "root").toAbsolutePath();
         final int count = positive(options, "count");
-        final long recordingId = longValue(options, "recording-id");
+        final long recordingId = nonNegativeLongValue(options, "recording-id");
         final long length = longValue(options, "length");
         final byte[] marker = requiredMarker(options);
         final String driverDir = root.resolve("driver").toString();
@@ -302,7 +309,7 @@ public final class QualificationHarness
 
         final long startNs = System.nanoTime();
         try (Aeron aeron = Aeron.connect(new Aeron.Context().aeronDirectoryName(driverDir));
-            AeronArchive archive = AeronArchive.connect(new AeronArchive.Context().aeron(aeron));
+            AeronArchive archive = AeronArchive.connect(archiveClientContext(aeron));
             Subscription replay = archive.replay(recordingId, 0, length, IPC_CHANNEL, REPLAY_STREAM_ID))
         {
             await(replay::isConnected, "replay connection");
@@ -353,7 +360,6 @@ public final class QualificationHarness
         final long expectedInterval = Math.max(1, TimeUnit.SECONDS.toNanos(1) / rate);
         final UnsafeBuffer buffer = new UnsafeBuffer(ByteBuffer.allocateDirect(Math.max(payload, 16)));
 
-        final long startNs;
         try (MediaDriver driver = MediaDriver.launch(context);
             Aeron aeron = Aeron.connect(new Aeron.Context().aeronDirectoryName(driverDir));
             ExclusivePublication publication = aeron.addExclusivePublication(IPC_CHANNEL, 2001);
@@ -376,6 +382,7 @@ public final class QualificationHarness
                 if (i == 0)
                 {
                     histogram.reset();
+                    histogram.setStartTimeStamp(System.currentTimeMillis());
                     received[0] = 0;
                 }
                 final long sequence = Math.max(0, i);
@@ -405,24 +412,24 @@ public final class QualificationHarness
                     }
                 }
             }
-            startNs = histogram.getStartTimeStamp();
         }
+        histogram.setEndTimeStamp(System.currentTimeMillis());
 
-        try (PrintStream stream = new PrintStream(Files.newOutputStream(histogramPath));
-            HistogramLogWriter writer = new HistogramLogWriter(stream))
+        try (PrintStream stream = new PrintStream(Files.newOutputStream(histogramPath)))
         {
+            final HistogramLogWriter writer = new HistogramLogWriter(stream);
             writer.outputLogFormatVersion();
-            writer.outputStartTime(System.currentTimeMillis());
+            writer.outputStartTime(histogram.getStartTimeStamp());
             writer.outputLegend();
             writer.outputIntervalHistogram(histogram);
         }
 
         System.out.printf(
-            "{\"schema\":\"aeron-ipc-measurement/v1\",\"messages\":%d,\"payload\":%d,\"offered_rate\":%d,\"samples\":%d,\"p50_ns\":%d,\"p95_ns\":%d,\"p99_ns\":%d,\"p999_ns\":%d,\"max_ns\":%d,\"backpressure\":%d,\"poll_failures\":%d,\"coordinated_omission\":\"expected-interval-correction\",\"histogram\":\"%s\",\"histogram_start_marker\":%d}%n",
+            "{\"schema\":\"aeron-ipc-measurement/v1\",\"messages\":%d,\"payload\":%d,\"offered_rate\":%d,\"samples\":%d,\"p50_ns\":%d,\"p95_ns\":%d,\"p99_ns\":%d,\"p999_ns\":%d,\"max_ns\":%d,\"backpressure\":%d,\"poll_failures\":%d,\"coordinated_omission\":\"expected-interval-correction\",\"histogram\":\"%s\",\"histogram_start_time_ms\":%d,\"histogram_end_time_ms\":%d}%n",
             messages, payload, rate, histogram.getTotalCount(), histogram.getValueAtPercentile(50),
             histogram.getValueAtPercentile(95), histogram.getValueAtPercentile(99),
             histogram.getValueAtPercentile(99.9), histogram.getMaxValue(), backpressure, pollFailures,
-            json(histogramPath.toString()), startNs);
+            json(histogramPath.toString()), histogram.getStartTimeStamp(), histogram.getEndTimeStamp());
     }
 
     private static int awaitRecordingCounter(
@@ -538,6 +545,21 @@ public final class QualificationHarness
         return parsed;
     }
 
+    private static long nonNegativeLongValue(final Map<String, String> options, final String name)
+    {
+        final String value = options.get(name);
+        if (value == null)
+        {
+            fail("--" + name + " is required");
+        }
+        final long parsed = Long.parseLong(value);
+        if (parsed < 0)
+        {
+            fail("--" + name + " must be non-negative");
+        }
+        return parsed;
+    }
+
     private static byte[] requiredMarker(final Map<String, String> options)
     {
         final String marker = options.get("marker");
@@ -546,6 +568,14 @@ public final class QualificationHarness
             fail("--marker must be a lowercase SHA-256");
         }
         return marker.getBytes(StandardCharsets.US_ASCII);
+    }
+
+    private static AeronArchive.Context archiveClientContext(final Aeron aeron)
+    {
+        return new AeronArchive.Context()
+            .aeron(aeron)
+            .controlRequestChannel(ARCHIVE_CONTROL_REQUEST_CHANNEL)
+            .controlResponseChannel(ARCHIVE_CONTROL_RESPONSE_CHANNEL);
     }
 
     private static boolean matchesMarker(final DirectBuffer data, final int offset, final byte[] expected)
