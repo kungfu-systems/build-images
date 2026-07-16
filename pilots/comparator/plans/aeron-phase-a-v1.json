@@ -23,13 +23,13 @@
   },
   "adapter_registry": {
     "path": "workload-adapters/registry.json",
-    "sha256": "6f33f661fd9f864b0e9c4bf47042794f6f72e7515ccd17f6f285fdad918688a7"
+    "sha256": "9e412843d5c6c13132a3c1e25ce6918fbab19d37549a1f4aebc1a783347124d9"
   },
   "workload_adapter": {
     "id": "aeron-phase-a-v1",
     "version": "1.0.0",
     "artifact": "workload-adapters/aeron_phase_a_v1.py",
-    "sha256": "a2dec759ed834d70b464bdd9e8375323f29ff4cd2ac50ff5bc3ae3bb1b42df3f",
+    "sha256": "be5c5bdc9e6dc67641a015363170d70e1ec4ef40c019f61fa4c13dced677fbc4",
     "entrypoint": "aeron-phase-a-v1",
     "profiles": ["aeron"],
     "semantics": {

@@ -23,7 +23,7 @@
   },
   "adapter_registry": {
     "path": "workload-adapters/registry.json",
-    "sha256": "6f33f661fd9f864b0e9c4bf47042794f6f72e7515ccd17f6f285fdad918688a7"
+    "sha256": "9e412843d5c6c13132a3c1e25ce6918fbab19d37549a1f4aebc1a783347124d9"
   },
   "workload_adapter": {
     "id": "clickhouse-phase-a-v1",
