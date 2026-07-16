@@ -63,7 +63,7 @@ services:
       CLICKHOUSE_PASSWORD: pilot-local-only
       CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"
     healthcheck:
-      test: ["CMD-SHELL", "clickhouse-client --user pilot --password pilot-local-only --query 'SELECT 1'"]
+      test: ["CMD-SHELL", "test \"$(cat /proc/1/comm)\" = clickhouse-serv && clickhouse-client --user pilot --password pilot-local-only --database pilot --query 'SELECT 1'"]
       interval: 2s
       timeout: 3s
       retries: 30
