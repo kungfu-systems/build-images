@@ -42,7 +42,7 @@ import java.util.regex.Pattern;
 
 public final class QualificationHarness
 {
-    private static final String VERSION = "1.1.0";
+    private static final String VERSION = "1.1.1";
     private static final String IPC_CHANNEL = "aeron:ipc";
     private static final String ARCHIVE_CONTROL_REQUEST_CHANNEL = "aeron:udp?endpoint=localhost:8010";
     private static final String ARCHIVE_CONTROL_RESPONSE_CHANNEL = "aeron:udp?endpoint=localhost:0";
@@ -357,6 +357,8 @@ public final class QualificationHarness
         final int messages = positive(options, "messages");
         final int payload = integer(options, "payload", 64);
         final long rate = longValue(options, "rate");
+        final long seed = longValue(options, "seed");
+        final int pollBatch = positive(options, "poll-batch");
         final Path histogramPath = requiredPath(options, "histogram").toAbsolutePath();
         Files.createDirectories(root);
         Files.createDirectories(histogramPath.getParent());
@@ -384,54 +386,114 @@ public final class QualificationHarness
             Subscription subscription = aeron.addSubscription(IPC_CHANNEL, 2001))
         {
             await(() -> publication.isConnected() && subscription.isConnected(), "IPC connection");
-            final long[] received = new long[1];
+            final long[] observed = new long[1];
+            final long[] expected = new long[1];
+            final long[] duplicates = new long[1];
+            final long[] reordered = new long[1];
             final FragmentHandler handler = (data, offset, length, header) ->
             {
+                final long sequence = data.getLong(offset);
                 final long sentNs = data.getLong(offset + 8);
-                received[0] = data.getLong(offset) + 1;
+                observed[0]++;
+                if (sequence < expected[0])
+                {
+                    duplicates[0]++;
+                }
+                else if (sequence != expected[0])
+                {
+                    reordered[0]++;
+                    expected[0] = sequence + 1;
+                }
+                else
+                {
+                    expected[0]++;
+                }
                 if (sentNs != 0)
                 {
                     histogram.recordValueWithExpectedInterval(Math.max(1, System.nanoTime() - sentNs), expectedInterval);
                 }
             };
 
-            for (int i = -warmup; i < messages; i++)
+            for (int i = 0; i < warmup; i++)
             {
-                if (i == 0)
-                {
-                    histogram.reset();
-                    histogram.setStartTimeStamp(System.currentTimeMillis());
-                    received[0] = 0;
-                }
-                final long sequence = Math.max(0, i);
-                buffer.putLong(0, sequence);
-                buffer.putLong(8, i < 0 ? 0 : System.nanoTime());
+                buffer.putLong(0, 0);
+                buffer.putLong(8, 0);
+                final long offerDeadline = System.nanoTime() + TIMEOUT_NS;
                 while (publication.offer(buffer, 0, payload) < 0)
                 {
                     backpressure++;
-                    Thread.onSpinWait();
-                }
-                final long deadline = System.nanoTime() + TIMEOUT_NS;
-                while (subscription.poll(handler, 1) == 0)
-                {
-                    pollFailures++;
-                    if (System.nanoTime() > deadline)
+                    if (System.nanoTime() > offerDeadline)
                     {
-                        fail("IPC poll timeout");
+                        fail("IPC warmup offer timeout");
                     }
                     Thread.onSpinWait();
                 }
-                if (i >= 0)
+                final long pollDeadline = System.nanoTime() + TIMEOUT_NS;
+                while (observed[0] < i + 1)
                 {
-                    final long target = buffer.getLong(8) + expectedInterval;
-                    while (System.nanoTime() < target)
+                    if (subscription.poll(handler, 1) == 0)
                     {
+                        pollFailures++;
+                    }
+                    if (System.nanoTime() > pollDeadline)
+                    {
+                        fail("IPC warmup poll timeout");
+                    }
+                    Thread.onSpinWait();
+                }
+            }
+            histogram.reset();
+            histogram.setStartTimeStamp(System.currentTimeMillis());
+            observed[0] = 0;
+            expected[0] = seed;
+            duplicates[0] = 0;
+            reordered[0] = 0;
+
+            for (int i = 0; i < messages; i++)
+            {
+                final long sequence = seed + i;
+                buffer.putLong(0, sequence);
+                buffer.putLong(8, System.nanoTime());
+                final long offerDeadline = System.nanoTime() + TIMEOUT_NS;
+                while (publication.offer(buffer, 0, payload) < 0)
+                {
+                    backpressure++;
+                    subscription.poll(handler, 64);
+                    if (System.nanoTime() > offerDeadline)
+                    {
+                        fail("IPC measured offer timeout");
+                    }
+                    Thread.onSpinWait();
+                }
+                if ((i + 1) % pollBatch == 0 || i + 1 == messages)
+                {
+                    final long pollDeadline = System.nanoTime() + TIMEOUT_NS;
+                    while (observed[0] < i + 1)
+                    {
+                        if (subscription.poll(handler, 64) == 0)
+                        {
+                            pollFailures++;
+                        }
+                        if (System.nanoTime() > pollDeadline)
+                        {
+                            fail("IPC measured poll timeout");
+                        }
                         Thread.onSpinWait();
                     }
+                }
+                final long target = buffer.getLong(8) + expectedInterval;
+                while (System.nanoTime() < target)
+                {
+                    Thread.onSpinWait();
                 }
             }
         }
         histogram.setEndTimeStamp(System.currentTimeMillis());
+        final long loss = messages - observed[0];
+        if (loss != 0 || duplicates[0] != 0 || reordered[0] != 0 || expected[0] != seed + messages)
+        {
+            fail("IPC sequence oracle failed");
+        }
 
         try (PrintStream stream = new PrintStream(Files.newOutputStream(histogramPath)))
         {
@@ -443,8 +505,9 @@ public final class QualificationHarness
         }
 
         System.out.printf(
-            "{\"schema\":\"aeron-ipc-measurement/v1\",\"messages\":%d,\"payload\":%d,\"offered_rate\":%d,\"samples\":%d,\"p50_ns\":%d,\"p95_ns\":%d,\"p99_ns\":%d,\"p999_ns\":%d,\"max_ns\":%d,\"backpressure\":%d,\"poll_failures\":%d,\"coordinated_omission\":\"expected-interval-correction\",\"histogram\":\"%s\",\"histogram_start_time_ms\":%d,\"histogram_end_time_ms\":%d}%n",
-            messages, payload, rate, histogram.getTotalCount(), histogram.getValueAtPercentile(50),
+            "{\"schema\":\"aeron-ipc-measurement/v1\",\"messages\":%d,\"observed\":%d,\"loss\":%d,\"duplicates\":%d,\"reordered\":%d,\"offer_failures\":0,\"seed\":%d,\"poll_batch\":%d,\"payload\":%d,\"offered_rate\":%d,\"samples\":%d,\"p50_ns\":%d,\"p95_ns\":%d,\"p99_ns\":%d,\"p999_ns\":%d,\"max_ns\":%d,\"backpressure\":%d,\"poll_failures\":%d,\"coordinated_omission\":\"expected-interval-correction\",\"histogram\":\"%s\",\"histogram_start_time_ms\":%d,\"histogram_end_time_ms\":%d}%n",
+            messages, observed[0], loss, duplicates[0], reordered[0], seed, pollBatch, payload, rate,
+            histogram.getTotalCount(), histogram.getValueAtPercentile(50),
             histogram.getValueAtPercentile(95), histogram.getValueAtPercentile(99),
             histogram.getValueAtPercentile(99.9), histogram.getMaxValue(), backpressure, pollFailures,
             json(histogramPath.toString()), histogram.getStartTimeStamp(), histogram.getEndTimeStamp());
