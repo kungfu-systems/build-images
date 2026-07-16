@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import json
 import pathlib
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -19,6 +20,9 @@ import aeron_native_qualification as native  # noqa: E402
 SHA_A = "a" * 64
 SHA_B = "b" * 64
 IMAGE = f"ghcr.io/kungfu-systems/build-images/aeron-native-kit@sha256:{'1' * 64}"
+BUILD_SHA = "c" * 40
+SOURCE_SHA = "d" * 40
+RELEASE_TAG = "v1.2.4-alpha.23"
 
 
 def valid_plan() -> dict:
@@ -318,6 +322,53 @@ class NativeQualificationTests(unittest.TestCase):
             "host_state_mutated": False,
             "perf_counters_required": False,
         })
+        authority_dir = root / "authority"
+        runner_path = authority_dir / "scripts" / "aeron_native_qualification.py"
+        runner_path.parent.mkdir(parents=True)
+        runner_path.write_bytes(native.SCRIPT_PATH.read_bytes())
+        passport_path = authority_dir / "buildchain.release.json"
+        native.write_json(passport_path, {
+            "contract": native.RELEASE_PASSPORT_CONTRACT,
+            "release": {
+                "tag": RELEASE_TAG,
+                "publicTag": RELEASE_TAG,
+                "exactRef": f"refs/tags/{RELEASE_TAG}",
+                "sourceSha": SOURCE_SHA,
+                "releaseSha": BUILD_SHA,
+                "releaseMaterialSha": BUILD_SHA,
+            },
+            "evidence": {"checkReport": "check-report.json"},
+            "transaction": {
+                "state": "complete",
+                "exactTag": RELEASE_TAG,
+                "releaseSha": BUILD_SHA,
+                "releaseMaterialSha": BUILD_SHA,
+                "result": {"validation": {"valid": True, "errors": []}},
+            },
+        })
+        check_report_path = authority_dir / "check-report.json"
+        native.write_json(check_report_path, {
+            "contract": native.RELEASE_CHECK_REPORT_CONTRACT,
+            "ok": True,
+            "trust": "pass",
+            "issues": [],
+        })
+        release_authority = {
+            "tag": RELEASE_TAG,
+            "material_sha": BUILD_SHA,
+            "source_sha": SOURCE_SHA,
+            "origin": "https://github.com/kungfu-systems/build-images.git",
+            "tag_ref": f"refs/tags/{RELEASE_TAG}",
+            "api_url": f"{native.GITHUB_RELEASE_API}/{RELEASE_TAG}",
+            "passport_sha256": native.sha256_file(passport_path),
+            "check_report_sha256": native.sha256_file(check_report_path),
+        }
+        receipt_path = authority_dir / "public-release.json"
+        native.write_json(receipt_path, {
+            "contract": native.PUBLIC_RELEASE_RECEIPT_CONTRACT,
+            "schema_version": 1,
+            **release_authority,
+        })
 
         result_paths = []
         for repetition, p99 in enumerate((95, 100, 105), start=1):
@@ -353,7 +404,25 @@ class NativeQualificationTests(unittest.TestCase):
             "final_scoring_authority": False,
             "bundle_id": "synthetic-native-bundle",
             "generated_at": "2026-07-16T00:00:00Z",
-            "build_images_git_sha": "c" * 40,
+            "build_images_git_sha": BUILD_SHA,
+            "release_tag": RELEASE_TAG,
+            "release_authority": release_authority,
+            "runner": {
+                "path": runner_path.relative_to(root).as_posix(),
+                "sha256": native.sha256_file(runner_path),
+            },
+            "release_passport": {
+                "path": passport_path.relative_to(root).as_posix(),
+                "sha256": native.sha256_file(passport_path),
+            },
+            "release_check_report": {
+                "path": check_report_path.relative_to(root).as_posix(),
+                "sha256": native.sha256_file(check_report_path),
+            },
+            "public_release_receipt": {
+                "path": receipt_path.relative_to(root).as_posix(),
+                "sha256": native.sha256_file(receipt_path),
+            },
             "plan": {
                 "path": plan_path.relative_to(root).as_posix(),
                 "sha256": native.sha256_file(plan_path),
@@ -383,9 +452,205 @@ class NativeQualificationTests(unittest.TestCase):
             self._bundle(root)
             bundle = native.verify_bundle(root)
             self.assertTrue(bundle["native_performance_authority"])
+            runner_path = root / bundle["runner"]["path"]
+            process = subprocess.run(
+                [sys.executable, str(runner_path), "verify-bundle", "--bundle", str(root)],
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            self.assertEqual(process.returncode, 0, process.stderr)
             histogram = next(root.rglob("latency.hlog"))
             histogram.write_text("tampered\n", encoding="utf-8")
             with self.assertRaisesRegex(native.NativeQualificationError, "integrity"):
+                native.verify_bundle(root)
+
+    def test_exact_release_tag_rejects_clean_non_release_commit(self) -> None:
+        completed = mock.Mock(stdout="v1-alpha\nv1.2-alpha\n")
+        with mock.patch.object(native, "run_command", return_value=completed):
+            with self.assertRaisesRegex(native.NativeQualificationError, "public release tag"):
+                native.exact_release_tag(BUILD_SHA)
+
+    def test_tagged_runner_requires_exact_release_bytes(self) -> None:
+        tagged_blob = "1" * 40
+        with mock.patch.object(
+            native,
+            "run_command",
+            side_effect=[mock.Mock(stdout=tagged_blob), mock.Mock(stdout=tagged_blob)],
+        ):
+            native.require_tagged_runner(BUILD_SHA)
+
+        with mock.patch.object(
+            native,
+            "run_command",
+            side_effect=[mock.Mock(stdout=tagged_blob), mock.Mock(stdout="2" * 40)],
+        ):
+            with self.assertRaisesRegex(native.NativeQualificationError, "runner bytes"):
+                native.require_tagged_runner(BUILD_SHA)
+
+    def test_release_authority_rejects_material_or_trust_drift(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = pathlib.Path(temporary)
+            manifest_path = self._bundle(root)
+            manifest = native.load_json(manifest_path)
+            passport_path = root / manifest["release_passport"]["path"]
+            passport = native.load_json(passport_path)
+            passport["release"]["releaseMaterialSha"] = "e" * 40
+            native.write_json(passport_path, passport)
+            manifest["release_passport"]["sha256"] = native.sha256_file(passport_path)
+            manifest["artifacts"] = native.artifact_records(root, exclude={manifest_path})
+            native.write_json(manifest_path, manifest)
+            with self.assertRaisesRegex(native.NativeQualificationError, "exact reviewed material"):
+                native.verify_bundle(root)
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = pathlib.Path(temporary)
+            manifest_path = self._bundle(root)
+            manifest = native.load_json(manifest_path)
+            passport_path = root / manifest["release_passport"]["path"]
+            passport = native.load_json(passport_path)
+            passport["release"]["sourceSha"] = "e" * 40
+            native.write_json(passport_path, passport)
+            manifest["release_passport"]["sha256"] = native.sha256_file(passport_path)
+            manifest["artifacts"] = native.artifact_records(root, exclude={manifest_path})
+            native.write_json(manifest_path, manifest)
+            with self.assertRaisesRegex(native.NativeQualificationError, "inconsistent"):
+                native.verify_bundle(root)
+
+    def test_public_release_rejects_remote_or_asset_digest_mismatch(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = pathlib.Path(temporary)
+            manifest_path = self._bundle(root)
+            manifest = native.load_json(manifest_path)
+            passport_path = root / manifest["release_passport"]["path"]
+            check_path = root / manifest["release_check_report"]["path"]
+            commands = [
+                mock.Mock(stdout="https://github.com/kungfu-systems/build-images.git\n"),
+                mock.Mock(stdout=f"{'e' * 40}\trefs/tags/{RELEASE_TAG}\n"),
+            ]
+            with mock.patch.object(native, "run_command", side_effect=commands):
+                with self.assertRaisesRegex(native.NativeQualificationError, "public release tag"):
+                    native.public_release_evidence(
+                        passport_path, check_path, BUILD_SHA, RELEASE_TAG
+                    )
+
+            response = mock.MagicMock()
+            response.__enter__.return_value = response
+            response.__exit__.return_value = False
+            response.read.return_value = json.dumps({
+                "tag_name": RELEASE_TAG,
+                "draft": False,
+                "published_at": "2026-07-16T00:00:00Z",
+                "assets": [
+                    {"name": "buildchain.release.json", "digest": f"sha256:{'0' * 64}"},
+                    {"name": "check-report.json", "digest": f"sha256:{'0' * 64}"},
+                ],
+            }).encode()
+            commands = [
+                mock.Mock(stdout="https://github.com/kungfu-systems/build-images.git\n"),
+                mock.Mock(stdout=f"{BUILD_SHA}\trefs/tags/{RELEASE_TAG}\n"),
+            ]
+            with (
+                mock.patch.object(native, "run_command", side_effect=commands),
+                mock.patch.object(native.urllib.request, "urlopen", return_value=response),
+            ):
+                with self.assertRaisesRegex(native.NativeQualificationError, "asset digest"):
+                    native.public_release_evidence(
+                        passport_path, check_path, BUILD_SHA, RELEASE_TAG
+                    )
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = pathlib.Path(temporary)
+            manifest_path = self._bundle(root)
+            manifest = native.load_json(manifest_path)
+            check_path = root / manifest["release_check_report"]["path"]
+            report = native.load_json(check_path)
+            report["trust"] = "fail"
+            native.write_json(check_path, report)
+            manifest["release_check_report"]["sha256"] = native.sha256_file(check_path)
+            manifest["artifacts"] = native.artifact_records(root, exclude={manifest_path})
+            native.write_json(manifest_path, manifest)
+            with self.assertRaisesRegex(native.NativeQualificationError, "does not grant trust"):
+                native.verify_bundle(root)
+
+    def test_public_release_accepts_exact_tag_and_asset_digests(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = pathlib.Path(temporary)
+            manifest_path = self._bundle(root)
+            manifest = native.load_json(manifest_path)
+            passport_path = root / manifest["release_passport"]["path"]
+            check_path = root / manifest["release_check_report"]["path"]
+            response = mock.MagicMock()
+            response.__enter__.return_value = response
+            response.__exit__.return_value = False
+            response.read.return_value = json.dumps({
+                "tag_name": RELEASE_TAG,
+                "draft": False,
+                "published_at": "2026-07-16T00:00:00Z",
+                "assets": [
+                    {
+                        "name": passport_path.name,
+                        "digest": f"sha256:{native.sha256_file(passport_path)}",
+                    },
+                    {
+                        "name": check_path.name,
+                        "digest": f"sha256:{native.sha256_file(check_path)}",
+                    },
+                ],
+            }).encode()
+            commands = [
+                mock.Mock(stdout="https://github.com/kungfu-systems/build-images.git\n"),
+                mock.Mock(stdout=f"{BUILD_SHA}\trefs/tags/{RELEASE_TAG}\n"),
+            ]
+            with (
+                mock.patch.object(native, "run_command", side_effect=commands),
+                mock.patch.object(native.urllib.request, "urlopen", return_value=response),
+            ):
+                receipt = native.public_release_evidence(
+                    passport_path, check_path, BUILD_SHA, RELEASE_TAG
+                )
+            self.assertEqual(receipt["passport_sha256"], native.sha256_file(passport_path))
+            self.assertEqual(receipt["check_report_sha256"], native.sha256_file(check_path))
+
+    def test_offline_bundle_rejects_missing_authority_inputs(self) -> None:
+        for binding_name in (
+            "runner", "release_passport", "release_check_report", "public_release_receipt"
+        ):
+            with self.subTest(binding=binding_name), tempfile.TemporaryDirectory() as temporary:
+                root = pathlib.Path(temporary)
+                manifest_path = self._bundle(root)
+                manifest = native.load_json(manifest_path)
+                path = root / manifest[binding_name]["path"]
+                path.unlink()
+                with self.assertRaisesRegex(native.NativeQualificationError, "binding|digest"):
+                    native.verify_bundle(root)
+
+    def test_offline_bundle_rejects_rebound_public_release_receipt(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = pathlib.Path(temporary)
+            manifest_path = self._bundle(root)
+            manifest = native.load_json(manifest_path)
+            receipt_path = root / manifest["public_release_receipt"]["path"]
+            receipt = native.load_json(receipt_path)
+            receipt["source_sha"] = "e" * 40
+            native.write_json(receipt_path, receipt)
+            manifest["public_release_receipt"]["sha256"] = native.sha256_file(receipt_path)
+            manifest["artifacts"] = native.artifact_records(root, exclude={manifest_path})
+            native.write_json(manifest_path, manifest)
+            with self.assertRaisesRegex(native.NativeQualificationError, "inconsistent"):
+                native.verify_bundle(root)
+
+    def test_offline_bundle_rejects_rebound_runner(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = pathlib.Path(temporary)
+            manifest_path = self._bundle(root)
+            manifest = native.load_json(manifest_path)
+            runner_path = root / manifest["runner"]["path"]
+            runner_path.write_text("# forged runner\n", encoding="utf-8")
+            manifest["runner"]["sha256"] = native.sha256_file(runner_path)
+            manifest["artifacts"] = native.artifact_records(root, exclude={manifest_path})
+            native.write_json(manifest_path, manifest)
+            with self.assertRaisesRegex(native.NativeQualificationError, "executing native verifier"):
                 native.verify_bundle(root)
 
     def test_result_rejects_container_relabel(self) -> None:
