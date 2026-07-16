@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "pilots/comparator/**"
+      - "images/aeron-native-kit/**"
       - ".github/workflows/comparator-pilot-smoke.yml"
       - "package.json"
   workflow_dispatch:
@@ -29,6 +30,13 @@ jobs:
 
       - name: Validate locked pilot contract
         run: python3 pilots/comparator/scripts/comparator_pilot.py validate
+
+      - name: Build and smoke current Aeron kit
+        if: ${{ matrix.profile == 'aeron' }}
+        run: |
+          docker build --tag build-images-aeron-native-kit:pr images/aeron-native-kit
+          docker run --rm build-images-aeron-native-kit:pr \
+            /opt/aeron-native-kit/tests/smoke.sh
 
       - name: Run disposable unscored smoke
         run: bash pilots/comparator/scripts/pilot.sh smoke "${{ matrix.profile }}" --execute
