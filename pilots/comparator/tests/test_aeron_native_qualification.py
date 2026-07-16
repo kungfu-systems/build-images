@@ -6,6 +6,7 @@ import pathlib
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 
 PILOT_DIR = pathlib.Path(__file__).resolve().parents[1]
@@ -167,6 +168,35 @@ class NativeQualificationTests(unittest.TestCase):
         with self.assertRaisesRegex(native.NativeQualificationError, "advocate"):
             native.validate_plan_document(plan)
 
+    def test_ipc_run_binds_a_deterministic_seed_to_the_marker(self) -> None:
+        parameters = {"warmup": 10, "messages": 20, "payload": 64, "rate": 1000}
+        with tempfile.TemporaryDirectory() as temporary:
+            output = pathlib.Path(temporary) / "ipc"
+
+            def fake_harness(*args, **kwargs):
+                (output / "latency.hlog").write_text("histogram\n", encoding="utf-8")
+                arguments = args[2]
+                seed = int(arguments[arguments.index("--seed") + 1])
+                return {
+                    "coordinated_omission": "expected-interval-correction",
+                    "messages": 20,
+                    "samples": 20,
+                    "seed": seed,
+                }, metrics()
+
+            with (
+                mock.patch.object(native, "harness_json", side_effect=fake_harness) as harness,
+                mock.patch.object(native, "finalize_result", return_value=output / "result.json"),
+            ):
+                native.run_ipc_result(
+                    pathlib.Path("launcher"), pathlib.Path("java"), SHA_A,
+                    "ipc", 2, "p64-r1000", parameters, output,
+                )
+
+        arguments = harness.call_args.args[2]
+        marker = native.result_marker(SHA_A, "ipc", 2, "p64-r1000")
+        self.assertEqual(arguments[arguments.index("--seed") + 1], str(native.ipc_seed(marker)))
+
     def _write_result(
         self,
         bundle: pathlib.Path,
@@ -190,6 +220,7 @@ class NativeQualificationTests(unittest.TestCase):
                 "offered_rate": 1000,
                 "messages": 20,
                 "samples": 20,
+                "seed": native.ipc_seed(marker),
                 "coordinated_omission": "expected-interval-correction",
             }
         elif tier == "receipts":
