@@ -1,0 +1,40 @@
+name: Aeron Native Kit Smoke
+
+on:
+  pull_request:
+    paths:
+      - "images/aeron-native-kit/**"
+      - ".github/workflows/aeron-native-kit-smoke.yml"
+  push:
+    branches:
+      - "dev/**"
+      - "alpha/**"
+      - "release/**"
+      - "feature/**"
+      - "fix/**"
+      - "chore/**"
+    paths:
+      - "images/aeron-native-kit/**"
+      - ".github/workflows/aeron-native-kit-smoke.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-images-aeron-native-kit-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    name: Compile and run Aeron native kit
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Build image
+        run: docker build --tag build-images/aeron-native-kit:smoke images/aeron-native-kit
+
+      - name: Run image smoke contract
+        run: docker run --rm build-images/aeron-native-kit:smoke /opt/aeron-native-kit/tests/smoke.sh
