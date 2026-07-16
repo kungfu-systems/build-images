@@ -109,8 +109,9 @@ fixture SHA-256, verifier-only oracle SHA-256, and job/tier mapping.
 
 The comparator program outside this repository owns the frozen charter,
 product-advocate review, report, scoring, and Phase B join. build-images owns
-only reproducible execution and bundle integrity. Production plans exist for
-both PostgreSQL and ClickHouse. Each plan binds its selected adapter,
+only reproducible execution and bundle integrity. Containerized production
+plans exist for PostgreSQL, ClickHouse, and Aeron. Each plan binds its selected
+adapter,
 digest-loaded semantics module, execution fixture, verifier-only oracle,
 Compose file, environment lock, exact subject image, and exact runner image.
 
@@ -200,9 +201,52 @@ Checked-in plans under `tests/fixtures/qualification-plans/` are marked
 `test_only=true`. They prove that one runner resolves all four adapters but are
 explicitly forbidden from issuing qualification receipts. They remain generic
 `profile-smoke` checks and cannot be relabelled as declared comparator jobs. The
-non-test `plans/postgres-phase-a-v1.json` and
-`plans/clickhouse-phase-a-v1.json` plans each cover J1/J2/J3 across all seven
-Phase A tiers through their digest-locked adapters.
+non-test `plans/postgres-phase-a-v1.json`,
+`plans/clickhouse-phase-a-v1.json`, and `plans/aeron-phase-a-v1.json` plans
+each cover J1/J2/J3 across all seven Phase A tiers through their digest-locked
+adapters.
+
+## Aeron native qualification
+
+`aeron_native_qualification.py` is the separate native Linux x86-64 authority
+for Aeron performance, receipts, recovery, and the bounded soak. It consumes
+the exact kit declared by `plans/aeron-native-phase-a-v1.json`; Docker is used
+only to extract that digest-locked kit before measured execution, and no
+container remains on the measured path.
+
+An authoritative run must start from an exact public build-images release tag
+and the matching public `buildchain.release.json` and `check-report.json`
+assets. Before preparing the kit, the runner fails closed unless all of the
+following agree: the clean checkout HEAD, the exact tag at HEAD, the official
+GitHub origin tag, the release passport material/source SHAs, the release
+check report trust verdict, and the SHA-256 digests published for both assets
+by the GitHub release API.
+
+```bash
+python3 pilots/comparator/scripts/aeron_native_qualification.py \
+  validate-plan --plan pilots/comparator/plans/aeron-native-phase-a-v1.json
+
+python3 pilots/comparator/scripts/aeron_native_qualification.py run \
+  --plan pilots/comparator/plans/aeron-native-phase-a-v1.json \
+  --release-passport /path/to/buildchain.release.json \
+  --release-check-report /path/to/check-report.json \
+  --execute
+```
+
+The completed bundle retains the exact runner, release inputs, public-release
+receipt, contracts, plan, host facts, kit preparation evidence, raw results,
+and a digest inventory. Offline verification must use the bundled runner so
+the verifier itself is part of the retained evidence closure:
+
+```bash
+python3 <bundle>/authority/scripts/aeron_native_qualification.py \
+  verify-bundle --bundle <bundle>
+```
+
+The verifier requires the executing runner to match the bundled runner digest
+and revalidates all retained release, contract, plan, result, calibration, and
+artifact bindings without network access. A locally invented tag or a
+self-consistent locally generated passport is not release authority.
 
 The `Comparator Qualification Contracts` workflow exposes a separately gated
 `run_lifecycle` dispatch input plus PostgreSQL and ClickHouse pull-request

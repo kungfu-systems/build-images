@@ -18,12 +18,15 @@ import statistics
 import subprocess
 import sys
 import time
+import urllib.error
+import urllib.request
 from typing import Any
 
 
 SCRIPT_PATH = pathlib.Path(__file__).resolve()
 PILOT_DIR = SCRIPT_PATH.parent.parent
 REPO_ROOT = PILOT_DIR.parents[1]
+RUNNER_REPO_PATH = SCRIPT_PATH.relative_to(REPO_ROOT).as_posix()
 ARTIFACT_ROOT = PILOT_DIR / ".artifacts" / "aeron-native-qualification"
 PLAN_SCHEMA_PATH = PILOT_DIR / "aeron-native-plan.schema.json"
 RUN_SCHEMA_PATH = PILOT_DIR / "aeron-native-run-manifest.schema.json"
@@ -40,9 +43,18 @@ CLAIM_BOUNDARY = (
 EXACT_IMAGE = re.compile(r"^ghcr\.io/kungfu-systems/build-images/aeron-native-kit@sha256:[0-9a-f]{64}$")
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
 GIT_SHA = re.compile(r"^[0-9a-f]{40}$")
+EXACT_RELEASE_TAG = re.compile(r"^v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?$")
 ID = re.compile(r"^[A-Za-z0-9._-]+$")
 EXTRACTION_LABEL = "io.kungfu.qualification.extraction"
 CONTAINER_MARKERS = ("/docker/", "/kubepods/", "/containerd/", "libpod")
+RELEASE_PASSPORT_CONTRACT = "kungfu-buildchain-release-passport"
+RELEASE_CHECK_REPORT_CONTRACT = "kungfu-buildchain-release-check-report"
+PUBLIC_RELEASE_RECEIPT_CONTRACT = "kungfu-build-images-aeron-native-public-release-receipt"
+PUBLIC_ORIGIN_URLS = {
+    "git@github.com:kungfu-systems/build-images.git",
+    "https://github.com/kungfu-systems/build-images.git",
+}
+GITHUB_RELEASE_API = "https://api.github.com/repos/kungfu-systems/build-images/releases/tags"
 
 
 class NativeQualificationError(ValueError):
@@ -335,6 +347,217 @@ def require_clean_source() -> None:
     process = run_command(["git", "status", "--porcelain"], timeout=10)
     if process.stdout.strip():
         raise NativeQualificationError("native qualification requires a clean exact-tag checkout")
+
+
+def exact_release_tag(source_sha: str) -> str:
+    process = run_command(["git", "tag", "--points-at", source_sha], timeout=10)
+    tags = sorted(
+        tag for tag in process.stdout.splitlines()
+        if EXACT_RELEASE_TAG.fullmatch(tag.strip())
+    )
+    if len(tags) != 1:
+        raise NativeQualificationError("native qualification requires exactly one public release tag at HEAD")
+    tag = tags[0]
+    resolved = run_command(["git", "rev-parse", f"refs/tags/{tag}^{{}}"], timeout=10).stdout.strip()
+    if resolved != source_sha:
+        raise NativeQualificationError("public release tag does not resolve to the checked-out material SHA")
+    return tag
+
+
+def require_tagged_runner(source_sha: str) -> None:
+    tagged_blob = run_command(
+        ["git", "rev-parse", f"{source_sha}:{RUNNER_REPO_PATH}"], timeout=10
+    ).stdout.strip()
+    worktree_blob = run_command(
+        ["git", "hash-object", str(SCRIPT_PATH)], timeout=10
+    ).stdout.strip()
+    if (
+        not GIT_SHA.fullmatch(tagged_blob)
+        or not GIT_SHA.fullmatch(worktree_blob)
+        or tagged_blob != worktree_blob
+    ):
+        raise NativeQualificationError(
+            "native qualification runner bytes do not match the exact release tag"
+        )
+
+
+def validate_release_authority(
+    passport_path: pathlib.Path,
+    check_report_path: pathlib.Path,
+    source_sha: str,
+    release_tag: str,
+) -> dict[str, Any]:
+    if (
+        passport_path.name != "buildchain.release.json"
+        or check_report_path.name != "check-report.json"
+    ):
+        raise NativeQualificationError("release authority inputs must keep their public asset names")
+    passport = load_json(passport_path)
+    check_report = load_json(check_report_path)
+    release = passport.get("release")
+    transaction = passport.get("transaction")
+    evidence = passport.get("evidence")
+    validation = transaction.get("result", {}).get("validation", {}) if isinstance(transaction, dict) else {}
+    if (
+        passport.get("contract") != RELEASE_PASSPORT_CONTRACT
+        or not isinstance(release, dict)
+        or not isinstance(transaction, dict)
+        or not isinstance(evidence, dict)
+        or release.get("tag") != release_tag
+        or release.get("publicTag") != release_tag
+        or release.get("exactRef") != f"refs/tags/{release_tag}"
+        or release.get("releaseSha") != source_sha
+        or release.get("releaseMaterialSha") != source_sha
+        or not GIT_SHA.fullmatch(str(release.get("sourceSha", "")))
+        or transaction.get("state") != "complete"
+        or transaction.get("exactTag") != release_tag
+        or transaction.get("releaseSha") != source_sha
+        or transaction.get("releaseMaterialSha") != source_sha
+        or validation.get("valid") is not True
+        or validation.get("errors") != []
+        or evidence.get("checkReport") != check_report_path.name
+    ):
+        raise NativeQualificationError("release passport does not bind the exact reviewed material")
+    if (
+        check_report.get("contract") != RELEASE_CHECK_REPORT_CONTRACT
+        or check_report.get("ok") is not True
+        or check_report.get("trust") != "pass"
+        or check_report.get("issues") != []
+    ):
+        raise NativeQualificationError("release check report does not grant trust")
+    return {
+        "tag": release_tag,
+        "material_sha": source_sha,
+        "source_sha": release["sourceSha"],
+    }
+
+
+def public_release_evidence(
+    passport_path: pathlib.Path,
+    check_report_path: pathlib.Path,
+    source_sha: str,
+    release_tag: str,
+) -> dict[str, str]:
+    origin = run_command(["git", "remote", "get-url", "origin"], timeout=10).stdout.strip()
+    if origin not in PUBLIC_ORIGIN_URLS:
+        raise NativeQualificationError("native qualification origin is not the public build-images repository")
+    remote = run_command(
+        [
+            "git", "ls-remote", "--tags", "origin",
+            f"refs/tags/{release_tag}", f"refs/tags/{release_tag}^{{}}",
+        ],
+        timeout=30,
+    )
+    refs = {}
+    for line in remote.stdout.splitlines():
+        fields = line.split()
+        if len(fields) == 2 and GIT_SHA.fullmatch(fields[0]):
+            refs[fields[1]] = fields[0]
+    remote_sha = refs.get(f"refs/tags/{release_tag}^{{}}", refs.get(f"refs/tags/{release_tag}"))
+    if remote_sha != source_sha:
+        raise NativeQualificationError("public release tag does not match the checked-out material SHA")
+
+    api_url = f"{GITHUB_RELEASE_API}/{release_tag}"
+    request = urllib.request.Request(
+        api_url,
+        headers={"Accept": "application/vnd.github+json", "User-Agent": "build-images-aeron-qualification"},
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            release = json.load(response)
+    except (OSError, urllib.error.URLError, json.JSONDecodeError) as error:
+        raise NativeQualificationError(f"cannot verify public GitHub release assets: {error}") from error
+    if (
+        not isinstance(release, dict)
+        or release.get("tag_name") != release_tag
+        or release.get("draft") is not False
+        or not isinstance(release.get("published_at"), str)
+    ):
+        raise NativeQualificationError("GitHub release metadata does not match the exact release tag")
+    release_assets = release.get("assets")
+    if not isinstance(release_assets, list):
+        raise NativeQualificationError("GitHub release metadata has no public asset set")
+    assets = {
+        asset.get("name"): asset.get("digest")
+        for asset in release_assets
+        if isinstance(asset, dict)
+    }
+    expected_passport = f"sha256:{sha256_file(passport_path)}"
+    expected_check_report = f"sha256:{sha256_file(check_report_path)}"
+    if (
+        assets.get(passport_path.name) != expected_passport
+        or assets.get(check_report_path.name) != expected_check_report
+    ):
+        raise NativeQualificationError("public GitHub release asset digest does not match the authority input")
+    return {
+        "origin": origin,
+        "tag_ref": f"refs/tags/{release_tag}",
+        "api_url": api_url,
+        "passport_sha256": expected_passport.removeprefix("sha256:"),
+        "check_report_sha256": expected_check_report.removeprefix("sha256:"),
+    }
+
+
+def require_exact_release_source(
+    passport_path: pathlib.Path,
+    check_report_path: pathlib.Path,
+) -> tuple[str, str, dict[str, Any]]:
+    require_clean_source()
+    source_sha = git_head()
+    release_tag = exact_release_tag(source_sha)
+    require_tagged_runner(source_sha)
+    authority = validate_release_authority(
+        passport_path, check_report_path, source_sha, release_tag
+    )
+    authority.update(public_release_evidence(
+        passport_path, check_report_path, source_sha, release_tag
+    ))
+    return source_sha, release_tag, authority
+
+
+def copy_authority_inputs(
+    bundle_dir: pathlib.Path,
+    passport_path: pathlib.Path,
+    check_report_path: pathlib.Path,
+    release_authority: dict[str, Any],
+) -> dict[str, dict[str, str]]:
+    authority_dir = bundle_dir / "authority"
+    runner_target = authority_dir / "scripts" / SCRIPT_PATH.name
+    passport_target = authority_dir / "buildchain.release.json"
+    check_report_target = authority_dir / "check-report.json"
+    receipt_target = authority_dir / "public-release.json"
+    runner_target.parent.mkdir(parents=True)
+    shutil.copy2(SCRIPT_PATH, runner_target)
+    shutil.copy2(passport_path, passport_target)
+    shutil.copy2(check_report_path, check_report_target)
+    if (
+        sha256_file(passport_target) != release_authority["passport_sha256"]
+        or sha256_file(check_report_target) != release_authority["check_report_sha256"]
+    ):
+        raise NativeQualificationError("release authority input changed before bundle retention")
+    write_json(receipt_target, {
+        "contract": PUBLIC_RELEASE_RECEIPT_CONTRACT,
+        "schema_version": 1,
+        **release_authority,
+    })
+    return {
+        "runner": {
+            "path": runner_target.relative_to(bundle_dir).as_posix(),
+            "sha256": sha256_file(runner_target),
+        },
+        "release_passport": {
+            "path": passport_target.relative_to(bundle_dir).as_posix(),
+            "sha256": sha256_file(passport_target),
+        },
+        "release_check_report": {
+            "path": check_report_target.relative_to(bundle_dir).as_posix(),
+            "sha256": sha256_file(check_report_target),
+        },
+        "public_release_receipt": {
+            "path": receipt_target.relative_to(bundle_dir).as_posix(),
+            "sha256": sha256_file(receipt_target),
+        },
+    }
 
 
 def artifact_records(root: pathlib.Path, *, exclude: set[pathlib.Path] | None = None) -> list[dict[str, Any]]:
@@ -916,12 +1139,17 @@ def verify_calibration(plan: dict[str, Any], results: list[dict[str, Any]]) -> N
         raise NativeQualificationError("calibration drift exceeds the frozen threshold")
 
 
-def run_plan(plan_path: pathlib.Path) -> pathlib.Path:
+def run_plan(
+    plan_path: pathlib.Path,
+    release_passport_path: pathlib.Path,
+    release_check_report_path: pathlib.Path,
+) -> pathlib.Path:
     if platform.system() != "Linux" or platform.machine() not in ("x86_64", "amd64"):
         raise NativeQualificationError("native qualification requires a Linux x86_64 host")
     plan = validate_plan(plan_path)
-    require_clean_source()
-    source_sha = git_head()
+    source_sha, release_tag, release_authority = require_exact_release_source(
+        release_passport_path, release_check_report_path
+    )
     plan_sha = sha256_file(plan_path)
     bundle_id = f"aeron-native-{dt.datetime.now(dt.timezone.utc).strftime('%Y%m%dT%H%M%SZ')}-{source_sha[:12]}"
     bundle_dir = ARTIFACT_ROOT / bundle_id
@@ -930,6 +1158,9 @@ def run_plan(plan_path: pathlib.Path) -> pathlib.Path:
     copied_plan.parent.mkdir()
     shutil.copy2(plan_path, copied_plan)
     contracts = copy_contracts(bundle_dir)
+    authority_inputs = copy_authority_inputs(
+        bundle_dir, release_passport_path, release_check_report_path, release_authority
+    )
     launcher, java, preparation = prepare_kit(plan, bundle_dir)
     facts = host_facts(bundle_dir)
     results_dir = bundle_dir / "results"
@@ -1009,6 +1240,9 @@ def run_plan(plan_path: pathlib.Path) -> pathlib.Path:
         "bundle_id": bundle_id,
         "generated_at": utc_now(),
         "build_images_git_sha": source_sha,
+        "release_tag": release_tag,
+        "release_authority": release_authority,
+        **authority_inputs,
         "plan": {"path": copied_plan.relative_to(bundle_dir).as_posix(), "sha256": plan_sha},
         "preparation": {
             "path": "preparation/preparation.json",
@@ -1133,7 +1367,6 @@ def verify_result(plan: dict[str, Any], path: pathlib.Path, expected: dict[str, 
 
 
 def verify_bundle(bundle_dir: pathlib.Path) -> dict[str, Any]:
-    validate_contract_schemas()
     bundle_path = bundle_dir / "bundle-manifest.json"
     bundle = load_json(bundle_path)
     require_keys(
@@ -1142,7 +1375,9 @@ def verify_bundle(bundle_dir: pathlib.Path) -> dict[str, Any]:
             "bundle_schema", "schema_version", "status", "evidence_class",
             "native_performance_authority", "containerized_user_outcome_authority",
             "fresh_install_cost_authority", "final_scoring_authority", "bundle_id",
-            "generated_at", "build_images_git_sha", "plan", "preparation", "host_facts",
+            "generated_at", "build_images_git_sha", "release_tag", "release_authority", "runner",
+            "release_passport", "release_check_report", "public_release_receipt", "plan",
+            "preparation", "host_facts",
             "contracts", "expected_results", "completed_results", "results", "artifacts",
             "claim_boundary",
         },
@@ -1159,8 +1394,69 @@ def verify_bundle(bundle_dir: pathlib.Path) -> dict[str, Any]:
         or bundle["final_scoring_authority"] is not False
         or bundle["claim_boundary"] != CLAIM_BOUNDARY
         or not GIT_SHA.fullmatch(str(bundle["build_images_git_sha"]))
+        or not EXACT_RELEASE_TAG.fullmatch(str(bundle["release_tag"]))
     ):
         raise NativeQualificationError("native bundle authority boundary is invalid")
+
+    bound_paths: dict[str, pathlib.Path] = {}
+    for binding_name in (
+        "runner", "release_passport", "release_check_report", "public_release_receipt"
+    ):
+        binding = bundle[binding_name]
+        if not isinstance(binding, dict):
+            raise NativeQualificationError(f"native bundle {binding_name} binding is invalid")
+        require_keys(binding, {"path", "sha256"}, f"native bundle {binding_name}")
+        relative = safe_relative(binding["path"], f"native {binding_name} path")
+        path = bundle_dir / pathlib.Path(*relative.parts)
+        if path.is_symlink() or not path.is_file() or sha256_file(path) != binding["sha256"]:
+            raise NativeQualificationError(f"native bundle {binding_name} digest mismatch")
+        bound_paths[binding_name] = path
+    if sha256_file(SCRIPT_PATH) != bundle["runner"]["sha256"]:
+        raise NativeQualificationError("executing native verifier does not match the bound runner")
+    passport_authority = validate_release_authority(
+        bound_paths["release_passport"],
+        bound_paths["release_check_report"],
+        bundle["build_images_git_sha"],
+        bundle["release_tag"],
+    )
+    release_authority = bundle["release_authority"]
+    if not isinstance(release_authority, dict):
+        raise NativeQualificationError("native bundle public release authority is invalid")
+    require_keys(
+        release_authority,
+        {
+            "tag", "material_sha", "source_sha", "origin", "tag_ref", "api_url",
+            "passport_sha256", "check_report_sha256",
+        },
+        "native bundle public release authority",
+    )
+    receipt = load_json(bound_paths["public_release_receipt"])
+    require_keys(
+        receipt,
+        {
+            "contract", "schema_version", "tag", "material_sha", "source_sha", "origin",
+            "tag_ref", "api_url", "passport_sha256", "check_report_sha256",
+        },
+        "native bundle public release receipt",
+    )
+    receipt_authority = {
+        key: value for key, value in receipt.items()
+        if key not in {"contract", "schema_version"}
+    }
+    if (
+        receipt["contract"] != PUBLIC_RELEASE_RECEIPT_CONTRACT
+        or receipt["schema_version"] != 1
+        or receipt_authority != release_authority
+        or release_authority["tag"] != passport_authority["tag"]
+        or release_authority["material_sha"] != passport_authority["material_sha"]
+        or release_authority["source_sha"] != passport_authority["source_sha"]
+        or release_authority["origin"] not in PUBLIC_ORIGIN_URLS
+        or release_authority["tag_ref"] != f"refs/tags/{bundle['release_tag']}"
+        or release_authority["api_url"] != f"{GITHUB_RELEASE_API}/{bundle['release_tag']}"
+        or release_authority["passport_sha256"] != bundle["release_passport"]["sha256"]
+        or release_authority["check_report_sha256"] != bundle["release_check_report"]["sha256"]
+    ):
+        raise NativeQualificationError("native bundle public release authority is inconsistent")
 
     plan_record = bundle["plan"]
     if not isinstance(plan_record, dict):
@@ -1186,7 +1482,10 @@ def verify_bundle(bundle_dir: pathlib.Path) -> dict[str, Any]:
         path = bundle_dir / pathlib.Path(*relative.parts)
         if not path.is_file() or sha256_file(path) != contract["sha256"]:
             raise NativeQualificationError("native bundle contract digest mismatch")
-        observed_contracts.add(load_json(path).get("$id"))
+        schema = load_json(path)
+        if schema.get("additionalProperties") is not False:
+            raise NativeQualificationError("native bundle contract is not fail-closed")
+        observed_contracts.add(schema.get("$id"))
     if observed_contracts != expected_contracts:
         raise NativeQualificationError("native bundle contract identities are incomplete")
 
@@ -1239,6 +1538,8 @@ def main() -> int:
     validate.add_argument("--plan", required=True, type=pathlib.Path)
     run = subparsers.add_parser("run")
     run.add_argument("--plan", required=True, type=pathlib.Path)
+    run.add_argument("--release-passport", required=True, type=pathlib.Path)
+    run.add_argument("--release-check-report", required=True, type=pathlib.Path)
     run.add_argument("--execute", action="store_true")
     verify = subparsers.add_parser("verify-bundle")
     verify.add_argument("--bundle", required=True, type=pathlib.Path)
@@ -1250,7 +1551,11 @@ def main() -> int:
         elif args.command == "run":
             if not args.execute:
                 raise NativeQualificationError("run requires --execute")
-            run_plan(args.plan.resolve())
+            run_plan(
+                args.plan.resolve(),
+                args.release_passport.resolve(),
+                args.release_check_report.resolve(),
+            )
         else:
             bundle = verify_bundle(args.bundle.resolve())
             print(json.dumps({
