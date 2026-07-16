@@ -39,6 +39,7 @@ HARNESS = "/opt/aeron-native-kit/bin/aeron-native-harness"
 PROJECT_ID = re.compile(r"^[A-Za-z0-9_-]{1,63}$")
 IDENTIFIER = re.compile(r"^[A-Za-z0-9._-]+$")
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
+OBSERVED_QUERY_ID = "execution-input-after-tier-event-v1"
 TIERS = (
     "normal",
     "concurrent",
@@ -235,7 +236,7 @@ class ComposeProject:
         raise AdapterError("Aeron did not sustain two consecutive live-health probes")
 
     def container_id(self) -> str:
-        value = self.compose("ps", "-q", "aeron").stdout.strip()
+        value = self.compose("ps", "-q", "--all", "aeron").stdout.strip()
         if not re.fullmatch(r"[0-9a-f]{12,64}", value):
             raise AdapterError("Aeron service container id is invalid")
         return value
@@ -381,6 +382,23 @@ def job_receipt(
     }
 
 
+def observed_facts_document(
+    job_id: str,
+    tier: str,
+    binding_sha256: str,
+    facts: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        "schema": OBSERVED_FACTS_SCHEMA,
+        "job_id": job_id,
+        "tier": tier,
+        "binding_sha256": binding_sha256,
+        "query_id": OBSERVED_QUERY_ID,
+        "facts": facts,
+        "facts_sha256": sha256_json(facts),
+    }
+
+
 def run(args: argparse.Namespace) -> pathlib.Path:
     for field in ("scenario_id", "job_id", "tier", "step_id"):
         if not IDENTIFIER.fullmatch(getattr(args, field)):
@@ -408,14 +426,12 @@ def run(args: argparse.Namespace) -> pathlib.Path:
         "tier": args.tier,
         "binding_sha256": binding["sha256"],
     })
-    observed_facts = {
-        "schema": OBSERVED_FACTS_SCHEMA,
-        "job_id": args.job_id,
-        "tier": args.tier,
-        "binding_sha256": binding["sha256"],
-        "facts": facts,
-        "facts_sha256": sha256_json(facts),
-    }
+    observed_facts = observed_facts_document(
+        args.job_id,
+        args.tier,
+        binding["sha256"],
+        facts,
+    )
     observed_path = output_dir / "observed-facts.json"
     tier_path = output_dir / "tier-evidence.json"
     write_json(observed_path, observed_facts)
