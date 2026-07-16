@@ -47,6 +47,12 @@ public final class QualificationHarness
     private static final String ARCHIVE_CONTROL_REQUEST_CHANNEL = "aeron:udp?endpoint=localhost:8010";
     private static final String ARCHIVE_CONTROL_RESPONSE_CHANNEL = "aeron:udp?endpoint=localhost:0";
     private static final String ARCHIVE_REPLICATION_CHANNEL = "aeron:udp?endpoint=localhost:0";
+    private static final int TERM_BUFFER_LENGTH = 16 * 1024 * 1024;
+    private static final int SEGMENT_FILE_LENGTH = 16 * 1024 * 1024;
+    private static final int IDLE_MAX_SPINS = 100;
+    private static final int IDLE_MAX_YIELDS = 10;
+    private static final long IDLE_MIN_PARK_NS = 1;
+    private static final long IDLE_MAX_PARK_NS = 100_000;
     private static final int RECORDING_STREAM_ID = 1001;
     private static final int REPLAY_STREAM_ID = 1002;
     private static final long TIMEOUT_NS = TimeUnit.SECONDS.toNanos(30);
@@ -105,17 +111,24 @@ public final class QualificationHarness
             .dirDeleteOnShutdown(false)
             .spiesSimulateConnection(true)
             .threadingMode(ThreadingMode.SHARED_NETWORK)
-            .termBufferSparseFile(false);
+            .termBufferSparseFile(false)
+            .publicationTermBufferLength(TERM_BUFFER_LENGTH)
+            .ipcTermBufferLength(TERM_BUFFER_LENGTH)
+            .sharedNetworkIdleStrategy(newIdleStrategy());
         final Archive.Context archiveContext = new Archive.Context()
             .aeronDirectoryName(driverDir.toString())
             .archiveDir(archiveDir.toFile())
             .deleteArchiveOnStart(false)
             .recordingEventsEnabled(false)
             .threadingMode(ArchiveThreadingMode.SHARED)
+            .idleStrategySupplier(QualificationHarness::newIdleStrategy)
+            .recorderIdleStrategySupplier(QualificationHarness::newIdleStrategy)
+            .replayerIdleStrategySupplier(QualificationHarness::newIdleStrategy)
             .controlChannel(ARCHIVE_CONTROL_REQUEST_CHANNEL)
             .localControlChannel(IPC_CHANNEL)
             .recordingEventsChannel(ARCHIVE_CONTROL_RESPONSE_CHANNEL)
             .replicationChannel(ARCHIVE_REPLICATION_CHANNEL)
+            .segmentFileLength(SEGMENT_FILE_LENGTH)
             .fileSyncLevel(fileSyncLevel)
             .catalogFileSyncLevel(catalogSyncLevel);
 
@@ -135,9 +148,9 @@ public final class QualificationHarness
         {
             final Path ready = root.resolve("server-ready.json");
             Files.writeString(ready, String.format(
-                "{\"schema\":\"aeron-server-ready/v2\",\"pid\":%d,\"started_at\":\"%s\",\"driver_dir\":\"%s\",\"archive_dir\":\"%s\",\"archive_id\":%d,\"file_sync_level\":%d,\"catalog_sync_level\":%d}%n",
+                "{\"schema\":\"aeron-server-ready/v2\",\"pid\":%d,\"started_at\":\"%s\",\"driver_dir\":\"%s\",\"archive_dir\":\"%s\",\"archive_id\":%d,\"file_sync_level\":%d,\"catalog_sync_level\":%d,\"term_buffer_length\":%d,\"segment_file_length\":%d,\"driver_threading\":\"SHARED_NETWORK\",\"archive_threading\":\"SHARED\",\"idle_strategy\":\"backoff-100-10-1-100000ns\",\"sparse\":false}%n",
                 ProcessHandle.current().pid(), Instant.now(), json(driverDir.toString()), json(archiveDir.toString()),
-                archive.archiveId(), fileSyncLevel, catalogSyncLevel),
+                archive.archiveId(), fileSyncLevel, catalogSyncLevel, TERM_BUFFER_LENGTH, SEGMENT_FILE_LENGTH),
                 StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
             System.out.print(Files.readString(ready));
             System.out.flush();
@@ -355,7 +368,10 @@ public final class QualificationHarness
             .dirDeleteOnShutdown(true)
             .threadingMode(ThreadingMode.SHARED_NETWORK)
             .spiesSimulateConnection(true)
-            .termBufferSparseFile(false);
+            .termBufferSparseFile(false)
+            .publicationTermBufferLength(TERM_BUFFER_LENGTH)
+            .ipcTermBufferLength(TERM_BUFFER_LENGTH)
+            .sharedNetworkIdleStrategy(newIdleStrategy());
         final Histogram histogram = new Histogram(TimeUnit.SECONDS.toNanos(10), 3);
         long backpressure = 0;
         long pollFailures = 0;
@@ -578,6 +594,12 @@ public final class QualificationHarness
             .aeron(aeron)
             .controlRequestChannel(ARCHIVE_CONTROL_REQUEST_CHANNEL)
             .controlResponseChannel(ARCHIVE_CONTROL_RESPONSE_CHANNEL);
+    }
+
+    private static IdleStrategy newIdleStrategy()
+    {
+        return new BackoffIdleStrategy(
+            IDLE_MAX_SPINS, IDLE_MAX_YIELDS, IDLE_MIN_PARK_NS, IDLE_MAX_PARK_NS);
     }
 
     private static boolean matchesMarker(final DirectBuffer data, final int offset, final byte[] expected)
