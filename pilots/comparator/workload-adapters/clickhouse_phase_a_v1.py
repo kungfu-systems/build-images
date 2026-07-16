@@ -307,7 +307,9 @@ class ComposeProject:
         arguments.extend((
             "--multiquery", "--query_id", query_id, "--format", "TabSeparatedRaw", "--query", sql,
         ))
-        process = self.command(*arguments, input_text=input_text)
+        # docker compose exec -T still attaches stdin. Close it explicitly for
+        # query-only calls so clickhouse-client cannot wait indefinitely for EOF.
+        process = self.command(*arguments, input_text="" if input_text is None else input_text)
         return process.stdout.strip()
 
 
@@ -354,6 +356,7 @@ def exercise_tier(project: ComposeProject, job_id: str, tier: str, facts: dict[s
                 "exec", "-T", "clickhouse", "clickhouse-client",
                 "--user", "pilot", "--password", "pilot-local-only", "--database", "pilot",
                 "--query", sql_template % (writer_number, writer, sql_literal(f"concurrent-{writer}")),
+                input_text="",
                 record=False,
             )
         with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:

@@ -23,13 +23,13 @@
   },
   "adapter_registry": {
     "path": "workload-adapters/registry.json",
-    "sha256": "0a68b7cea37f790e26d10648aa6b7ca0f9f38e0df433e7c2eec9d12fc2ea412f"
+    "sha256": "130c7a6c88d9057825f74b39277b7228d9c6de3f41369e20de35a0114f9eddfa"
   },
   "workload_adapter": {
     "id": "clickhouse-phase-a-v1",
     "version": "1.2.0",
     "artifact": "workload-adapters/clickhouse_phase_a_v1.py",
-    "sha256": "25b6396eb68cb7a12b175085e8d64aa092e5660f391b0d60fcb58db0b7128849",
+    "sha256": "a19469674fac9934d68d580112f7dd3fbeaa3d8c342a328a5e1f4d4a26dd5908",
     "entrypoint": "clickhouse-phase-a-v1",
     "profiles": [
       "clickhouse"
