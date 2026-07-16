@@ -9,24 +9,24 @@ importers:
   .:
     devDependencies:
       '@kungfu-tech/buildchain':
-        specifier: 2.13.0-alpha.2
-        version: 2.13.0-alpha.2
+        specifier: 2.13.0-alpha.3
+        version: 2.13.0-alpha.3
       '@kungfu-tech/buildchain-stable':
-        specifier: npm:@kungfu-tech/buildchain@2.12.8
-        version: '@kungfu-tech/buildchain@2.12.8'
+        specifier: npm:@kungfu-tech/buildchain@2.13.0
+        version: '@kungfu-tech/buildchain@2.13.0'
       '@kungfu-tech/kfd':
         specifier: 1.0.0-alpha.21
         version: 1.0.0-alpha.21
 
 packages:
 
-  '@kungfu-tech/buildchain@2.12.8':
-    resolution: {integrity: sha512-drc0U5cu8Rv2ChL4ZfJYUn0Ayk21lCbaYNCeU0qhAeJdcqGAyxFRnW7iucyrZZESlClEzp294uMcONN5V5+g9Q==}
+  '@kungfu-tech/buildchain@2.13.0':
+    resolution: {integrity: sha512-NS672/mnkKMtyq1x/Ok14IAu6rdgLjxlYMEuE887Ia9AthsncBBiOxGnCWZODlPZX/+bvWGFPqYINy0FWMRMWQ==}
     engines: {node: '>=22.14.0'}
     hasBin: true
 
-  '@kungfu-tech/buildchain@2.13.0-alpha.2':
-    resolution: {integrity: sha512-AuKS3Aig3zyt8nLIP2RLL5cjAHL63JMrxOVWVQvvPFZR2mhQ2/+x8qg4uZYaaNgQAZE+Hq31LcKp+n+fVzvkZw==}
+  '@kungfu-tech/buildchain@2.13.0-alpha.3':
+    resolution: {integrity: sha512-NMrHQHUwGl6mhW7Izy9otkwyWRJn/0xXWxHtzGFdYKDCN7dVpuL82MDmQLk1FqsGhtTSM0PG+dsCA124JPTBPQ==}
     engines: {node: '>=22.14.0'}
     hasBin: true
 
@@ -39,12 +39,12 @@ packages:
 
 snapshots:
 
-  '@kungfu-tech/buildchain@2.12.8':
+  '@kungfu-tech/buildchain@2.13.0':
     dependencies:
       '@kungfu-tech/kfd': 1.0.0-alpha.21
       smol-toml: 1.7.0
 
-  '@kungfu-tech/buildchain@2.13.0-alpha.2':
+  '@kungfu-tech/buildchain@2.13.0-alpha.3':
     dependencies:
       '@kungfu-tech/kfd': 1.0.0-alpha.21
       smol-toml: 1.7.0
