@@ -1,14 +1,18 @@
 from __future__ import annotations
 
 import pathlib
+import subprocess
 import sys
+import tempfile
 import unittest
+from unittest import mock
 
 PILOT_DIR = pathlib.Path(__file__).resolve().parents[1]
 ADAPTER_DIR = PILOT_DIR / "workload-adapters"
 sys.path.insert(0, str(ADAPTER_DIR))
 
 import aeron_phase_a_semantics as semantics  # noqa: E402
+import aeron_phase_a_v1 as adapter  # noqa: E402
 
 
 class AeronContainerSemanticsTests(unittest.TestCase):
@@ -69,6 +73,23 @@ class AeronContainerSemanticsTests(unittest.TestCase):
         evidence["replays"][0]["marker"] = "3" * 64
         with self.assertRaisesRegex(semantics.SemanticError, "record/replay"):
             semantics.validate_tier_evidence("normal", evidence)
+
+    def test_observed_facts_bind_the_frozen_query_identity(self) -> None:
+        facts = {"expected_count": 5, "marker_policy": "binding-sha256"}
+        observed = adapter.observed_facts_document(
+            semantics.JOB_IDS[0], "normal", self.marker, facts
+        )
+        self.assertEqual(observed["query_id"], "execution-input-after-tier-event-v1")
+        self.assertEqual(observed["facts_sha256"], adapter.sha256_json(facts))
+
+    def test_whole_root_restore_can_resolve_a_created_container(self) -> None:
+        container_id = "a" * 64
+        with tempfile.TemporaryDirectory() as temporary:
+            project = adapter.ComposeProject("aeron-test", pathlib.Path(temporary))
+            completed = subprocess.CompletedProcess([], 0, container_id + "\n", "")
+            with mock.patch.object(project, "compose", return_value=completed) as compose:
+                self.assertEqual(project.container_id(), container_id)
+        compose.assert_called_once_with("ps", "-q", "--all", "aeron")
 
     def test_compose_uses_only_the_exact_published_kit(self) -> None:
         compose = (PILOT_DIR / "compose.yaml").read_text(encoding="utf-8")
