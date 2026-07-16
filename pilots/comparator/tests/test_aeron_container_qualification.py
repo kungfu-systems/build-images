@@ -76,7 +76,7 @@ class AeronContainerSemanticsTests(unittest.TestCase):
         self.assertNotIn("build:", service)
         self.assertIn(
             "ghcr.io/kungfu-systems/build-images/aeron-native-kit@sha256:"
-            "9a277f3baec7eac384a6607e81dce1fa836ac8760e8aa1ae6ac5b38accf0af65",
+            "684be4100866a3908020d1f368fe1100225a1101a65e9a0ee6d4da6a94963c76",
             service,
         )
         self.assertIn("aeron-native-harness\", \"health", service)

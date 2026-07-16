@@ -5,20 +5,20 @@
   "evidence_class": "native-host-performance-qualification",
   "native_performance_authority_requested": true,
   "kit": {
-    "image": "ghcr.io/kungfu-systems/build-images/aeron-native-kit@sha256:9a277f3baec7eac384a6607e81dce1fa836ac8760e8aa1ae6ac5b38accf0af65",
+    "image": "ghcr.io/kungfu-systems/build-images/aeron-native-kit@sha256:684be4100866a3908020d1f368fe1100225a1101a65e9a0ee6d4da6a94963c76",
     "platform": "linux/amd64",
     "files": {
-      "kit/kit-manifest.json": "2be78120b015fa9cd0a60a56656c550871cd6fbee6bb0547172209c8c0360752",
+      "kit/kit-manifest.json": "cf17391e9197d530e08b2e2074e10a0baf1640fc7d0fe646df9cc6fc18c53583",
       "kit/lib/aeron-all.jar": "f02b1cc8660ee24235f41000f3b4a7af90730cc467519f2344672208e7195a6f",
-      "kit/lib/aeron-qualification-harness.jar": "35460ef8b9ec6b4445e71a5d9a8695eca8c4585da1a15018310b884cfaa12a6f",
+      "kit/lib/aeron-qualification-harness.jar": "ca41dc44a6326711eb96e515489f4f4cd374c2f6ca750a57f2dd6ffe69e35bd4",
       "kit/bin/aeron-native-harness": "2422a724ed5316577538db0c546b1c4b848bc5973487d3c9ea0f68a89d18b77d",
       "jre/release": "5c8bc47ff562c0d07c85e754832d3c6be7b4687057eb1af869f419d5a4d33c79"
     },
     "source_files": {
       "images/aeron-native-kit/Dockerfile": "ec29e305e0a48d01e2da07639a946da5ffb15aab367ba18c05f705beff557a67",
-      "images/aeron-native-kit/src/io/kungfu/aeron/QualificationHarness.java": "50397fab8f66f9abee44071f8253d06f0ffb7498fa8079bf72d69803dcdbe893",
+      "images/aeron-native-kit/src/io/kungfu/aeron/QualificationHarness.java": "1c6e802313e6e4059e453637cf22ffcaa924e28b2ecae7064e1b012898119253",
       "images/aeron-native-kit/bin/aeron-native-harness": "2422a724ed5316577538db0c546b1c4b848bc5973487d3c9ea0f68a89d18b77d",
-      "images/aeron-native-kit/kit-manifest.json": "2be78120b015fa9cd0a60a56656c550871cd6fbee6bb0547172209c8c0360752"
+      "images/aeron-native-kit/kit-manifest.json": "cf17391e9197d530e08b2e2074e10a0baf1640fc7d0fe646df9cc6fc18c53583"
     }
   },
   "configuration": {
