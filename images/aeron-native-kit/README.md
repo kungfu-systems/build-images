@@ -7,6 +7,8 @@ noninteractive qualification harness during the image build.
 The harness exposes a live Driver/Archive health probe and marker-bound record
 and replay commands. Formal receipts bind every frame to a caller-supplied
 SHA-256 marker and fail on missing, duplicate, reordered, or mismatched data.
+The bounded IPC command also reports and rejects loss, duplicate, and reorder
+oracles instead of inferring correctness from a sample count alone.
 The media term, Archive segment, threading modes, idle strategy, sparse-file
 policy, control channels, and sync levels are fixed in `kit-manifest.json` and
 echoed by the live server receipt.

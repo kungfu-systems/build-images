@@ -14,10 +14,13 @@
     "compiler_image": "eclipse-temurin:21.0.11_10-jdk-jammy@sha256:a5418a1fcf440bb273e1db3bce5b0794eb78bfc9d044ba740de76dcbe6075f50"
   },
   "harness": {
+    "version": "1.1.1",
     "main_class": "io.kungfu.aeron.QualificationHarness",
     "protocol_version": 2,
     "capabilities": [
       "bounded-ipc-histogram",
+      "seeded-ipc-sequence-oracle",
+      "slow-reader-batch-backpressure",
       "live-driver-archive-health",
       "marker-bound-record",
       "marker-bound-replay"
