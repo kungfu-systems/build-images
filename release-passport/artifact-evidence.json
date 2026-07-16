@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "contract": "kungfu-buildchain-artifact-evidence",
+  "repository": "kungfu-systems/build-images",
+  "release": {
+    "tag": "v1.2.4-alpha.16",
+    "sourceSha": "2f4b843e0997daa194bc025a3d4154f17e8c7bf2"
+  },
+  "generatedAt": "2026-07-16T01:07:08.461Z",
+  "runner": {
+    "kind": "github-hosted",
+    "os": "Linux",
+    "arch": "X64",
+    "labels": [],
+    "image": "ubuntu24"
+  },
+  "workflow": {
+    "name": "Buildchain Ref Promotion",
+    "runId": "29462638742",
+    "runAttempt": "2",
+    "url": "https://github.com/kungfu-systems/build-images/actions/runs/29462638742"
+  },
+  "artifacts": []
+}
