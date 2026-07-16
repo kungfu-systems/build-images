@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
   "contract": "kungfu-buildchain-release-passport",
-  "generatedAt": "2026-07-16T08:54:43.591Z",
+  "generatedAt": "2026-07-16T09:00:41.821Z",
   "surfaceTimestampPolicy": {
-    "generatedAt": "2026-07-16T08:54:43.591Z",
-    "publishedAt": "2026-07-16T08:54:43.591Z",
+    "generatedAt": "2026-07-16T09:00:41.821Z",
+    "publishedAt": "2026-07-16T09:00:41.821Z",
     "reproducible": true,
     "timestampPolicy": "ci-injected",
     "deterministicInputs": [
@@ -59,7 +59,7 @@
     "promotionChannelTreeSha": "",
     "publishToolingSha": "a7eca71e286037bfac6e4cb9ce1f1c609a4371cd",
     "releaseStateRef": "refs/heads/buildchain/release-state/1-2-4-alpha-25",
-    "releaseStateSha": "13decefece3f8f3204cae934920734f4cebebcea",
+    "releaseStateSha": "",
     "package": {
       "name": "@kungfu-tech/buildchain",
       "version": "1.2.4-alpha.25"
@@ -104,69 +104,6 @@
         "valid": true,
         "errors": []
       }
-    }
-  },
-  "distTagPromotion": {
-    "path": "../release-evidence/v1.2.4-alpha.25/dist-tag-evidence.json",
-    "sha256": "c201b58eac034ebeba024f38548ebfd24e5f54115baa71b784df3b8d3ff1b30d",
-    "fields": {
-      "schema": 1,
-      "contract": "kungfu-buildchain-dist-tag-promotion-evidence",
-      "mode": "publish-final-version",
-      "auth": "trusted-publishing",
-      "distTag": "alpha",
-      "source": "buildchain.toml",
-      "packages": [
-        {
-          "name": "ghcr.io/kungfu-systems/build-images/aeron-native-kit",
-          "version": "v1.2.4-alpha.25",
-          "distTag": "alpha",
-          "role": "",
-          "digest": "sha256:73e0235efbaacb8b20c2d0197647d4d2e15a7e6e37ee63641349b47fcda00be8"
-        },
-        {
-          "name": "ghcr.io/kungfu-systems/build-images/base-linux",
-          "version": "v1.2.4-alpha.25",
-          "distTag": "alpha",
-          "role": "",
-          "digest": "sha256:11380dc4a86e182ae30810c10eef2d018272372828933464bfc49d386f09a180"
-        },
-        {
-          "name": "ghcr.io/kungfu-systems/build-images/clickhouse-server",
-          "version": "v1.2.4-alpha.25",
-          "distTag": "alpha",
-          "role": "",
-          "digest": "sha256:0d6b56ca1dc93d6cc5d899e7dfd1e5f66b273defc1e474438a1a943895b717e4"
-        },
-        {
-          "name": "ghcr.io/kungfu-systems/build-images/kungfu-verify",
-          "version": "v1.2.4-alpha.25",
-          "distTag": "alpha",
-          "role": "",
-          "digest": "sha256:c7fc9668bb7a6b8f415483d7c18fd05bd794c5c709c2657c17617d9caf847c9e"
-        },
-        {
-          "name": "ghcr.io/kungfu-systems/build-images/node24-pnpm",
-          "version": "v1.2.4-alpha.25",
-          "distTag": "alpha",
-          "role": "",
-          "digest": "sha256:12884f82cbe0e013f65b266c1dab74d373f80e4741421e45dddda13639f1cfc6"
-        },
-        {
-          "name": "ghcr.io/kungfu-systems/build-images/latex-pdf-builder",
-          "version": "v1.2.4-alpha.25",
-          "distTag": "alpha",
-          "role": "",
-          "digest": "sha256:0506a617ed4a262e01d651c525a154ac8221bacc1d41a6f7526fbdabd9d6e466"
-        },
-        {
-          "name": "ghcr.io/kungfu-systems/build-images/native-linux-x64",
-          "version": "v1.2.4-alpha.25",
-          "distTag": "alpha",
-          "role": "",
-          "digest": "sha256:66068280e9366fe1bafa52df4e61a2182797e38ff8fcf4d4609ce37fb646e71a"
-        }
-      ]
     }
   },
   "kfd-1": {
@@ -365,7 +302,7 @@
         },
         "sourceVerification": {
           "status": "passed",
-          "verifiedAt": "2026-07-16T08:54:43.585Z",
+          "verifiedAt": "2026-07-16T09:00:41.814Z",
           "required": false,
           "surfaces": [
             {
@@ -420,7 +357,7 @@
         },
         "artifactVerification": {
           "status": "passed",
-          "verifiedAt": "2026-07-16T08:54:43.585Z",
+          "verifiedAt": "2026-07-16T09:00:41.814Z",
           "surfaces": [
             {
               "name": "readme",
@@ -497,7 +434,7 @@
     "schemaVersion": 1,
     "contract": "kungfu-buildchain-kfd-2-release-trust-passport-audit",
     "status": "passed",
-    "verifiedAt": "2026-07-16T08:54:43.591Z",
+    "verifiedAt": "2026-07-16T09:00:41.821Z",
     "auditBoundary": {
       "scope": "public release claims visible to humans or agents",
       "policy": "public claims must bind declared sources, machine-readable evidence, hashes, artifact coordinates, verification results, audit boundaries, responsibility state, and residual risk"
@@ -1326,7 +1263,7 @@
         },
         "comparison": {
           "status": "passed",
-          "verifiedAt": "2026-07-16T08:54:43.588Z",
+          "verifiedAt": "2026-07-16T09:00:41.817Z",
           "supportLevel": "release",
           "declaredPublicSurfaceCount": 4,
           "declaredShippedPublicSurfaceCount": 4,
@@ -1656,7 +1593,7 @@
     "buildSummary": "",
     "buildFacts": [],
     "platformArtifactManifests": [],
-    "distTagPromotionEvidence": "../release-evidence/v1.2.4-alpha.25/dist-tag-evidence.json",
+    "distTagPromotionEvidence": "",
     "kfd1": "kfd-1",
     "kfd2": "kfd-2",
     "kfd3": "kfd-3",

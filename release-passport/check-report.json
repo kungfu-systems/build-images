@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "contract": "kungfu-buildchain-release-check-report",
-  "checkedAt": "2026-07-16T08:54:43.592Z",
+  "checkedAt": "2026-07-16T09:00:41.822Z",
   "ok": true,
   "trust": "pass",
   "surfaceImpactRequirement": {
@@ -20,7 +20,7 @@
     "anchorManifestPresent": false,
     "buildSummaryPresent": false,
     "platformArtifactManifestCount": 0,
-    "distTagPromotionEvidencePresent": true,
+    "distTagPromotionEvidencePresent": false,
     "impactPresent": true,
     "agentIndexPresent": true,
     "productMechanismPresent": true,
