@@ -15,7 +15,13 @@
   },
   "harness": {
     "main_class": "io.kungfu.aeron.QualificationHarness",
-    "protocol_version": 1
+    "protocol_version": 2,
+    "capabilities": [
+      "bounded-ipc-histogram",
+      "live-driver-archive-health",
+      "marker-bound-record",
+      "marker-bound-replay"
+    ]
   },
   "claim_boundary": "This OCI image is an immutable distribution kit. Extraction and successful execution do not grant native performance authority."
 }

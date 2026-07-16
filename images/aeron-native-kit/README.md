@@ -4,6 +4,10 @@ Immutable Aeron 1.52.2 qualification kit for `linux/amd64`. The image pins the
 Temurin JDK and JRE, verifies the Aeron JAR checksum, and compiles the bounded,
 noninteractive qualification harness during the image build.
 
+The harness exposes a live Driver/Archive health probe and marker-bound record
+and replay commands. Formal receipts bind every frame to a caller-supplied
+SHA-256 marker and fail on missing, duplicate, reordered, or mismatched data.
+
 This image is a distribution artifact only. The native qualification runner
 extracts the JRE and `/opt/aeron-native-kit` from an exact accepted image
 digest, removes the temporary extraction container, and verifies every file

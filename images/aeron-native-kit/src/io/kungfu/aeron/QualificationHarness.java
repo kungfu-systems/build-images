@@ -18,6 +18,7 @@ import io.aeron.logbuffer.FragmentHandler;
 import io.aeron.shadow.org.HdrHistogram.Histogram;
 import io.aeron.shadow.org.HdrHistogram.HistogramLogWriter;
 import org.agrona.CloseHelper;
+import org.agrona.DirectBuffer;
 import org.agrona.collections.MutableLong;
 import org.agrona.concurrent.BackoffIdleStrategy;
 import org.agrona.concurrent.IdleStrategy;
@@ -37,14 +38,18 @@ import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.regex.Pattern;
 
 public final class QualificationHarness
 {
-    private static final String VERSION = "1.0.0";
+    private static final String VERSION = "1.1.0";
     private static final String IPC_CHANNEL = "aeron:ipc";
     private static final int RECORDING_STREAM_ID = 1001;
     private static final int REPLAY_STREAM_ID = 1002;
     private static final long TIMEOUT_NS = TimeUnit.SECONDS.toNanos(30);
+    private static final Pattern SHA256 = Pattern.compile("[0-9a-f]{64}");
+    private static final int MARKER_OFFSET = 16;
+    private static final int MARKER_LENGTH = 64;
 
     private QualificationHarness()
     {
@@ -63,6 +68,7 @@ public final class QualificationHarness
         {
             case "version" -> version();
             case "server" -> server(options);
+            case "health" -> health(options);
             case "record" -> record(options);
             case "replay" -> replay(options);
             case "ipc" -> ipc(options);
@@ -118,13 +124,14 @@ public final class QualificationHarness
         Runtime.getRuntime().addShutdownHook(new Thread(close, "aeron-server-shutdown"));
 
         try (Aeron aeron = Aeron.connect(new Aeron.Context().aeronDirectoryName(driverDir.toString()));
-            AeronArchive ignored = AeronArchive.connect(new AeronArchive.Context().aeron(aeron)))
+            AeronArchive archive = AeronArchive.connect(new AeronArchive.Context().aeron(aeron)))
         {
             final Path ready = root.resolve("server-ready.json");
             Files.writeString(ready, String.format(
-                "{\"schema\":\"aeron-server-ready/v1\",\"pid\":%d,\"started_at\":\"%s\",\"driver_dir\":\"%s\",\"archive_dir\":\"%s\",\"file_sync_level\":%d,\"catalog_sync_level\":%d}%n",
+                "{\"schema\":\"aeron-server-ready/v2\",\"pid\":%d,\"started_at\":\"%s\",\"driver_dir\":\"%s\",\"archive_dir\":\"%s\",\"archive_id\":%d,\"file_sync_level\":%d,\"catalog_sync_level\":%d}%n",
                 ProcessHandle.current().pid(), Instant.now(), json(driverDir.toString()), json(archiveDir.toString()),
-                fileSyncLevel, catalogSyncLevel), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+                archive.archiveId(), fileSyncLevel, catalogSyncLevel),
+                StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
             System.out.print(Files.readString(ready));
             System.out.flush();
         }
@@ -132,11 +139,29 @@ public final class QualificationHarness
         shutdown.await();
     }
 
+    private static void health(final Map<String, String> options)
+    {
+        final Path root = requiredPath(options, "root").toAbsolutePath();
+        final String driverDir = root.resolve("driver").toString();
+        try (Aeron aeron = Aeron.connect(new Aeron.Context().aeronDirectoryName(driverDir));
+            AeronArchive archive = AeronArchive.connect(new AeronArchive.Context().aeron(aeron)))
+        {
+            System.out.printf(
+                "{\"schema\":\"aeron-live-health/v1\",\"status\":\"live\",\"checked_at\":\"%s\",\"archive_id\":%d}%n",
+                Instant.now(), archive.archiveId());
+        }
+    }
+
     private static void record(final Map<String, String> options) throws Exception
     {
         final Path root = requiredPath(options, "root").toAbsolutePath();
         final int count = positive(options, "count");
         final int payload = integer(options, "payload", 64);
+        final byte[] marker = requiredMarker(options);
+        if (payload < MARKER_OFFSET + MARKER_LENGTH)
+        {
+            fail("--payload must leave room for the 64-byte marker");
+        }
         final String receipt = options.getOrDefault("receipt", "durable_group");
         if (!receipt.equals("visible") && !receipt.equals("durable_group") && !receipt.equals("durable_sync"))
         {
@@ -148,6 +173,7 @@ public final class QualificationHarness
         final MutableLong expected = new MutableLong();
         final MutableLong duplicates = new MutableLong();
         final MutableLong reordered = new MutableLong();
+        final MutableLong markerMismatches = new MutableLong();
         final FragmentHandler handler = (data, offset, length, header) ->
         {
             final long sequence = data.getLong(offset);
@@ -163,6 +189,11 @@ public final class QualificationHarness
             else
             {
                 expected.increment();
+            }
+            if (length < MARKER_OFFSET + MARKER_LENGTH ||
+                !matchesMarker(data, offset + MARKER_OFFSET, marker))
+            {
+                markerMismatches.increment();
             }
         };
 
@@ -188,6 +219,7 @@ public final class QualificationHarness
                 {
                     buffer.putLong(0, sequence);
                     buffer.putLong(8, System.nanoTime());
+                    buffer.putBytes(MARKER_OFFSET, marker);
                     final long offerDeadline = System.nanoTime() + TIMEOUT_NS;
                     while (publication.offer(buffer, 0, payload) < 0)
                     {
@@ -222,10 +254,15 @@ public final class QualificationHarness
         }
 
         final long durationNs = System.nanoTime() - startNs;
+        if (duplicates.get() != 0 || reordered.get() != 0 || markerMismatches.get() != 0 || expected.get() != count)
+        {
+            fail("record oracle failed");
+        }
         System.out.printf(
-            "{\"schema\":\"aeron-record-receipt/v1\",\"recording_id\":%d,\"count\":%d,\"observed\":%d,\"duplicates\":%d,\"reordered\":%d,\"receipt\":\"%s\",\"receipt_position\":%d,\"final_position\":%d,\"duration_ns\":%d,\"backpressure\":%d}%n",
-            recordingId, count, expected.get(), duplicates.get(), reordered.get(), receipt, receiptPosition,
-            finalPosition, durationNs, backpressure);
+            "{\"schema\":\"aeron-record-receipt/v2\",\"recording_id\":%d,\"count\":%d,\"observed\":%d,\"duplicates\":%d,\"reordered\":%d,\"marker_mismatches\":%d,\"marker\":\"%s\",\"receipt\":\"%s\",\"receipt_position\":%d,\"final_position\":%d,\"duration_ns\":%d,\"backpressure\":%d}%n",
+            recordingId, count, expected.get(), duplicates.get(), reordered.get(), markerMismatches.get(),
+            new String(marker, StandardCharsets.US_ASCII), receipt, receiptPosition, finalPosition, durationNs,
+            backpressure);
     }
 
     private static void replay(final Map<String, String> options) throws Exception
@@ -234,10 +271,12 @@ public final class QualificationHarness
         final int count = positive(options, "count");
         final long recordingId = longValue(options, "recording-id");
         final long length = longValue(options, "length");
+        final byte[] marker = requiredMarker(options);
         final String driverDir = root.resolve("driver").toString();
         final MutableLong expected = new MutableLong();
         final MutableLong duplicates = new MutableLong();
         final MutableLong reordered = new MutableLong();
+        final MutableLong markerMismatches = new MutableLong();
         final FragmentHandler handler = (data, offset, messageLength, header) ->
         {
             final long sequence = data.getLong(offset);
@@ -253,6 +292,11 @@ public final class QualificationHarness
             else
             {
                 expected.increment();
+            }
+            if (messageLength < MARKER_OFFSET + MARKER_LENGTH ||
+                !matchesMarker(data, offset + MARKER_OFFSET, marker))
+            {
+                markerMismatches.increment();
             }
         };
 
@@ -274,13 +318,14 @@ public final class QualificationHarness
             }
         }
 
-        if (duplicates.get() != 0 || reordered.get() != 0 || expected.get() != count)
+        if (duplicates.get() != 0 || reordered.get() != 0 || markerMismatches.get() != 0 || expected.get() != count)
         {
             fail("replay oracle failed");
         }
         System.out.printf(
-            "{\"schema\":\"aeron-replay-receipt/v1\",\"recording_id\":%d,\"expected\":%d,\"observed\":%d,\"duplicates\":0,\"reordered\":0,\"duration_ns\":%d}%n",
-            recordingId, count, expected.get(), System.nanoTime() - startNs);
+            "{\"schema\":\"aeron-replay-receipt/v2\",\"recording_id\":%d,\"expected\":%d,\"observed\":%d,\"duplicates\":0,\"reordered\":0,\"marker_mismatches\":0,\"marker\":\"%s\",\"duration_ns\":%d}%n",
+            recordingId, count, expected.get(), new String(marker, StandardCharsets.US_ASCII),
+            System.nanoTime() - startNs);
     }
 
     private static void ipc(final Map<String, String> options) throws Exception
@@ -491,6 +536,32 @@ public final class QualificationHarness
             fail("--" + name + " must be positive");
         }
         return parsed;
+    }
+
+    private static byte[] requiredMarker(final Map<String, String> options)
+    {
+        final String marker = options.get("marker");
+        if (marker == null || !SHA256.matcher(marker).matches())
+        {
+            fail("--marker must be a lowercase SHA-256");
+        }
+        return marker.getBytes(StandardCharsets.US_ASCII);
+    }
+
+    private static boolean matchesMarker(final DirectBuffer data, final int offset, final byte[] expected)
+    {
+        if (data.capacity() < offset + expected.length)
+        {
+            return false;
+        }
+        for (int index = 0; index < expected.length; index++)
+        {
+            if (data.getByte(offset + index) != expected[index])
+            {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static String json(final String value)
