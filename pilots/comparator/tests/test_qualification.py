@@ -236,6 +236,30 @@ class QualificationExecutionTests(unittest.TestCase):
         self.assertNotIn("--database", bootstrap)
         self.assertIn("--database", schema)
         self.assertIn("pilot", schema)
+        self.assertEqual(run.call_args_list[0].kwargs["input_text"], "")
+        self.assertEqual(run.call_args_list[1].kwargs["input_text"], "")
+
+    def test_clickhouse_query_closes_stdin_without_replacing_restore_payload(self) -> None:
+        project = clickhouse_adapter.ComposeProject("kf-clickhouse-stdin", pathlib.Path("/tmp"))
+        completed = subprocess.CompletedProcess([], 0, "", "")
+        with mock.patch.object(project, "command", return_value=completed) as run:
+            project.query("SELECT 1")
+            project.query("INSERT INTO qualification_facts FORMAT JSONEachRow", input_text='{"seq":1}\n')
+        self.assertEqual(run.call_args_list[0].kwargs["input_text"], "")
+        self.assertEqual(run.call_args_list[1].kwargs["input_text"], '{"seq":1}\n')
+
+    def test_clickhouse_concurrent_writers_close_stdin(self) -> None:
+        project = clickhouse_adapter.ComposeProject("kf-clickhouse-concurrent", pathlib.Path("/tmp"))
+        completed = subprocess.CompletedProcess([], 0, "", "")
+        with (
+            mock.patch.object(clickhouse_adapter, "initialize_schema"),
+            mock.patch.object(project, "command", return_value=completed) as run,
+            mock.patch.object(project, "query", return_value="3"),
+        ):
+            evidence = clickhouse_adapter.exercise_tier(project, "J1", "concurrent", {})
+        self.assertEqual(evidence["observed_rows"], 3)
+        self.assertEqual(run.call_count, 2)
+        self.assertTrue(all(call.kwargs["input_text"] == "" for call in run.call_args_list))
 
     def test_compose_project_name_is_lowercase_portable_and_frozen(self) -> None:
         scenario = {"id": "j1-normal", "tier": "normal", "job_id": "J1"}

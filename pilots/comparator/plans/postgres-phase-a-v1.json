@@ -23,7 +23,7 @@
   },
   "adapter_registry": {
     "path": "workload-adapters/registry.json",
-    "sha256": "0a68b7cea37f790e26d10648aa6b7ca0f9f38e0df433e7c2eec9d12fc2ea412f"
+    "sha256": "130c7a6c88d9057825f74b39277b7228d9c6de3f41369e20de35a0114f9eddfa"
   },
   "workload_adapter": {
     "id": "postgres-phase-a-v1",
