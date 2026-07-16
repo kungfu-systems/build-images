@@ -60,7 +60,7 @@ PY
   exit 3
 fi
 
-run_id=${GITHUB_RUN_ID:-manual-$(date -u +%Y%m%dT%H%M%SZ)-$$}
+run_id=${GITHUB_RUN_ID:-manual-$(date -u +%Y%m%dt%H%M%Sz)-$$}
 project=${COMPARATOR_PROJECT_NAME:-kf-comparator-${profile}-${run_id}}
 project=$(printf '%s' "$project" | tr -c 'a-zA-Z0-9_-' '-')
 report_dir="$ARTIFACT_ROOT/$project"
