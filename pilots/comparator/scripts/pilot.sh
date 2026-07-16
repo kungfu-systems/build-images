@@ -139,21 +139,34 @@ case "$profile" in
       "SELECT payload FROM pilot.pilot_events WHERE id = 1" | tee "$report_dir/clickhouse-restore-value.txt"
     ;;
   aeron)
-    compose exec -T aeron java \
-      --add-opens java.base/jdk.internal.misc=ALL-UNNAMED \
-      --add-opens java.base/java.util.zip=ALL-UNNAMED \
-      '-Daeron.archive.control.channel=aeron:udp?endpoint=localhost:8010' \
-      '-Daeron.archive.replication.channel=aeron:udp?endpoint=localhost:0' \
-      '-Daeron.archive.control.response.channel=aeron:udp?endpoint=localhost:0' \
-      -Daeron.sample.messages=5 \
-      -cp /opt/aeron/aeron-all.jar \
-      io.aeron.samples.archive.RecordedBasicPublisher \
+    harness=/opt/aeron-native-kit/bin/aeron-native-harness
+    marker=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+    compose exec -T aeron "$harness" record \
+      --root /var/lib/aeron \
+      --count 5 \
+      --payload 128 \
+      --receipt durable_sync \
+      --marker "$marker" \
       | tee "$report_dir/aeron-recording.txt"
-    grep -Fq "yay!" "$report_dir/aeron-recording.txt"
-    if grep -Fq "Offer failed" "$report_dir/aeron-recording.txt"; then
-      echo "Aeron publisher reported an unsuccessful offer" >&2
-      exit 1
-    fi
+    recording_values=$(python3 - "$report_dir/aeron-recording.txt" "$marker" <<'PY'
+import json
+import sys
+
+receipt = json.loads(open(sys.argv[1], encoding="utf-8").read())
+if (
+    receipt.get("schema") != "aeron-record-receipt/v2"
+    or receipt.get("observed") != 5
+    or receipt.get("duplicates") != 0
+    or receipt.get("reordered") != 0
+    or receipt.get("marker_mismatches") != 0
+    or receipt.get("marker") != sys.argv[2]
+):
+    raise SystemExit("Aeron record receipt failed its smoke oracle")
+print(receipt["recording_id"], receipt["final_position"])
+PY
+)
+    recording_id=${recording_values%% *}
+    recording_length=${recording_values#* }
     compose exec -T aeron sh -c "find /var/lib/aeron/archive -type f -print | sort" \
       | tee "$report_dir/aeron-archive-files.txt"
     compose kill -s SIGKILL aeron
@@ -161,6 +174,28 @@ case "$profile" in
     sleep 11
     compose --profile aeron up -d --wait aeron
     compose exec -T aeron sh -c "test -n \"\$(find /var/lib/aeron/archive -type f -print -quit)\""
+    compose exec -T aeron "$harness" replay \
+      --root /var/lib/aeron \
+      --count 5 \
+      --recording-id "$recording_id" \
+      --length "$recording_length" \
+      --marker "$marker" \
+      | tee "$report_dir/aeron-replay.txt"
+    python3 - "$report_dir/aeron-replay.txt" "$marker" <<'PY'
+import json
+import sys
+
+receipt = json.loads(open(sys.argv[1], encoding="utf-8").read())
+if (
+    receipt.get("schema") != "aeron-replay-receipt/v2"
+    or receipt.get("observed") != 5
+    or receipt.get("duplicates") != 0
+    or receipt.get("reordered") != 0
+    or receipt.get("marker_mismatches") != 0
+    or receipt.get("marker") != sys.argv[2]
+):
+    raise SystemExit("Aeron replay receipt failed its smoke oracle")
+PY
     compose exec -T aeron mkdir -p /var/lib/aeron/restore
     compose cp "$report_dir/aeron-archive/." aeron:/var/lib/aeron/restore/
     compose exec -T aeron sh -c "test -n \"\$(find /var/lib/aeron/restore -type f -print -quit)\""

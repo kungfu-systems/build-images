@@ -16,11 +16,13 @@ ADAPTER_DIR = PILOT_DIR / "workload-adapters"
 FIXTURE_DIR = pathlib.Path(__file__).resolve().parent / "fixtures" / "qualification-plans"
 PRODUCTION_PLAN = PILOT_DIR / "plans" / "postgres-phase-a-v1.json"
 CLICKHOUSE_PRODUCTION_PLAN = PILOT_DIR / "plans" / "clickhouse-phase-a-v1.json"
+AERON_PRODUCTION_PLAN = PILOT_DIR / "plans" / "aeron-phase-a-v1.json"
 sys.path.insert(0, str(SCRIPT_DIR))
 sys.path.insert(0, str(ADAPTER_DIR))
 
 import comparator_qualification as qualification  # noqa: E402
 import clickhouse_phase_a_v1 as clickhouse_adapter  # noqa: E402
+import aeron_phase_a_v1 as aeron_adapter  # noqa: E402
 import postgres_phase_a_v1 as postgres_adapter  # noqa: E402
 import postgres_phase_a_semantics as postgres_semantics  # noqa: E402
 
@@ -61,7 +63,7 @@ class QualificationPlanTests(unittest.TestCase):
             qualification.validate_plan_document(plan)
 
     def test_production_plan_covers_every_declared_job_and_tier(self) -> None:
-        for plan_path in (PRODUCTION_PLAN, CLICKHOUSE_PRODUCTION_PLAN):
+        for plan_path in (PRODUCTION_PLAN, CLICKHOUSE_PRODUCTION_PLAN, AERON_PRODUCTION_PLAN):
             with self.subTest(plan=plan_path.name):
                 plan, resolved = qualification.resolve_plan(plan_path)
                 expected = {
@@ -79,6 +81,7 @@ class QualificationPlanTests(unittest.TestCase):
         cases = (
             (PRODUCTION_PLAN, postgres_adapter),
             (CLICKHOUSE_PRODUCTION_PLAN, clickhouse_adapter),
+            (AERON_PRODUCTION_PLAN, aeron_adapter),
         )
         for plan_path, adapter_module in cases:
             with self.subTest(plan=plan_path.name):
@@ -927,7 +930,10 @@ class QualificationBundleTests(unittest.TestCase):
         registry_record = self.bundle_inputs["workload_adapter"]["registry"]
         registry_path = self.bundle_dir / registry_record["path"]
         registry = qualification.load_json(registry_path)
-        self.assertEqual(set(registry["adapters"]), {"postgres-phase-a-v1", "clickhouse-phase-a-v1"})
+        self.assertEqual(
+            set(registry["adapters"]),
+            {"postgres-phase-a-v1", "clickhouse-phase-a-v1", "aeron-phase-a-v1"},
+        )
         self.assertFalse(
             (self.bundle_dir / "inputs/workload-adapters/clickhouse_phase_a_v1.py").exists()
         )
