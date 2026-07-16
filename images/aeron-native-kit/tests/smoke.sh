@@ -39,8 +39,13 @@ record_output=$(/opt/aeron-native-kit/bin/aeron-native-harness record \
   --root "${archive_root}" --count 5 --payload 128 --receipt durable_sync --marker "${marker}")
 recording_id=$(printf '%s\n' "${record_output}" | sed -n 's/.*"recording_id":\([0-9][0-9]*\).*/\1/p')
 recording_length=$(printf '%s\n' "${record_output}" | sed -n 's/.*"final_position":\([0-9][0-9]*\).*/\1/p')
+receipt_duration=$(printf '%s\n' "${record_output}" | sed -n 's/.*"receipt_duration_ns":\([0-9][0-9]*\).*/\1/p')
+completion_duration=$(printf '%s\n' "${record_output}" | sed -n 's/.*"completion_duration_ns":\([0-9][0-9]*\).*/\1/p')
 test -n "${recording_id}"
 test -n "${recording_length}"
+test -n "${receipt_duration}"
+test -n "${completion_duration}"
+test "${completion_duration}" -ge "${receipt_duration}"
 wrong_marker=ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 if /opt/aeron-native-kit/bin/aeron-native-harness replay \
   --root "${archive_root}" --count 5 --recording-id "${recording_id}" \

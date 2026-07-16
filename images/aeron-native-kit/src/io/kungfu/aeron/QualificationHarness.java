@@ -208,6 +208,7 @@ public final class QualificationHarness
         long finalPosition;
         long recordingId;
         long receiptPosition;
+        long receiptDurationNs;
         final long startNs = System.nanoTime();
         try (Aeron aeron = Aeron.connect(new Aeron.Context().aeronDirectoryName(driverDir));
             AeronArchive archive = AeronArchive.connect(archiveClientContext(aeron));
@@ -251,6 +252,7 @@ public final class QualificationHarness
                 {
                     awaitCounter(counters, counterId, receiptPosition);
                 }
+                receiptDurationNs = System.nanoTime() - startNs;
                 finalPosition = publication.position();
                 awaitCounter(counters, counterId, finalPosition);
             }
@@ -260,16 +262,16 @@ public final class QualificationHarness
             }
         }
 
-        final long durationNs = System.nanoTime() - startNs;
+        final long completionDurationNs = System.nanoTime() - startNs;
         if (duplicates.get() != 0 || reordered.get() != 0 || markerMismatches.get() != 0 || expected.get() != count)
         {
             fail("record oracle failed");
         }
         System.out.printf(
-            "{\"schema\":\"aeron-record-receipt/v2\",\"recording_id\":%d,\"count\":%d,\"observed\":%d,\"duplicates\":%d,\"reordered\":%d,\"marker_mismatches\":%d,\"marker\":\"%s\",\"receipt\":\"%s\",\"receipt_position\":%d,\"final_position\":%d,\"duration_ns\":%d,\"backpressure\":%d}%n",
+            "{\"schema\":\"aeron-record-receipt/v2\",\"recording_id\":%d,\"count\":%d,\"observed\":%d,\"duplicates\":%d,\"reordered\":%d,\"marker_mismatches\":%d,\"marker\":\"%s\",\"receipt\":\"%s\",\"receipt_position\":%d,\"final_position\":%d,\"receipt_duration_ns\":%d,\"completion_duration_ns\":%d,\"backpressure\":%d}%n",
             recordingId, count, expected.get(), duplicates.get(), reordered.get(), markerMismatches.get(),
-            new String(marker, StandardCharsets.US_ASCII), receipt, receiptPosition, finalPosition, durationNs,
-            backpressure);
+            new String(marker, StandardCharsets.US_ASCII), receipt, receiptPosition, finalPosition,
+            receiptDurationNs, completionDurationNs, backpressure);
     }
 
     private static void replay(final Map<String, String> options) throws Exception
