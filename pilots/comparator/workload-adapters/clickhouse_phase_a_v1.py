@@ -290,17 +290,33 @@ class ComposeProject:
         self.command("config", "--quiet")
         self.command("up", "-d", "--wait", "--pull", "never", *(services or ("runner", "clickhouse")))
 
-    def query(self, sql: str, *, query_id: str = "phase-a-adapter", input_text: str | None = None) -> str:
-        process = self.command(
+    def query(
+        self,
+        sql: str,
+        *,
+        query_id: str = "phase-a-adapter",
+        input_text: str | None = None,
+        database: str | None = "pilot",
+    ) -> str:
+        arguments = [
             "exec", "-T", "clickhouse", "clickhouse-client",
-            "--user", "pilot", "--password", "pilot-local-only", "--database", "pilot",
+            "--user", "pilot", "--password", "pilot-local-only",
+        ]
+        if database is not None:
+            arguments.extend(("--database", database))
+        arguments.extend((
             "--multiquery", "--query_id", query_id, "--format", "TabSeparatedRaw", "--query", sql,
-            input_text=input_text,
-        )
+        ))
+        process = self.command(*arguments, input_text=input_text)
         return process.stdout.strip()
 
 
 def create_schema(project: ComposeProject) -> None:
+    project.query(
+        "CREATE DATABASE IF NOT EXISTS pilot;",
+        query_id="phase-a-bootstrap",
+        database=None,
+    )
     project.query(
         "CREATE TABLE qualification_facts ("
         "seq UInt64, job_id String, tier LowCardinality(String), event_version UInt32, "

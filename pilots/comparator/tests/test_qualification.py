@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import json
+import os
 import pathlib
 import subprocess
 import sys
@@ -224,6 +225,18 @@ class WorkloadSemanticTests(unittest.TestCase):
 
 
 class QualificationExecutionTests(unittest.TestCase):
+    def test_clickhouse_bootstrap_creates_database_before_database_scoped_schema(self) -> None:
+        project = clickhouse_adapter.ComposeProject("kf-clickhouse-bootstrap", pathlib.Path("/tmp"))
+        completed = subprocess.CompletedProcess([], 0, "", "")
+        with mock.patch.object(project, "command", return_value=completed) as run:
+            clickhouse_adapter.create_schema(project)
+        bootstrap = run.call_args_list[0].args
+        schema = run.call_args_list[1].args
+        self.assertIn("CREATE DATABASE IF NOT EXISTS pilot;", bootstrap)
+        self.assertNotIn("--database", bootstrap)
+        self.assertIn("--database", schema)
+        self.assertIn("pilot", schema)
+
     def test_compose_project_name_is_lowercase_portable_and_frozen(self) -> None:
         scenario = {"id": "j1-normal", "tier": "normal", "job_id": "J1"}
         step = {"id": "execute"}
@@ -294,6 +307,56 @@ class QualificationExecutionTests(unittest.TestCase):
         compose = qualification.COMPOSE_PATH.read_text(encoding="utf-8")
         self.assertIn("cat /proc/1/comm", compose)
         self.assertIn("= postgres && pg_isready -U pilot -d pilot", compose)
+
+    def test_clickhouse_healthcheck_waits_for_final_server_and_database(self) -> None:
+        compose = qualification.COMPOSE_PATH.read_text(encoding="utf-8")
+        health_command = (
+            'test "$(cat /proc/1/comm)" = clickhouse-serv && '
+            "clickhouse-client --user pilot --password pilot-local-only "
+            "--database pilot --query 'SELECT 1'"
+        )
+        self.assertIn(health_command.replace('"', '\\"'), compose)
+
+        with tempfile.TemporaryDirectory() as temporary:
+            bin_dir = pathlib.Path(temporary)
+            fake_cat = bin_dir / "cat"
+            fake_cat.write_text(
+                "#!/bin/sh\n"
+                "test \"$1\" = /proc/1/comm || exit 2\n"
+                "printf '%s\\n' \"$FAKE_PID1_COMM\"\n",
+                encoding="utf-8",
+            )
+            fake_client = bin_dir / "clickhouse-client"
+            fake_client.write_text(
+                "#!/bin/sh\n"
+                "test \"$FAKE_DATABASE_READY\" = 1\n",
+                encoding="utf-8",
+            )
+            fake_cat.chmod(0o755)
+            fake_client.chmod(0o755)
+            base_env = os.environ | {"PATH": f"{bin_dir}:{os.environ['PATH']}"}
+
+            for pid1_comm, database_ready, expected_returncode in (
+                ("entrypoint.sh", "1", 1),
+                ("clickhouse-serv", "0", 1),
+                ("clickhouse-serv", "1", 0),
+            ):
+                with self.subTest(pid1_comm=pid1_comm, database_ready=database_ready):
+                    completed = subprocess.run(
+                        ["/bin/sh", "-c", health_command],
+                        check=False,
+                        env=base_env
+                        | {
+                            "FAKE_PID1_COMM": pid1_comm,
+                            "FAKE_DATABASE_READY": database_ready,
+                        },
+                    )
+                    self.assertEqual(completed.returncode, expected_returncode)
+
+    def test_manual_pilot_project_name_uses_a_lowercase_timestamp(self) -> None:
+        script = (PILOT_DIR / "scripts" / "pilot.sh").read_text(encoding="utf-8")
+        self.assertIn("date -u +%Y%m%dt%H%M%Sz", script)
+        self.assertNotIn("date -u +%Y%m%dT%H%M%SZ", script)
 
     def test_runner_pid_one_exits_directly_on_sigterm(self) -> None:
         compose = qualification.COMPOSE_PATH.read_text(encoding="utf-8")

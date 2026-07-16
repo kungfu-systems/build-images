@@ -65,7 +65,7 @@
     "clickhouse-phase-a-v1": {
       "version": "1.2.0",
       "artifact": "workload-adapters/clickhouse_phase_a_v1.py",
-      "sha256": "72173efd638ebb13f3551a8659824af0a5bc8ca42cc4d84832049174ba384baa",
+      "sha256": "25b6396eb68cb7a12b175085e8d64aa092e5660f391b0d60fcb58db0b7128849",
       "entrypoint": "clickhouse-phase-a-v1",
       "profiles": [
         "clickhouse"
