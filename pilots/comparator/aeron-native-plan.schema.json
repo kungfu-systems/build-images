@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:kungfu-systems:build-images:aeron-native-qualification-plan:v1",
+  "title": "Aeron native-host qualification plan",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "plan_schema",
+    "schema_version",
+    "test_only",
+    "evidence_class",
+    "native_performance_authority_requested",
+    "kit",
+    "configuration",
+    "host_policy",
+    "calibration",
+    "ipc",
+    "receipts",
+    "recovery",
+    "soak",
+    "advocate_review",
+    "claim_boundary"
+  ],
+  "properties": {
+    "plan_schema": { "const": "urn:kungfu-systems:build-images:aeron-native-qualification-plan:v1" },
+    "schema_version": { "const": 1 },
+    "test_only": { "type": "boolean" },
+    "evidence_class": { "const": "native-host-performance-qualification" },
+    "native_performance_authority_requested": { "const": true },
+    "kit": { "type": "object" },
+    "configuration": { "type": "object" },
+    "host_policy": { "type": "object" },
+    "calibration": { "type": "object" },
+    "ipc": { "type": "object" },
+    "receipts": { "type": "object" },
+    "recovery": { "type": "object" },
+    "soak": { "type": "object" },
+    "advocate_review": { "type": "object" },
+    "claim_boundary": { "type": "object" }
+  }
+}

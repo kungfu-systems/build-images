@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:kungfu-systems:build-images:aeron-native-qualification-run:v1",
+  "title": "Aeron native-host qualification result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "run_schema",
+    "schema_version",
+    "status",
+    "evidence_class",
+    "native_performance_authority",
+    "tier",
+    "repetition",
+    "started_at",
+    "finished_at",
+    "marker",
+    "measurement",
+    "process_metrics",
+    "raw_artifacts",
+    "container_guard"
+  ],
+  "properties": {
+    "run_schema": { "const": "urn:kungfu-systems:build-images:aeron-native-qualification-run:v1" },
+    "schema_version": { "const": 1 },
+    "status": { "enum": ["passed", "failed"] },
+    "evidence_class": { "const": "native-host-performance-qualification" },
+    "native_performance_authority": { "const": false },
+    "tier": { "type": "string", "minLength": 1 },
+    "repetition": { "type": "integer", "minimum": 1 },
+    "started_at": { "type": "string", "format": "date-time" },
+    "finished_at": { "type": "string", "format": "date-time" },
+    "marker": { "pattern": "^[0-9a-f]{64}$" },
+    "measurement": { "type": "object" },
+    "process_metrics": { "type": "object" },
+    "raw_artifacts": { "type": "array" },
+    "container_guard": { "type": "object" }
+  }
+}
