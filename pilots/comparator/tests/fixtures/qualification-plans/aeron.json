@@ -34,7 +34,7 @@
           "oracles": [
             { "type": "exit-code", "expected": 0 },
             { "type": "artifact-exists", "path": "pilot/aeron-recording.txt", "expected": true },
-            { "type": "artifact-text-contains", "path": "pilot/aeron-recording.txt", "expected": "yay!" }
+            { "type": "artifact-text-contains", "path": "pilot/aeron-recording.txt", "expected": "aeron-record-receipt/v2" }
           ]
         }
       ]

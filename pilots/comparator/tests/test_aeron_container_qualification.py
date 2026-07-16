@@ -81,6 +81,13 @@ class AeronContainerSemanticsTests(unittest.TestCase):
         )
         self.assertIn("aeron-native-harness\", \"health", service)
 
+    def test_unscored_smoke_uses_the_managed_harness_contract(self) -> None:
+        script = (PILOT_DIR / "scripts" / "pilot.sh").read_text(encoding="utf-8")
+        self.assertNotIn("RecordedBasicPublisher", script)
+        self.assertIn("aeron-native-harness", script)
+        self.assertIn("aeron-record-receipt/v2", script)
+        self.assertIn("aeron-replay-receipt/v2", script)
+
 
 if __name__ == "__main__":
     unittest.main()
