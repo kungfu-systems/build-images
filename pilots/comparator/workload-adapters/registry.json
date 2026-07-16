@@ -65,7 +65,7 @@
     "clickhouse-phase-a-v1": {
       "version": "1.2.0",
       "artifact": "workload-adapters/clickhouse_phase_a_v1.py",
-      "sha256": "a19469674fac9934d68d580112f7dd3fbeaa3d8c342a328a5e1f4d4a26dd5908",
+      "sha256": "3561e64ccec4b31c26209e8f1c4bef633cfea3351c03eb5c6fcd92a99fc59bb6",
       "entrypoint": "clickhouse-phase-a-v1",
       "profiles": [
         "clickhouse"
@@ -82,6 +82,66 @@
       "oracle": {
         "path": "workload-adapters/oracles/clickhouse-phase-a-v1.json",
         "sha256": "e27cf401e5960c12fc7c4a2766d18e16469080bb3b735897f3a8961fe4470563"
+      },
+      "mappings": [
+        {
+          "job_id": "J1-multi-session-progress-triage",
+          "tiers": [
+            "normal",
+            "concurrent",
+            "crash-recovery",
+            "whole-root-restore",
+            "historical-query",
+            "schema-evolution",
+            "new-agent-takeover"
+          ]
+        },
+        {
+          "job_id": "J2-cross-repo-delivery-trust",
+          "tiers": [
+            "normal",
+            "concurrent",
+            "crash-recovery",
+            "whole-root-restore",
+            "historical-query",
+            "schema-evolution",
+            "new-agent-takeover"
+          ]
+        },
+        {
+          "job_id": "J3-interrupted-go-recovery-handoff",
+          "tiers": [
+            "normal",
+            "concurrent",
+            "crash-recovery",
+            "whole-root-restore",
+            "historical-query",
+            "schema-evolution",
+            "new-agent-takeover"
+          ]
+        }
+      ]
+    },
+    "aeron-phase-a-v1": {
+      "version": "1.0.0",
+      "artifact": "workload-adapters/aeron_phase_a_v1.py",
+      "sha256": "a2dec759ed834d70b464bdd9e8375323f29ff4cd2ac50ff5bc3ae3bb1b42df3f",
+      "entrypoint": "aeron-phase-a-v1",
+      "profiles": [
+        "aeron"
+      ],
+      "semantics": {
+        "module": "aeron-phase-a-semantics-v1",
+        "path": "workload-adapters/aeron_phase_a_semantics.py",
+        "sha256": "216103812f631c0f3b5154acd9755c34ad907a4175b3c3173023db983b2b6d41"
+      },
+      "fixture": {
+        "path": "workload-adapters/fixtures/aeron-phase-a-v1.json",
+        "sha256": "9dbff5c5c4d668346fe1292d917114b2b91f9a8f3faa4c5b01c31d7d84c85dda"
+      },
+      "oracle": {
+        "path": "workload-adapters/oracles/aeron-phase-a-v1.json",
+        "sha256": "203794ed68bc13f1a6a809036f90ee82592d34501289ffb2ebf084a3f8bab058"
       },
       "mappings": [
         {

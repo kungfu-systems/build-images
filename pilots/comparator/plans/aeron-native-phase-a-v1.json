@@ -1,0 +1,67 @@
+{
+  "plan_schema": "urn:kungfu-systems:build-images:aeron-native-qualification-plan:v1",
+  "schema_version": 1,
+  "test_only": false,
+  "evidence_class": "native-host-performance-qualification",
+  "native_performance_authority_requested": true,
+  "kit": {
+    "image": "ghcr.io/kungfu-systems/build-images/aeron-native-kit@sha256:684be4100866a3908020d1f368fe1100225a1101a65e9a0ee6d4da6a94963c76",
+    "platform": "linux/amd64",
+    "files": {
+      "kit/kit-manifest.json": "cf17391e9197d530e08b2e2074e10a0baf1640fc7d0fe646df9cc6fc18c53583",
+      "kit/lib/aeron-all.jar": "f02b1cc8660ee24235f41000f3b4a7af90730cc467519f2344672208e7195a6f",
+      "kit/lib/aeron-qualification-harness.jar": "ca41dc44a6326711eb96e515489f4f4cd374c2f6ca750a57f2dd6ffe69e35bd4",
+      "kit/bin/aeron-native-harness": "2422a724ed5316577538db0c546b1c4b848bc5973487d3c9ea0f68a89d18b77d",
+      "jre/release": "5c8bc47ff562c0d07c85e754832d3c6be7b4687057eb1af869f419d5a4d33c79"
+    },
+    "source_files": {
+      "images/aeron-native-kit/Dockerfile": "ec29e305e0a48d01e2da07639a946da5ffb15aab367ba18c05f705beff557a67",
+      "images/aeron-native-kit/src/io/kungfu/aeron/QualificationHarness.java": "1c6e802313e6e4059e453637cf22ffcaa924e28b2ecae7064e1b012898119253",
+      "images/aeron-native-kit/bin/aeron-native-harness": "2422a724ed5316577538db0c546b1c4b848bc5973487d3c9ea0f68a89d18b77d",
+      "images/aeron-native-kit/kit-manifest.json": "cf17391e9197d530e08b2e2074e10a0baf1640fc7d0fe646df9cc6fc18c53583"
+    }
+  },
+  "configuration": {
+    "aeron_version": "1.52.2",
+    "java_vendor": "Eclipse Adoptium",
+    "java_version": "21.0.11",
+    "ipc_channel": "aeron:ipc",
+    "archive_control_channel": "aeron:udp?endpoint=localhost:8010",
+    "archive_control_response_channel": "aeron:udp?endpoint=localhost:0",
+    "archive_replication_channel": "aeron:udp?endpoint=localhost:0",
+    "driver_threading": "SHARED_NETWORK",
+    "archive_threading": "SHARED",
+    "idle_strategy": "backoff-100-10-1-100000ns",
+    "term_buffer_length": 16777216,
+    "segment_file_length": 16777216,
+    "sparse": false,
+    "file_sync_level": 1,
+    "catalog_sync_level": 1,
+    "spies_simulate_connection": true,
+    "receipt_timeout_seconds": 30,
+    "coordinated_omission": "expected-interval-correction"
+  },
+  "host_policy": {
+    "sudo_allowed": false,
+    "host_tuning_allowed": false,
+    "perf_counters": "optional-record-availability",
+    "required_facts": ["cpu_topology", "governor", "energy_policy", "affinity", "load", "memory", "filesystem", "cgroup", "perf_event_paranoid"],
+    "interference_preflight": "record-load-no-mutation"
+  },
+  "calibration": {"repetitions": 3, "warmup": 500, "messages": 2000, "payload": 64, "rate": 10000, "max_p99_drift_ratio": 5.0},
+  "ipc": {"repetitions": 3, "warmup": 500, "messages": 2000, "payloads": [64, 1024], "rates": [10000, 50000]},
+  "receipts": {"repetitions": 3, "messages": 100, "payload": 128, "modes": ["visible", "durable_group", "durable_sync"]},
+  "recovery": {"repetitions": 3, "messages": 50, "payload": 128, "receipt": "durable_group", "expiry_wait_seconds": 11, "modes": ["crash-replay", "whole-root-restore"]},
+  "soak": {"repetitions": 1, "warmup": 1000, "messages": 20000, "payload": 64, "rate": 20000},
+  "advocate_review": {
+    "reviewer": "kungfu-origin",
+    "status": "approved",
+    "scope": ["version", "channels", "threading", "idle", "sync", "payload", "topology", "receipt_mapping", "exclusions"]
+  },
+  "claim_boundary": {
+    "native_performance_authority_requested": true,
+    "containerized_user_outcome_authority": false,
+    "fresh_install_cost_authority": false,
+    "final_scoring_authority": false
+  }
+}

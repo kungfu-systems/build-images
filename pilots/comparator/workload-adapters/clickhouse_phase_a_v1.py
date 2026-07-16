@@ -12,6 +12,7 @@ import pathlib
 import re
 import subprocess
 import sys
+import time
 from typing import Any
 
 from clickhouse_phase_a_semantics import (
@@ -183,6 +184,7 @@ class ComposeProject:
         self.project = project
         self.output_dir = output_dir
         self.command_index = 0
+        self.readiness_index = 0
 
     def _run_fixed_command(
         self,
@@ -287,8 +289,49 @@ class ComposeProject:
         return exit_code
 
     def up(self, *services: str) -> None:
+        target_services = services or ("runner", "clickhouse")
         self.command("config", "--quiet")
-        self.command("up", "-d", "--wait", "--pull", "never", *(services or ("runner", "clickhouse")))
+        self.command("up", "-d", "--wait", "--pull", "never", *target_services)
+        if "clickhouse" in target_services:
+            self.wait_ready()
+
+    def wait_ready(self) -> None:
+        deadline = time.monotonic() + 30
+        consecutive = 0
+        attempts = []
+        while time.monotonic() < deadline:
+            process = self.command(
+                "exec", "-T", "clickhouse", "clickhouse-client",
+                "--user", "pilot", "--password", "pilot-local-only", "--database", "pilot",
+                "--query_id", "phase-a-readiness", "--format", "TabSeparatedRaw", "--query", "SELECT 1",
+                check=False,
+                timeout_seconds=10,
+            )
+            passed = process.returncode == 0 and process.stdout.strip() == "1"
+            consecutive = consecutive + 1 if passed else 0
+            attempts.append({
+                "attempt": len(attempts) + 1,
+                "exit_code": process.returncode,
+                "stdout": process.stdout.strip(),
+                "stderr": process.stderr.strip(),
+                "passed": passed,
+                "consecutive_successes": consecutive,
+            })
+            if consecutive == 3:
+                self.readiness_index += 1
+                write_json(
+                    self.output_dir / f"clickhouse-readiness-{self.readiness_index:02d}.json",
+                    {
+                        "schema": "urn:kungfu-systems:build-images:clickhouse-stable-readiness:v1",
+                        "required_consecutive_successes": 3,
+                        "timeout_seconds": 30,
+                        "attempts": attempts,
+                        "passed": True,
+                    },
+                )
+                return
+            time.sleep(0.5)
+        raise AdapterError("ClickHouse did not sustain three consecutive readiness probes within 30 seconds")
 
     def query(
         self,

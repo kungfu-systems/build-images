@@ -1,0 +1,20 @@
+{
+  "schema": "urn:kungfu-systems:build-images:aeron-phase-a-execution-input:v1",
+  "fixture_set_id": "kungfu-agent-work-charter-pilot-v1",
+  "synthetic": true,
+  "contains_private_data": false,
+  "jobs": {
+    "J1-multi-session-progress-triage": {
+      "fixture_id": "F1-aeron-ordered-session",
+      "facts": {"expected_count": 5, "marker_policy": "binding-sha256", "user_outcome": "ordered-progress-visible"}
+    },
+    "J2-cross-repo-delivery-trust": {
+      "fixture_id": "F2-aeron-digest-bound-delivery",
+      "facts": {"expected_count": 5, "marker_policy": "binding-sha256", "user_outcome": "delivery-receipt-bound"}
+    },
+    "J3-interrupted-go-recovery-handoff": {
+      "fixture_id": "F3-aeron-replay-handoff",
+      "facts": {"expected_count": 5, "marker_policy": "binding-sha256", "user_outcome": "replay-resume-ready"}
+    }
+  }
+}
