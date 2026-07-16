@@ -19,6 +19,8 @@
     "protocol_version": 2,
     "capabilities": [
       "bounded-ipc-histogram",
+      "seeded-ipc-sequence-oracle",
+      "slow-reader-batch-backpressure",
       "live-driver-archive-health",
       "marker-bound-record",
       "marker-bound-replay"
