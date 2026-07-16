@@ -62,6 +62,7 @@ def valid_plan() -> dict:
             "spies_simulate_connection": True,
             "receipt_timeout_seconds": 30,
             "coordinated_omission": "expected-interval-correction",
+            "ipc_poll_batch": 64,
         },
         "host_policy": {
             "sudo_allowed": False,
@@ -114,7 +115,7 @@ def valid_plan() -> dict:
             "status": "approved",
             "scope": [
                 "version", "channels", "threading", "idle", "sync", "payload",
-                "topology", "receipt_mapping", "exclusions",
+                "poll_batch", "topology", "receipt_mapping", "exclusions",
             ],
         },
         "claim_boundary": {
@@ -169,7 +170,10 @@ class NativeQualificationTests(unittest.TestCase):
             native.validate_plan_document(plan)
 
     def test_ipc_run_binds_a_deterministic_seed_to_the_marker(self) -> None:
-        parameters = {"warmup": 10, "messages": 20, "payload": 64, "rate": 1000}
+        parameters = {
+            "warmup": 10, "messages": 20, "payload": 64, "rate": 1000,
+            "poll_batch": 64,
+        }
         with tempfile.TemporaryDirectory() as temporary:
             output = pathlib.Path(temporary) / "ipc"
 
@@ -177,11 +181,13 @@ class NativeQualificationTests(unittest.TestCase):
                 (output / "latency.hlog").write_text("histogram\n", encoding="utf-8")
                 arguments = args[2]
                 seed = int(arguments[arguments.index("--seed") + 1])
+                poll_batch = int(arguments[arguments.index("--poll-batch") + 1])
                 return {
                     "coordinated_omission": "expected-interval-correction",
                     "messages": 20,
                     "samples": 20,
                     "seed": seed,
+                    "poll_batch": poll_batch,
                 }, metrics()
 
             with (
@@ -196,6 +202,7 @@ class NativeQualificationTests(unittest.TestCase):
         arguments = harness.call_args.args[2]
         marker = native.result_marker(SHA_A, "ipc", 2, "p64-r1000")
         self.assertEqual(arguments[arguments.index("--seed") + 1], str(native.ipc_seed(marker)))
+        self.assertEqual(arguments[arguments.index("--poll-batch") + 1], "64")
 
     def _write_result(
         self,
