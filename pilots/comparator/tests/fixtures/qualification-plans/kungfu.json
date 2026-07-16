@@ -16,9 +16,9 @@
   "configuration_slot": "realistic-default",
   "environment": {
     "compose_path": "compose.yaml",
-    "compose_sha256": "9f050c11dc2374dd657e13b1852e799f612b8b8c4244d8fafdd43a8f555a9a85",
+    "compose_sha256": "8273553fd4f6cd1250a26ccb8c3b2c83eb0d4c4c7989edb347367c708585af17",
     "environment_lock_path": "environment.lock.json",
-    "environment_lock_sha256": "d942c050ecd9e14596ea84de505d6b15e1351c74b48a0e3284bd5b8393e358ce",
+    "environment_lock_sha256": "25a6fb91dea75e180bc35ff22d6c5f6393a058d08c884097491c06cbcd760bbc",
     "runner_image": "ghcr.io/kungfu-systems/build-images/kungfu-verify@sha256:cb6d939d567c129903d6e3ad858e2c09a9475b3b8f81b1aad10279d0e63a920d"
   },
   "subject": {

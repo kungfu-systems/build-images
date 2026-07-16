@@ -15,9 +15,25 @@
     "aeron": {
       "status": "ready",
       "version": "1.52.2",
+      "image": "ghcr.io/kungfu-systems/build-images/aeron-native-kit@sha256:9a277f3baec7eac384a6607e81dce1fa836ac8760e8aa1ae6ac5b38accf0af65",
       "base_image": "eclipse-temurin:21.0.11_10-jre-jammy@sha256:d63bd8d9b171999cbed8576f2c76e874dd4856791a358536e5c4d407e77edc13",
       "artifact_url": "https://repo.maven.apache.org/maven2/io/aeron/aeron-all/1.52.2/aeron-all-1.52.2.jar",
       "artifact_sha256": "f02b1cc8660ee24235f41000f3b4a7af90730cc467519f2344672208e7195a6f",
+      "harness": {
+        "version": "1.1.0",
+        "root": "/var/lib/aeron",
+        "driver_threading": "SHARED_NETWORK",
+        "archive_threading": "SHARED",
+        "idle_strategy": "backoff-100-10-1-100000ns",
+        "term_buffer_length": 16777216,
+        "segment_file_length": 16777216,
+        "sparse": false,
+        "file_sync_level": 1,
+        "catalog_sync_level": 1,
+        "spies_simulate_connection": true,
+        "receipt_timeout_seconds": 30,
+        "stale_driver_expiry_wait_seconds": 11
+      },
       "source": "https://github.com/aeron-io/aeron/releases/tag/1.52.2"
     },
     "clickhouse": {

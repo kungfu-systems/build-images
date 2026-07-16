@@ -17,33 +17,26 @@ services:
     cpus: 0.50
 
   aeron:
-    build:
-      context: ./images/aeron
+    image: ghcr.io/kungfu-systems/build-images/aeron-native-kit@sha256:9a277f3baec7eac384a6607e81dce1fa836ac8760e8aa1ae6ac5b38accf0af65
     platform: linux/amd64
     command:
-      - sh
-      - -c
-      - >-
-        mkdir -p /var/lib/aeron/archive /var/lib/aeron/restore &&
-        exec java
-        --add-opens java.base/jdk.internal.misc=ALL-UNNAMED
-        --add-opens java.base/java.util.zip=ALL-UNNAMED
-        -Daeron.spies.simulate.connection=true
-        '-Daeron.archive.dir=/var/lib/aeron/archive'
-        '-Daeron.archive.control.channel=aeron:udp?endpoint=localhost:8010'
-        '-Daeron.archive.replication.channel=aeron:udp?endpoint=localhost:0'
-        '-Daeron.archive.control.response.channel=aeron:udp?endpoint=localhost:0'
-        -cp /opt/aeron/aeron-all.jar
-        io.aeron.archive.ArchivingMediaDriver
+      - /opt/aeron-native-kit/bin/aeron-native-harness
+      - server
+      - --root
+      - /var/lib/aeron
+      - --file-sync-level
+      - "1"
+      - --catalog-sync-level
+      - "1"
     profiles: ["aeron"]
     read_only: true
     tmpfs:
       - /tmp:size=128m
     shm_size: 256m
     healthcheck:
-      test: ["CMD-SHELL", "test -f /var/lib/aeron/archive/archive-mark.dat"]
+      test: ["CMD", "/opt/aeron-native-kit/bin/aeron-native-harness", "health", "--root", "/var/lib/aeron"]
       interval: 1s
-      timeout: 2s
+      timeout: 5s
       retries: 30
     security_opt:
       - no-new-privileges:true

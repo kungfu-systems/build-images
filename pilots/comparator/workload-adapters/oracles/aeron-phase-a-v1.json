@@ -1,0 +1,8 @@
+{
+  "schema": "urn:kungfu-systems:build-images:aeron-phase-a-verifier-oracle:v1",
+  "jobs": {
+    "J1-multi-session-progress-triage": {"state": "ordered-complete", "observed_count": 5, "anomalies": 0},
+    "J2-cross-repo-delivery-trust": {"state": "digest-bound", "trusted": true, "marker_bound": true},
+    "J3-interrupted-go-recovery-handoff": {"state": "replay-ready", "resumable": true, "cleanup_required": false}
+  }
+}

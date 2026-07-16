@@ -1,0 +1,89 @@
+{
+  "plan_schema": "urn:kungfu-systems:build-images:comparator-qualification-plan:v1",
+  "schema_version": 1,
+  "test_only": false,
+  "evidence_class": "containerized-user-outcome-qualification",
+  "charter": {
+    "id": "kungfu-agent-work-user-outcome-v1",
+    "version": "1.0.0",
+    "sha256": "93a270dace9db3dbb0167a3b56087583b754a8b79aaa7d91544a16fc3883fc7c"
+  },
+  "fixture_set": {
+    "id": "kungfu-agent-work-charter-pilot-v1",
+    "sha256": "e1c401462a7a0c623df1ec8bac60ce0b4a9b64407d8a7866f77dc388d73627a0"
+  },
+  "profile": "aeron",
+  "configuration_slot": "realistic-default",
+  "environment": {
+    "compose_path": "compose.yaml",
+    "compose_sha256": "0e9b5d36a456f6cde1b7194652b78a4949d3d956a608eff3dc333193e1ce10bf",
+    "environment_lock_path": "environment.lock.json",
+    "environment_lock_sha256": "25a6fb91dea75e180bc35ff22d6c5f6393a058d08c884097491c06cbcd760bbc",
+    "runner_image": "ghcr.io/kungfu-systems/build-images/kungfu-verify@sha256:cb6d939d567c129903d6e3ad858e2c09a9475b3b8f81b1aad10279d0e63a920d"
+  },
+  "adapter_registry": {
+    "path": "workload-adapters/registry.json",
+    "sha256": "6f33f661fd9f864b0e9c4bf47042794f6f72e7515ccd17f6f285fdad918688a7"
+  },
+  "workload_adapter": {
+    "id": "aeron-phase-a-v1",
+    "version": "1.0.0",
+    "artifact": "workload-adapters/aeron_phase_a_v1.py",
+    "sha256": "a2dec759ed834d70b464bdd9e8375323f29ff4cd2ac50ff5bc3ae3bb1b42df3f",
+    "entrypoint": "aeron-phase-a-v1",
+    "profiles": ["aeron"],
+    "semantics": {
+      "module": "aeron-phase-a-semantics-v1",
+      "path": "workload-adapters/aeron_phase_a_semantics.py",
+      "sha256": "216103812f631c0f3b5154acd9755c34ad907a4175b3c3173023db983b2b6d41"
+    },
+    "fixture": {
+      "path": "workload-adapters/fixtures/aeron-phase-a-v1.json",
+      "sha256": "9dbff5c5c4d668346fe1292d917114b2b91f9a8f3faa4c5b01c31d7d84c85dda"
+    },
+    "oracle": {
+      "path": "workload-adapters/oracles/aeron-phase-a-v1.json",
+      "sha256": "203794ed68bc13f1a6a809036f90ee82592d34501289ffb2ebf084a3f8bab058"
+    },
+    "mappings": [
+      {"job_id": "J1-multi-session-progress-triage", "tiers": ["normal", "concurrent", "crash-recovery", "whole-root-restore", "historical-query", "schema-evolution", "new-agent-takeover"]},
+      {"job_id": "J2-cross-repo-delivery-trust", "tiers": ["normal", "concurrent", "crash-recovery", "whole-root-restore", "historical-query", "schema-evolution", "new-agent-takeover"]},
+      {"job_id": "J3-interrupted-go-recovery-handoff", "tiers": ["normal", "concurrent", "crash-recovery", "whole-root-restore", "historical-query", "schema-evolution", "new-agent-takeover"]}
+    ]
+  },
+  "repetitions": 3,
+  "scenarios": [
+    {"id":"j1-normal","job_id":"J1-multi-session-progress-triage","tier":"normal","steps":[{"id":"execute","action":"workload-adapter","adapter_id":"aeron-phase-a-v1","timeout_seconds":1800,"oracles":[{"type":"exit-code","expected":0},{"type":"artifact-exists","path":"adapter-receipt.json","expected":true},{"type":"semantic-verdict","expected":true}]}]},
+    {"id":"j1-concurrent","job_id":"J1-multi-session-progress-triage","tier":"concurrent","steps":[{"id":"execute","action":"workload-adapter","adapter_id":"aeron-phase-a-v1","timeout_seconds":1800,"oracles":[{"type":"exit-code","expected":0},{"type":"artifact-exists","path":"adapter-receipt.json","expected":true},{"type":"semantic-verdict","expected":true}]}]},
+    {"id":"j1-crash-recovery","job_id":"J1-multi-session-progress-triage","tier":"crash-recovery","steps":[{"id":"execute","action":"workload-adapter","adapter_id":"aeron-phase-a-v1","timeout_seconds":1800,"oracles":[{"type":"exit-code","expected":0},{"type":"artifact-exists","path":"adapter-receipt.json","expected":true},{"type":"semantic-verdict","expected":true}]}]},
+    {"id":"j1-whole-root-restore","job_id":"J1-multi-session-progress-triage","tier":"whole-root-restore","steps":[{"id":"execute","action":"workload-adapter","adapter_id":"aeron-phase-a-v1","timeout_seconds":1800,"oracles":[{"type":"exit-code","expected":0},{"type":"artifact-exists","path":"adapter-receipt.json","expected":true},{"type":"semantic-verdict","expected":true}]}]},
+    {"id":"j1-historical-query","job_id":"J1-multi-session-progress-triage","tier":"historical-query","steps":[{"id":"execute","action":"workload-adapter","adapter_id":"aeron-phase-a-v1","timeout_seconds":1800,"oracles":[{"type":"exit-code","expected":0},{"type":"artifact-exists","path":"adapter-receipt.json","expected":true},{"type":"semantic-verdict","expected":true}]}]},
+    {"id":"j1-schema-evolution","job_id":"J1-multi-session-progress-triage","tier":"schema-evolution","steps":[{"id":"execute","action":"workload-adapter","adapter_id":"aeron-phase-a-v1","timeout_seconds":1800,"oracles":[{"type":"exit-code","expected":0},{"type":"artifact-exists","path":"adapter-receipt.json","expected":true},{"type":"semantic-verdict","expected":true}]}]},
+    {"id":"j1-new-agent-takeover","job_id":"J1-multi-session-progress-triage","tier":"new-agent-takeover","steps":[{"id":"execute","action":"workload-adapter","adapter_id":"aeron-phase-a-v1","timeout_seconds":1800,"oracles":[{"type":"exit-code","expected":0},{"type":"artifact-exists","path":"adapter-receipt.json","expected":true},{"type":"semantic-verdict","expected":true}]}]},
+    {"id":"j2-normal","job_id":"J2-cross-repo-delivery-trust","tier":"normal","steps":[{"id":"execute","action":"workload-adapter","adapter_id":"aeron-phase-a-v1","timeout_seconds":1800,"oracles":[{"type":"exit-code","expected":0},{"type":"artifact-exists","path":"adapter-receipt.json","expected":true},{"type":"semantic-verdict","expected":true}]}]},
+    {"id":"j2-concurrent","job_id":"J2-cross-repo-delivery-trust","tier":"concurrent","steps":[{"id":"execute","action":"workload-adapter","adapter_id":"aeron-phase-a-v1","timeout_seconds":1800,"oracles":[{"type":"exit-code","expected":0},{"type":"artifact-exists","path":"adapter-receipt.json","expected":true},{"type":"semantic-verdict","expected":true}]}]},
+    {"id":"j2-crash-recovery","job_id":"J2-cross-repo-delivery-trust","tier":"crash-recovery","steps":[{"id":"execute","action":"workload-adapter","adapter_id":"aeron-phase-a-v1","timeout_seconds":1800,"oracles":[{"type":"exit-code","expected":0},{"type":"artifact-exists","path":"adapter-receipt.json","expected":true},{"type":"semantic-verdict","expected":true}]}]},
+    {"id":"j2-whole-root-restore","job_id":"J2-cross-repo-delivery-trust","tier":"whole-root-restore","steps":[{"id":"execute","action":"workload-adapter","adapter_id":"aeron-phase-a-v1","timeout_seconds":1800,"oracles":[{"type":"exit-code","expected":0},{"type":"artifact-exists","path":"adapter-receipt.json","expected":true},{"type":"semantic-verdict","expected":true}]}]},
+    {"id":"j2-historical-query","job_id":"J2-cross-repo-delivery-trust","tier":"historical-query","steps":[{"id":"execute","action":"workload-adapter","adapter_id":"aeron-phase-a-v1","timeout_seconds":1800,"oracles":[{"type":"exit-code","expected":0},{"type":"artifact-exists","path":"adapter-receipt.json","expected":true},{"type":"semantic-verdict","expected":true}]}]},
+    {"id":"j2-schema-evolution","job_id":"J2-cross-repo-delivery-trust","tier":"schema-evolution","steps":[{"id":"execute","action":"workload-adapter","adapter_id":"aeron-phase-a-v1","timeout_seconds":1800,"oracles":[{"type":"exit-code","expected":0},{"type":"artifact-exists","path":"adapter-receipt.json","expected":true},{"type":"semantic-verdict","expected":true}]}]},
+    {"id":"j2-new-agent-takeover","job_id":"J2-cross-repo-delivery-trust","tier":"new-agent-takeover","steps":[{"id":"execute","action":"workload-adapter","adapter_id":"aeron-phase-a-v1","timeout_seconds":1800,"oracles":[{"type":"exit-code","expected":0},{"type":"artifact-exists","path":"adapter-receipt.json","expected":true},{"type":"semantic-verdict","expected":true}]}]},
+    {"id":"j3-normal","job_id":"J3-interrupted-go-recovery-handoff","tier":"normal","steps":[{"id":"execute","action":"workload-adapter","adapter_id":"aeron-phase-a-v1","timeout_seconds":1800,"oracles":[{"type":"exit-code","expected":0},{"type":"artifact-exists","path":"adapter-receipt.json","expected":true},{"type":"semantic-verdict","expected":true}]}]},
+    {"id":"j3-concurrent","job_id":"J3-interrupted-go-recovery-handoff","tier":"concurrent","steps":[{"id":"execute","action":"workload-adapter","adapter_id":"aeron-phase-a-v1","timeout_seconds":1800,"oracles":[{"type":"exit-code","expected":0},{"type":"artifact-exists","path":"adapter-receipt.json","expected":true},{"type":"semantic-verdict","expected":true}]}]},
+    {"id":"j3-crash-recovery","job_id":"J3-interrupted-go-recovery-handoff","tier":"crash-recovery","steps":[{"id":"execute","action":"workload-adapter","adapter_id":"aeron-phase-a-v1","timeout_seconds":1800,"oracles":[{"type":"exit-code","expected":0},{"type":"artifact-exists","path":"adapter-receipt.json","expected":true},{"type":"semantic-verdict","expected":true}]}]},
+    {"id":"j3-whole-root-restore","job_id":"J3-interrupted-go-recovery-handoff","tier":"whole-root-restore","steps":[{"id":"execute","action":"workload-adapter","adapter_id":"aeron-phase-a-v1","timeout_seconds":1800,"oracles":[{"type":"exit-code","expected":0},{"type":"artifact-exists","path":"adapter-receipt.json","expected":true},{"type":"semantic-verdict","expected":true}]}]},
+    {"id":"j3-historical-query","job_id":"J3-interrupted-go-recovery-handoff","tier":"historical-query","steps":[{"id":"execute","action":"workload-adapter","adapter_id":"aeron-phase-a-v1","timeout_seconds":1800,"oracles":[{"type":"exit-code","expected":0},{"type":"artifact-exists","path":"adapter-receipt.json","expected":true},{"type":"semantic-verdict","expected":true}]}]},
+    {"id":"j3-schema-evolution","job_id":"J3-interrupted-go-recovery-handoff","tier":"schema-evolution","steps":[{"id":"execute","action":"workload-adapter","adapter_id":"aeron-phase-a-v1","timeout_seconds":1800,"oracles":[{"type":"exit-code","expected":0},{"type":"artifact-exists","path":"adapter-receipt.json","expected":true},{"type":"semantic-verdict","expected":true}]}]},
+    {"id":"j3-new-agent-takeover","job_id":"J3-interrupted-go-recovery-handoff","tier":"new-agent-takeover","steps":[{"id":"execute","action":"workload-adapter","adapter_id":"aeron-phase-a-v1","timeout_seconds":1800,"oracles":[{"type":"exit-code","expected":0},{"type":"artifact-exists","path":"adapter-receipt.json","expected":true},{"type":"semantic-verdict","expected":true}]}]}
+  ],
+  "artifact_retention": {
+    "destination": "qualification/aeron-phase-a-v1",
+    "required_patterns": ["raw/**/adapter-receipt.json", "raw/**/observed-facts.json", "raw/**/tier-evidence.json", "raw/**/record-*.json", "raw/**/replay-*.json", "raw/**/commands/*.json", "raw/**/cleanup.resources.json"],
+    "retention_days": 30
+  },
+  "claim_boundary": {
+    "native_performance_authority": false,
+    "user_outcome_qualification_authority_requested": true,
+    "fresh_install_cost_authority": false,
+    "final_scoring_authority": false
+  }
+}
