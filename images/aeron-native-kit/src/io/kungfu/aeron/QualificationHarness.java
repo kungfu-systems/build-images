@@ -379,6 +379,10 @@ public final class QualificationHarness
         long pollFailures = 0;
         final long expectedInterval = Math.max(1, TimeUnit.SECONDS.toNanos(1) / rate);
         final UnsafeBuffer buffer = new UnsafeBuffer(ByteBuffer.allocateDirect(Math.max(payload, 16)));
+        final long[] observed = new long[1];
+        final long[] expected = new long[1];
+        final long[] duplicates = new long[1];
+        final long[] reordered = new long[1];
 
         try (MediaDriver driver = MediaDriver.launch(context);
             Aeron aeron = Aeron.connect(new Aeron.Context().aeronDirectoryName(driverDir));
@@ -386,10 +390,6 @@ public final class QualificationHarness
             Subscription subscription = aeron.addSubscription(IPC_CHANNEL, 2001))
         {
             await(() -> publication.isConnected() && subscription.isConnected(), "IPC connection");
-            final long[] observed = new long[1];
-            final long[] expected = new long[1];
-            final long[] duplicates = new long[1];
-            final long[] reordered = new long[1];
             final FragmentHandler handler = (data, offset, length, header) ->
             {
                 final long sequence = data.getLong(offset);
