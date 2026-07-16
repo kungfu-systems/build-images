@@ -179,7 +179,7 @@ def validate_plan_document(plan: dict[str, Any]) -> None:
             "archive_replication_channel", "driver_threading", "archive_threading",
             "idle_strategy", "term_buffer_length", "segment_file_length", "sparse",
             "file_sync_level", "catalog_sync_level", "spies_simulate_connection",
-            "receipt_timeout_seconds", "coordinated_omission",
+            "receipt_timeout_seconds", "coordinated_omission", "ipc_poll_batch",
         },
         "configuration",
     )
@@ -202,6 +202,7 @@ def validate_plan_document(plan: dict[str, Any]) -> None:
         "spies_simulate_connection": True,
         "receipt_timeout_seconds": 30,
         "coordinated_omission": "expected-interval-correction",
+        "ipc_poll_batch": 64,
     }
     if configuration != expected_configuration:
         raise NativeQualificationError("configuration does not match the fixed harness contract")
@@ -278,7 +279,10 @@ def validate_plan_document(plan: dict[str, Any]) -> None:
     require_keys(review, {"reviewer", "status", "scope"}, "advocate_review")
     if review["reviewer"] != "kungfu-origin" or review["status"] != "approved":
         raise NativeQualificationError("native plan requires named kungfu-origin advocate approval")
-    required_scope = {"version", "channels", "threading", "idle", "sync", "payload", "topology", "receipt_mapping", "exclusions"}
+    required_scope = {
+        "version", "channels", "threading", "idle", "sync", "payload",
+        "poll_batch", "topology", "receipt_mapping", "exclusions",
+    }
     if not isinstance(review["scope"], list) or set(review["scope"]) != required_scope:
         raise NativeQualificationError("advocate review scope is incomplete")
 
@@ -701,6 +705,7 @@ def run_ipc_result(
             "--payload", str(parameters["payload"]),
             "--rate", str(parameters["rate"]),
             "--seed", str(seed),
+            "--poll-batch", str(parameters["poll_batch"]),
             "--histogram", str(histogram),
         ],
         output_dir,
@@ -713,6 +718,8 @@ def run_ipc_result(
         raise NativeQualificationError("IPC sample count is incomplete")
     if measurement.get("seed") != seed:
         raise NativeQualificationError("IPC result seed does not match the result marker")
+    if measurement.get("poll_batch") != parameters["poll_batch"]:
+        raise NativeQualificationError("IPC result poll batch does not match the fixed harness contract")
     if not histogram.is_file() or histogram.stat().st_size == 0:
         raise NativeQualificationError("IPC raw HdrHistogram is missing")
     measurement.update({"variant": variant, "marker_binding": marker})
@@ -935,6 +942,7 @@ def run_plan(plan_path: pathlib.Path) -> pathlib.Path:
             {
                 "warmup": calibration["warmup"], "messages": calibration["messages"],
                 "payload": calibration["payload"], "rate": calibration["rate"],
+                "poll_batch": plan["configuration"]["ipc_poll_batch"],
             },
             results_dir / "calibration" / f"r{repetition:03d}",
         ))
@@ -945,7 +953,11 @@ def run_plan(plan_path: pathlib.Path) -> pathlib.Path:
             for repetition in range(1, ipc["repetitions"] + 1):
                 result_paths.append(run_ipc_result(
                     launcher, java, plan_sha, "ipc", repetition, variant,
-                    {"warmup": ipc["warmup"], "messages": ipc["messages"], "payload": payload, "rate": rate},
+                    {
+                        "warmup": ipc["warmup"], "messages": ipc["messages"],
+                        "payload": payload, "rate": rate,
+                        "poll_batch": plan["configuration"]["ipc_poll_batch"],
+                    },
                     results_dir / "ipc" / variant / f"r{repetition:03d}",
                 ))
     receipts = plan["receipts"]
@@ -965,7 +977,8 @@ def run_plan(plan_path: pathlib.Path) -> pathlib.Path:
     soak = plan["soak"]
     for repetition in range(1, soak["repetitions"] + 1):
         result_paths.append(run_ipc_result(
-            launcher, java, plan_sha, "soak", repetition, "bounded-soak", soak,
+            launcher, java, plan_sha, "soak", repetition, "bounded-soak",
+            {**soak, "poll_batch": plan["configuration"]["ipc_poll_batch"]},
             results_dir / "soak" / f"r{repetition:03d}",
         ))
 

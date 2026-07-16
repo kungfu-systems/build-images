@@ -39,7 +39,8 @@
     "catalog_sync_level": 1,
     "spies_simulate_connection": true,
     "receipt_timeout_seconds": 30,
-    "coordinated_omission": "expected-interval-correction"
+    "coordinated_omission": "expected-interval-correction",
+    "ipc_poll_batch": 64
   },
   "host_policy": {
     "sudo_allowed": false,
@@ -56,7 +57,7 @@
   "advocate_review": {
     "reviewer": "kungfu-origin",
     "status": "approved",
-    "scope": ["version", "channels", "threading", "idle", "sync", "payload", "topology", "receipt_mapping", "exclusions"]
+    "scope": ["version", "channels", "threading", "idle", "sync", "payload", "poll_batch", "topology", "receipt_mapping", "exclusions"]
   },
   "claim_boundary": {
     "native_performance_authority_requested": true,
