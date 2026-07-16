@@ -1,0 +1,272 @@
+{
+  "artifacts": [
+    {
+      "action": "built",
+      "content": {
+        "material_sha": "4b30979530b572f753920f710894f602ce930a1e",
+        "ref": "v1.2.4-alpha.22",
+        "source_sha": "69db610532a459a71e18fe04681e74a084895b9a",
+        "version": "1.2.4-alpha.22"
+      },
+      "contract_major": 1,
+      "digest": "sha256:f2c48cda2d822aee348e1322347d0cd0b7e907e2c687c8422b0f7d39d52cf417",
+      "group": "image",
+      "kind": "oci",
+      "name": "ghcr.io/kungfu-systems/build-images/aeron-native-kit",
+      "platform": "linux/amd64",
+      "ref": "v1.2.4-alpha.22",
+      "release": {
+        "material_sha": "4b30979530b572f753920f710894f602ce930a1e",
+        "ref": "v1.2.4-alpha.22",
+        "source_sha": "69db610532a459a71e18fe04681e74a084895b9a",
+        "target_ref": "alpha/v1/v1.2",
+        "version": "1.2.4-alpha.22"
+      },
+      "verification": {
+        "contract_major": 1,
+        "digest": "sha256:f2c48cda2d822aee348e1322347d0cd0b7e907e2c687c8422b0f7d39d52cf417",
+        "evidence": "evidence.json#/artifacts/0/verification",
+        "platform": "linux/amd64",
+        "public_manifest": true,
+        "ref": "v1.2.4-alpha.22",
+        "smoke": {
+          "evidence": "evidence.json#/artifacts/0/verification/smoke",
+          "passed": true,
+          "policy": "image-manifest-test-commands-v1"
+        }
+      }
+    },
+    {
+      "action": "built",
+      "content": {
+        "material_sha": "4b30979530b572f753920f710894f602ce930a1e",
+        "ref": "v1.2.4-alpha.22",
+        "source_sha": "69db610532a459a71e18fe04681e74a084895b9a",
+        "version": "1.2.4-alpha.22"
+      },
+      "contract_major": 1,
+      "digest": "sha256:0d7c01818e1ef71e6de2eda8eff094b183100ac6c34bd3982fa52afb1e9b8e63",
+      "group": "image",
+      "kind": "oci",
+      "name": "ghcr.io/kungfu-systems/build-images/base-linux",
+      "platform": "linux/amd64",
+      "ref": "v1.2.4-alpha.22",
+      "release": {
+        "material_sha": "4b30979530b572f753920f710894f602ce930a1e",
+        "ref": "v1.2.4-alpha.22",
+        "source_sha": "69db610532a459a71e18fe04681e74a084895b9a",
+        "target_ref": "alpha/v1/v1.2",
+        "version": "1.2.4-alpha.22"
+      },
+      "verification": {
+        "contract_major": 1,
+        "digest": "sha256:0d7c01818e1ef71e6de2eda8eff094b183100ac6c34bd3982fa52afb1e9b8e63",
+        "evidence": "evidence.json#/artifacts/1/verification",
+        "platform": "linux/amd64",
+        "public_manifest": true,
+        "ref": "v1.2.4-alpha.22",
+        "smoke": {
+          "evidence": "evidence.json#/artifacts/1/verification/smoke",
+          "passed": true,
+          "policy": "image-manifest-test-commands-v1"
+        }
+      }
+    },
+    {
+      "action": "built",
+      "content": {
+        "material_sha": "4b30979530b572f753920f710894f602ce930a1e",
+        "ref": "v1.2.4-alpha.22",
+        "source_sha": "69db610532a459a71e18fe04681e74a084895b9a",
+        "version": "1.2.4-alpha.22"
+      },
+      "contract_major": 1,
+      "digest": "sha256:0c5968f0f3291a6ed28994916a50bfaf10876622d0d34b7db65dfeb0d0dfb30c",
+      "group": "image",
+      "kind": "oci",
+      "name": "ghcr.io/kungfu-systems/build-images/clickhouse-server",
+      "platform": "linux/amd64",
+      "ref": "v1.2.4-alpha.22",
+      "release": {
+        "material_sha": "4b30979530b572f753920f710894f602ce930a1e",
+        "ref": "v1.2.4-alpha.22",
+        "source_sha": "69db610532a459a71e18fe04681e74a084895b9a",
+        "target_ref": "alpha/v1/v1.2",
+        "version": "1.2.4-alpha.22"
+      },
+      "verification": {
+        "contract_major": 1,
+        "digest": "sha256:0c5968f0f3291a6ed28994916a50bfaf10876622d0d34b7db65dfeb0d0dfb30c",
+        "evidence": "evidence.json#/artifacts/2/verification",
+        "platform": "linux/amd64",
+        "public_manifest": true,
+        "ref": "v1.2.4-alpha.22",
+        "smoke": {
+          "evidence": "evidence.json#/artifacts/2/verification/smoke",
+          "passed": true,
+          "policy": "image-manifest-test-commands-v1"
+        }
+      }
+    },
+    {
+      "action": "built",
+      "content": {
+        "material_sha": "4b30979530b572f753920f710894f602ce930a1e",
+        "ref": "v1.2.4-alpha.22",
+        "source_sha": "69db610532a459a71e18fe04681e74a084895b9a",
+        "version": "1.2.4-alpha.22"
+      },
+      "contract_major": 1,
+      "digest": "sha256:3e883632375b698f27daddf3f0e411177d04f8232f4e1a19213b0b938b42158e",
+      "group": "image",
+      "kind": "oci",
+      "name": "ghcr.io/kungfu-systems/build-images/kungfu-verify",
+      "parent_digest": "sha256:0d7c01818e1ef71e6de2eda8eff094b183100ac6c34bd3982fa52afb1e9b8e63",
+      "platform": "linux/amd64",
+      "ref": "v1.2.4-alpha.22",
+      "release": {
+        "material_sha": "4b30979530b572f753920f710894f602ce930a1e",
+        "ref": "v1.2.4-alpha.22",
+        "source_sha": "69db610532a459a71e18fe04681e74a084895b9a",
+        "target_ref": "alpha/v1/v1.2",
+        "version": "1.2.4-alpha.22"
+      },
+      "verification": {
+        "contract_major": 1,
+        "digest": "sha256:3e883632375b698f27daddf3f0e411177d04f8232f4e1a19213b0b938b42158e",
+        "evidence": "evidence.json#/artifacts/3/verification",
+        "parent_digest": "sha256:0d7c01818e1ef71e6de2eda8eff094b183100ac6c34bd3982fa52afb1e9b8e63",
+        "platform": "linux/amd64",
+        "public_manifest": true,
+        "ref": "v1.2.4-alpha.22",
+        "smoke": {
+          "evidence": "evidence.json#/artifacts/3/verification/smoke",
+          "passed": true,
+          "policy": "image-manifest-test-commands-v1"
+        }
+      }
+    },
+    {
+      "action": "built",
+      "content": {
+        "material_sha": "4b30979530b572f753920f710894f602ce930a1e",
+        "ref": "v1.2.4-alpha.22",
+        "source_sha": "69db610532a459a71e18fe04681e74a084895b9a",
+        "version": "1.2.4-alpha.22"
+      },
+      "contract_major": 1,
+      "digest": "sha256:45e50b93d101be2a8cda5e59fbe931680094c79d8e60ec1476226c84b7c3e98d",
+      "group": "image",
+      "kind": "oci",
+      "name": "ghcr.io/kungfu-systems/build-images/node24-pnpm",
+      "parent_digest": "sha256:0d7c01818e1ef71e6de2eda8eff094b183100ac6c34bd3982fa52afb1e9b8e63",
+      "platform": "linux/amd64",
+      "ref": "v1.2.4-alpha.22",
+      "release": {
+        "material_sha": "4b30979530b572f753920f710894f602ce930a1e",
+        "ref": "v1.2.4-alpha.22",
+        "source_sha": "69db610532a459a71e18fe04681e74a084895b9a",
+        "target_ref": "alpha/v1/v1.2",
+        "version": "1.2.4-alpha.22"
+      },
+      "verification": {
+        "contract_major": 1,
+        "digest": "sha256:45e50b93d101be2a8cda5e59fbe931680094c79d8e60ec1476226c84b7c3e98d",
+        "evidence": "evidence.json#/artifacts/4/verification",
+        "parent_digest": "sha256:0d7c01818e1ef71e6de2eda8eff094b183100ac6c34bd3982fa52afb1e9b8e63",
+        "platform": "linux/amd64",
+        "public_manifest": true,
+        "ref": "v1.2.4-alpha.22",
+        "smoke": {
+          "evidence": "evidence.json#/artifacts/4/verification/smoke",
+          "passed": true,
+          "policy": "image-manifest-test-commands-v1"
+        }
+      }
+    },
+    {
+      "action": "built",
+      "content": {
+        "material_sha": "4b30979530b572f753920f710894f602ce930a1e",
+        "ref": "v1.2.4-alpha.22",
+        "source_sha": "69db610532a459a71e18fe04681e74a084895b9a",
+        "version": "1.2.4-alpha.22"
+      },
+      "contract_major": 1,
+      "digest": "sha256:9246c01c63e156fc45f24eed8c3d5113fc004274f0593b808565fb13019faf54",
+      "group": "image",
+      "kind": "oci",
+      "name": "ghcr.io/kungfu-systems/build-images/latex-pdf-builder",
+      "parent_digest": "sha256:45e50b93d101be2a8cda5e59fbe931680094c79d8e60ec1476226c84b7c3e98d",
+      "platform": "linux/amd64",
+      "ref": "v1.2.4-alpha.22",
+      "release": {
+        "material_sha": "4b30979530b572f753920f710894f602ce930a1e",
+        "ref": "v1.2.4-alpha.22",
+        "source_sha": "69db610532a459a71e18fe04681e74a084895b9a",
+        "target_ref": "alpha/v1/v1.2",
+        "version": "1.2.4-alpha.22"
+      },
+      "verification": {
+        "contract_major": 1,
+        "digest": "sha256:9246c01c63e156fc45f24eed8c3d5113fc004274f0593b808565fb13019faf54",
+        "evidence": "evidence.json#/artifacts/5/verification",
+        "parent_digest": "sha256:45e50b93d101be2a8cda5e59fbe931680094c79d8e60ec1476226c84b7c3e98d",
+        "platform": "linux/amd64",
+        "public_manifest": true,
+        "ref": "v1.2.4-alpha.22",
+        "smoke": {
+          "evidence": "evidence.json#/artifacts/5/verification/smoke",
+          "passed": true,
+          "policy": "image-manifest-test-commands-v1"
+        }
+      }
+    },
+    {
+      "action": "built",
+      "content": {
+        "material_sha": "4b30979530b572f753920f710894f602ce930a1e",
+        "ref": "v1.2.4-alpha.22",
+        "source_sha": "69db610532a459a71e18fe04681e74a084895b9a",
+        "version": "1.2.4-alpha.22"
+      },
+      "contract_major": 1,
+      "digest": "sha256:2fcbb808ea324dd62cc7367440cc4f0b05b5d4a27da7c58a993030f3ad66964f",
+      "group": "image",
+      "kind": "oci",
+      "name": "ghcr.io/kungfu-systems/build-images/native-linux-x64",
+      "parent_digest": "sha256:0d7c01818e1ef71e6de2eda8eff094b183100ac6c34bd3982fa52afb1e9b8e63",
+      "platform": "linux/amd64",
+      "ref": "v1.2.4-alpha.22",
+      "release": {
+        "material_sha": "4b30979530b572f753920f710894f602ce930a1e",
+        "ref": "v1.2.4-alpha.22",
+        "source_sha": "69db610532a459a71e18fe04681e74a084895b9a",
+        "target_ref": "alpha/v1/v1.2",
+        "version": "1.2.4-alpha.22"
+      },
+      "verification": {
+        "contract_major": 1,
+        "digest": "sha256:2fcbb808ea324dd62cc7367440cc4f0b05b5d4a27da7c58a993030f3ad66964f",
+        "evidence": "evidence.json#/artifacts/6/verification",
+        "parent_digest": "sha256:0d7c01818e1ef71e6de2eda8eff094b183100ac6c34bd3982fa52afb1e9b8e63",
+        "platform": "linux/amd64",
+        "public_manifest": true,
+        "ref": "v1.2.4-alpha.22",
+        "smoke": {
+          "evidence": "evidence.json#/artifacts/6/verification/smoke",
+          "passed": true,
+          "policy": "image-manifest-test-commands-v1"
+        }
+      }
+    }
+  ],
+  "channel": "alpha",
+  "publish_tooling_sha": "4b30979530b572f753920f710894f602ce930a1e",
+  "release_material_sha": "4b30979530b572f753920f710894f602ce930a1e",
+  "release_sha": "4b30979530b572f753920f710894f602ce930a1e",
+  "schema": 1,
+  "source_sha": "69db610532a459a71e18fe04681e74a084895b9a",
+  "target_ref": "alpha/v1/v1.2",
+  "version": "1.2.4-alpha.22"
+}
