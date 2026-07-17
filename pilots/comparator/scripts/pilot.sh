@@ -72,37 +72,6 @@ compose() {
   COMPARATOR_PROJECT_NAME="$project" docker compose -f "$COMPOSE_FILE" --project-name "$project" "$@"
 }
 
-wait_for_sigkill() {
-  service=$1
-  container_id=$(compose ps -q "$service")
-  if [ -z "$container_id" ]; then
-    echo "Cannot crash $service: running container id is missing" >&2
-    return 1
-  fi
-
-  compose kill -s SIGKILL "$service"
-  attempts=0
-  while [ "$attempts" -lt 100 ]; do
-    state=$(docker inspect --format '{{.State.Running}} {{.State.ExitCode}}' "$container_id" 2>/dev/null || true)
-    case "$state" in
-      "false 137")
-        printf 'container_id=%s\nstate=%s\n' "$container_id" "$state" \
-          >"$report_dir/${service}-sigkill-state.txt"
-        return 0
-        ;;
-      "false "*)
-        echo "Crash state for $service is not SIGKILL: $state" >&2
-        return 1
-        ;;
-    esac
-    attempts=$((attempts + 1))
-    sleep 0.2
-  done
-
-  echo "Timed out waiting for $service SIGKILL state" >&2
-  return 1
-}
-
 print_plan() {
   echo "UNSCORED Docker pilot plan"
   echo "profile=$profile"

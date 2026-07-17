@@ -385,6 +385,16 @@ class QualificationExecutionTests(unittest.TestCase):
         self.assertIn("date -u +%Y%m%dt%H%M%Sz", script)
         self.assertNotIn("date -u +%Y%m%dT%H%M%SZ", script)
 
+    def test_unscored_pilot_uses_the_shared_container_state_helper(self) -> None:
+        script = (PILOT_DIR / "scripts" / "pilot.sh").read_text(encoding="utf-8")
+        self.assertIn('. "$SCRIPT_DIR/container-state.sh"', script)
+        self.assertNotIn("wait_for_sigkill() {", script)
+        self.assertEqual(script.count("wait_for_sigkill postgres"), 1)
+        self.assertEqual(script.count("wait_for_sigkill clickhouse"), 1)
+        self.assertEqual(script.count("wait_for_sigkill aeron"), 1)
+        self.assertEqual(script.count("wait_for_sigkill kungfu"), 1)
+        self.assertEqual(script.count('record_restart_state '), 4)
+
     def test_sigkill_wait_observes_stopped_state_before_restart(self) -> None:
         helper = PILOT_DIR / "scripts" / "container-state.sh"
         shell = r"""
