@@ -385,17 +385,132 @@ class QualificationExecutionTests(unittest.TestCase):
         self.assertIn("date -u +%Y%m%dt%H%M%Sz", script)
         self.assertNotIn("date -u +%Y%m%dT%H%M%SZ", script)
 
-    def test_unscored_pilot_waits_for_sigkill_before_restart(self) -> None:
-        script = (PILOT_DIR / "scripts" / "pilot.sh").read_text(encoding="utf-8")
-        self.assertIn("wait_for_sigkill()", script)
-        self.assertEqual(script.count("compose kill -s SIGKILL"), 1)
-        self.assertEqual(script.count("wait_for_sigkill postgres"), 1)
-        self.assertEqual(script.count("wait_for_sigkill clickhouse"), 1)
-        self.assertEqual(script.count("wait_for_sigkill aeron"), 1)
-        self.assertEqual(script.count("wait_for_sigkill kungfu"), 1)
-        self.assertIn("{{.State.Running}} {{.State.ExitCode}}", script)
-        self.assertIn('"false 137"', script)
-        self.assertIn("Timed out waiting for $service SIGKILL state", script)
+    def test_sigkill_wait_observes_stopped_state_before_restart(self) -> None:
+        helper = PILOT_DIR / "scripts" / "container-state.sh"
+        shell = r"""
+set -eu
+. "$1"
+report_dir=$2
+counter=$3
+phase=$4
+kill_marker=$5
+printf '0\n' >"$counter"
+printf 'pre\n' >"$phase"
+compose() {
+  case "$1" in
+    ps)
+      if [ "$(cat "$phase")" = post ]; then
+        printf 'new-container\n'
+      else
+        printf 'old-container\n'
+      fi
+      ;;
+    kill)
+      printf 'killed\n' >"$kill_marker"
+      ;;
+    *)
+      return 64
+      ;;
+  esac
+}
+docker() {
+  test "$1" = inspect
+  count=$(cat "$counter")
+  count=$((count + 1))
+  printf '%s\n' "$count" >"$counter"
+  if [ "$(cat "$phase")" = post ]; then
+    printf 'true 0 healthy\n'
+  elif [ "$count" -lt 3 ]; then
+    printf 'true 0 healthy\n'
+  else
+    printf 'false 137\n'
+  fi
+}
+sleep() { :; }
+wait_for_sigkill kungfu "$report_dir"
+test "$(cat "$counter")" -eq 3
+printf 'post\n' >"$phase"
+record_restart_state kungfu "$SIGKILL_CONTAINER_ID" "$report_dir"
+"""
+        with tempfile.TemporaryDirectory() as temporary:
+            root = pathlib.Path(temporary)
+            completed = subprocess.run(
+                [
+                    "/bin/bash",
+                    "-c",
+                    shell,
+                    "sigkill-regression",
+                    str(helper),
+                    str(root),
+                    str(root / "counter"),
+                    str(root / "phase"),
+                    str(root / "killed"),
+                ],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(completed.returncode, 0, completed.stderr)
+            self.assertEqual(
+                (root / "kungfu-sigkill-state.txt").read_text(encoding="utf-8"),
+                "container_id=old-container\nstate=false 137\n",
+            )
+            self.assertEqual(
+                (root / "kungfu-restart-state.txt").read_text(encoding="utf-8"),
+                "previous_container_id=old-container\n"
+                "container_id=new-container\n"
+                "state=true 0 healthy\n",
+            )
+
+    def test_sigkill_wait_times_out_without_restarting(self) -> None:
+        helper = PILOT_DIR / "scripts" / "container-state.sh"
+        shell = r"""
+set -eu
+. "$1"
+report_dir=$2
+counter=$3
+printf '0\n' >"$counter"
+compose() {
+  case "$1" in
+    ps) printf 'old-container\n' ;;
+    kill) : ;;
+    *) return 64 ;;
+  esac
+}
+docker() {
+  count=$(cat "$counter")
+  count=$((count + 1))
+  printf '%s\n' "$count" >"$counter"
+  printf 'true 0 healthy\n'
+}
+sleep() { :; }
+if wait_for_sigkill kungfu "$report_dir"; then
+  exit 1
+fi
+test "$(cat "$counter")" -eq 100
+test ! -e "$report_dir/kungfu-sigkill-state.txt"
+"""
+        with tempfile.TemporaryDirectory() as temporary:
+            root = pathlib.Path(temporary)
+            completed = subprocess.run(
+                [
+                    "/bin/bash",
+                    "-c",
+                    shell,
+                    "sigkill-timeout",
+                    str(helper),
+                    str(root),
+                    str(root / "counter"),
+                ],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(completed.returncode, 0, completed.stderr)
+            self.assertIn(
+                "Timed out waiting for kungfu SIGKILL state",
+                completed.stderr,
+             )
 
     def test_runner_pid_one_exits_directly_on_sigterm(self) -> None:
         compose = qualification.COMPOSE_PATH.read_text(encoding="utf-8")

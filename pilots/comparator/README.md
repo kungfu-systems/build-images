@@ -76,7 +76,10 @@ not invent them before a package exists.
 
 The smoke writes and seals an Episode, proves it through the query surface,
 exports it, kills the container, checks the retained journal after restart,
-and imports the bundle into a separate workspace.
+and imports the bundle into a separate workspace. Each deliberate crash retains
+the stopped `false 137` state and the subsequent running/healthy container
+identity in profile-specific `*-sigkill-state.txt` and `*-restart-state.txt`
+artifacts.
 
 The ordinary pull-request workflow keeps running the three self-contained
 profiles. Kungfu joins only through the reusable package workflow because a

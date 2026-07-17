@@ -7,6 +7,9 @@ PILOT_DIR=$(CDPATH='' cd -- "$SCRIPT_DIR/.." && pwd)
 COMPOSE_FILE="$PILOT_DIR/compose.yaml"
 ARTIFACT_ROOT="$PILOT_DIR/.artifacts"
 
+# shellcheck source=pilots/comparator/scripts/container-state.sh
+. "$SCRIPT_DIR/container-state.sh"
+
 usage() {
   cat <<'EOF'
 Usage:
@@ -146,8 +149,9 @@ case "$profile" in
     compose exec -T postgres psql -U pilot -d pilot -v ON_ERROR_STOP=1 -c \
       "CREATE TABLE IF NOT EXISTS pilot_events (id integer PRIMARY KEY, payload text NOT NULL); INSERT INTO pilot_events VALUES (1, 'seed') ON CONFLICT (id) DO UPDATE SET payload = EXCLUDED.payload;"
     compose exec -T postgres pg_dump -U pilot -d pilot --table=pilot_events >"$report_dir/postgres-pilot-events.sql"
-    wait_for_sigkill postgres
+    wait_for_sigkill postgres "$report_dir"
     compose --profile postgres up -d --wait postgres
+    record_restart_state postgres "$SIGKILL_CONTAINER_ID" "$report_dir"
     compose exec -T postgres psql -U pilot -d pilot -Atc "SELECT count(*) FROM pilot_events" | tee "$report_dir/postgres-restart-count.txt"
     compose exec -T postgres psql -U pilot -d pilot -v ON_ERROR_STOP=1 -c "DROP TABLE pilot_events"
     compose exec -T postgres psql -U pilot -d pilot -v ON_ERROR_STOP=1 <"$report_dir/postgres-pilot-events.sql"
@@ -158,8 +162,9 @@ case "$profile" in
       "CREATE TABLE IF NOT EXISTS pilot.pilot_events (id UInt32, payload String) ENGINE = ReplacingMergeTree ORDER BY id; INSERT INTO pilot.pilot_events VALUES (1, 'seed');"
     compose exec -T clickhouse clickhouse-client --user pilot --password pilot-local-only --query \
       "SELECT * FROM pilot.pilot_events FORMAT Native" >"$report_dir/clickhouse-pilot-events.native"
-    wait_for_sigkill clickhouse
+    wait_for_sigkill clickhouse "$report_dir"
     compose --profile clickhouse up -d --wait clickhouse
+    record_restart_state clickhouse "$SIGKILL_CONTAINER_ID" "$report_dir"
     compose exec -T clickhouse clickhouse-client --user pilot --password pilot-local-only --query \
       "SELECT count() FROM pilot.pilot_events" | tee "$report_dir/clickhouse-restart-count.txt"
     compose exec -T clickhouse clickhouse-client --user pilot --password pilot-local-only --query \
@@ -200,10 +205,11 @@ PY
     recording_length=${recording_values#* }
     compose exec -T aeron sh -c "find /var/lib/aeron/archive -type f -print | sort" \
       | tee "$report_dir/aeron-archive-files.txt"
-    wait_for_sigkill aeron
+    wait_for_sigkill aeron "$report_dir"
     compose cp aeron:/var/lib/aeron/archive "$report_dir/aeron-archive"
     sleep 11
     compose --profile aeron up -d --wait aeron
+    record_restart_state aeron "$SIGKILL_CONTAINER_ID" "$report_dir"
     compose exec -T aeron sh -c "test -n \"\$(find /var/lib/aeron/archive -type f -print -quit)\""
     compose exec -T aeron "$harness" replay \
       --root /var/lib/aeron \
@@ -258,8 +264,9 @@ PY
       --format bundle-json \
       --out "$bundle" \
       --json | tee "$report_dir/kungfu-export.json"
-    wait_for_sigkill kungfu
+    wait_for_sigkill kungfu "$report_dir"
     compose --profile kungfu up -d --wait kungfu
+    record_restart_state kungfu "$SIGKILL_CONTAINER_ID" "$report_dir"
     compose exec -T kungfu kungfu -H "$primary_home" storage episode inspect \
       --episode-id "$episode_id" \
       --json | tee "$report_dir/kungfu-inspect-after-restart.json"
