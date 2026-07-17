@@ -7,7 +7,7 @@
     "alphaContractLockRef": "v2-alpha",
     "alphaContractLockStatus": "unchanged",
     "alphaContractDrift": false,
-    "alphaContractDigest": "sha256:7c484816d02efb4178cb285a5637e4f25bcdc36aeb4ce0da044d97755c890582",
+    "alphaContractDigest": "sha256:cfaa1ec4810696a489861d6d04d8037ec15470b42acbbc0e9f78c8ef8e48bd98",
     "stableContractLockRef": "v2",
     "stableContractLockStatus": "unchanged",
     "stableContractDrift": false,
