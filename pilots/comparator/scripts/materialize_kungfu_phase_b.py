@@ -118,6 +118,10 @@ def verify_package(
                 path = pathlib.PurePosixPath(member.name)
                 if path.is_absolute() or ".." in path.parts:
                     raise MaterializationError(f"package contains an unsafe path: {member.name}")
+                if not (member.isfile() or member.isdir()):
+                    raise MaterializationError(
+                        f"package contains an unsupported archive member: {member.name}"
+                    )
             product_name, product = _archive_json(archive, "/product.json")
             compatibility_name, compatibility = _archive_json(
                 archive, "/runtime/product-compatibility.json"

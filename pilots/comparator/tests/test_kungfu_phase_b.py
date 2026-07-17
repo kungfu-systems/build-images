@@ -25,7 +25,13 @@ class KungfuPackageMaterializationTests(unittest.TestCase):
     source_sha = "a" * 40
     version = "4.0.0-alpha.0"
 
-    def package(self, root: pathlib.Path, *, source_sha: str | None = None) -> pathlib.Path:
+    def package(
+        self,
+        root: pathlib.Path,
+        *,
+        source_sha: str | None = None,
+        unsafe_link: bool = False,
+    ) -> pathlib.Path:
         path = root / materialize.PACKAGE_NAME
         prefix = "kungfu-episodes-cli-linux-x64/"
         product = {
@@ -61,6 +67,11 @@ class KungfuPackageMaterializationTests(unittest.TestCase):
                 info = tarfile.TarInfo(prefix + relative)
                 info.size = len(encoded)
                 archive.addfile(info, io.BytesIO(encoded))
+            if unsafe_link:
+                link = tarfile.TarInfo(prefix + "unsafe-link")
+                link.type = tarfile.SYMTYPE
+                link.linkname = "../../outside-package"
+                archive.addfile(link)
         return path
 
     def test_exact_package_materializes_complete_three_by_twenty_one_plan(self) -> None:
@@ -105,6 +116,17 @@ class KungfuPackageMaterializationTests(unittest.TestCase):
                     materialize.load_json(materialize.TEMPLATE_PATH),
                     identity,
                     "agent-120:/tmp/package.log",
+                )
+
+    def test_archive_links_are_rejected_before_docker_startup(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            package = self.package(pathlib.Path(temporary), unsafe_link=True)
+            with self.assertRaisesRegex(materialize.MaterializationError, "unsupported archive member"):
+                materialize.verify_package(
+                    package,
+                    materialize.sha256_file(package),
+                    self.version,
+                    self.source_sha,
                 )
 
     def test_incomplete_or_relabelled_plan_is_rejected(self) -> None:
