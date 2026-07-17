@@ -69,6 +69,37 @@ compose() {
   COMPARATOR_PROJECT_NAME="$project" docker compose -f "$COMPOSE_FILE" --project-name "$project" "$@"
 }
 
+wait_for_sigkill() {
+  service=$1
+  container_id=$(compose ps -q "$service")
+  if [ -z "$container_id" ]; then
+    echo "Cannot crash $service: running container id is missing" >&2
+    return 1
+  fi
+
+  compose kill -s SIGKILL "$service"
+  attempts=0
+  while [ "$attempts" -lt 100 ]; do
+    state=$(docker inspect --format '{{.State.Running}} {{.State.ExitCode}}' "$container_id" 2>/dev/null || true)
+    case "$state" in
+      "false 137")
+        printf 'container_id=%s\nstate=%s\n' "$container_id" "$state" \
+          >"$report_dir/${service}-sigkill-state.txt"
+        return 0
+        ;;
+      "false "*)
+        echo "Crash state for $service is not SIGKILL: $state" >&2
+        return 1
+        ;;
+    esac
+    attempts=$((attempts + 1))
+    sleep 0.2
+  done
+
+  echo "Timed out waiting for $service SIGKILL state" >&2
+  return 1
+}
+
 print_plan() {
   echo "UNSCORED Docker pilot plan"
   echo "profile=$profile"
@@ -115,7 +146,7 @@ case "$profile" in
     compose exec -T postgres psql -U pilot -d pilot -v ON_ERROR_STOP=1 -c \
       "CREATE TABLE IF NOT EXISTS pilot_events (id integer PRIMARY KEY, payload text NOT NULL); INSERT INTO pilot_events VALUES (1, 'seed') ON CONFLICT (id) DO UPDATE SET payload = EXCLUDED.payload;"
     compose exec -T postgres pg_dump -U pilot -d pilot --table=pilot_events >"$report_dir/postgres-pilot-events.sql"
-    compose kill -s SIGKILL postgres
+    wait_for_sigkill postgres
     compose --profile postgres up -d --wait postgres
     compose exec -T postgres psql -U pilot -d pilot -Atc "SELECT count(*) FROM pilot_events" | tee "$report_dir/postgres-restart-count.txt"
     compose exec -T postgres psql -U pilot -d pilot -v ON_ERROR_STOP=1 -c "DROP TABLE pilot_events"
@@ -127,7 +158,7 @@ case "$profile" in
       "CREATE TABLE IF NOT EXISTS pilot.pilot_events (id UInt32, payload String) ENGINE = ReplacingMergeTree ORDER BY id; INSERT INTO pilot.pilot_events VALUES (1, 'seed');"
     compose exec -T clickhouse clickhouse-client --user pilot --password pilot-local-only --query \
       "SELECT * FROM pilot.pilot_events FORMAT Native" >"$report_dir/clickhouse-pilot-events.native"
-    compose kill -s SIGKILL clickhouse
+    wait_for_sigkill clickhouse
     compose --profile clickhouse up -d --wait clickhouse
     compose exec -T clickhouse clickhouse-client --user pilot --password pilot-local-only --query \
       "SELECT count() FROM pilot.pilot_events" | tee "$report_dir/clickhouse-restart-count.txt"
@@ -169,7 +200,7 @@ PY
     recording_length=${recording_values#* }
     compose exec -T aeron sh -c "find /var/lib/aeron/archive -type f -print | sort" \
       | tee "$report_dir/aeron-archive-files.txt"
-    compose kill -s SIGKILL aeron
+    wait_for_sigkill aeron
     compose cp aeron:/var/lib/aeron/archive "$report_dir/aeron-archive"
     sleep 11
     compose --profile aeron up -d --wait aeron
@@ -227,7 +258,7 @@ PY
       --format bundle-json \
       --out "$bundle" \
       --json | tee "$report_dir/kungfu-export.json"
-    compose kill -s SIGKILL kungfu
+    wait_for_sigkill kungfu
     compose --profile kungfu up -d --wait kungfu
     compose exec -T kungfu kungfu -H "$primary_home" storage episode inspect \
       --episode-id "$episode_id" \

@@ -1,0 +1,53 @@
+{
+  "template_schema": "urn:kungfu-systems:build-images:kungfu-phase-b-plan-template:v1",
+  "charter": {
+    "id": "kungfu-agent-work-user-outcome-v1",
+    "version": "1.0.0",
+    "sha256": "93a270dace9db3dbb0167a3b56087583b754a8b79aaa7d91544a16fc3883fc7c"
+  },
+  "fixture_set": {
+    "id": "kungfu-agent-work-charter-pilot-v1",
+    "sha256": "e1c401462a7a0c623df1ec8bac60ce0b4a9b64407d8a7866f77dc388d73627a0"
+  },
+  "configuration_slot": "realistic-default",
+  "repetitions": 3,
+  "jobs": [
+    "J1-multi-session-progress-triage",
+    "J2-cross-repo-delivery-trust",
+    "J3-interrupted-go-recovery-handoff"
+  ],
+  "tiers": [
+    "normal",
+    "concurrent",
+    "crash-recovery",
+    "whole-root-restore",
+    "historical-query",
+    "schema-evolution",
+    "new-agent-takeover"
+  ],
+  "step": {
+    "id": "execute",
+    "timeout_seconds": 1800
+  },
+  "artifact_retention": {
+    "destination": "qualification/kungfu-phase-b-v1",
+    "required_patterns": [
+      "raw/**/adapter-receipt.json",
+      "raw/**/adapter-inputs.json",
+      "raw/**/observed-facts.json",
+      "raw/**/tier-evidence.json",
+      "raw/**/j*-receipt.json",
+      "raw/**/commands/*.json",
+      "raw/**/stdout.log",
+      "raw/**/cleanup.stdout.log",
+      "raw/**/cleanup.resources.json"
+    ],
+    "retention_days": 30
+  },
+  "claim_boundary": {
+    "native_performance_authority": false,
+    "user_outcome_qualification_authority_requested": true,
+    "fresh_install_cost_authority": false,
+    "final_scoring_authority": false
+  }
+}

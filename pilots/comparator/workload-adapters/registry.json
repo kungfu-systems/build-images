@@ -181,6 +181,66 @@
           ]
         }
       ]
+    },
+    "kungfu-phase-b-v1": {
+      "version": "1.0.0",
+      "artifact": "workload-adapters/kungfu_phase_b_v1.py",
+      "sha256": "580115cd2bf4cf188ddd6e2ee454dc2adb2574022e02f8ea14f48ce01f6171a3",
+      "entrypoint": "kungfu-phase-b-v1",
+      "profiles": [
+        "kungfu"
+      ],
+      "semantics": {
+        "module": "kungfu-phase-b-semantics-v1",
+        "path": "workload-adapters/kungfu_phase_b_semantics.py",
+        "sha256": "180aaeeda512fed622a3991ce8c5043bbe8d4cf4da4b8fa82bb15a6efee3a7e9"
+      },
+      "fixture": {
+        "path": "workload-adapters/fixtures/kungfu-phase-b-v1.json",
+        "sha256": "182e2a1996faf934f1cbe905da3f22a19c9cba971ef9323001fceebc2a9016a5"
+      },
+      "oracle": {
+        "path": "workload-adapters/oracles/kungfu-phase-b-v1.json",
+        "sha256": "0dcd99b3e9b61864b3313bed4aa4d2bc21baa1edd5ef4d2a72e150ce9b00f933"
+      },
+      "mappings": [
+        {
+          "job_id": "J1-multi-session-progress-triage",
+          "tiers": [
+            "normal",
+            "concurrent",
+            "crash-recovery",
+            "whole-root-restore",
+            "historical-query",
+            "schema-evolution",
+            "new-agent-takeover"
+          ]
+        },
+        {
+          "job_id": "J2-cross-repo-delivery-trust",
+          "tiers": [
+            "normal",
+            "concurrent",
+            "crash-recovery",
+            "whole-root-restore",
+            "historical-query",
+            "schema-evolution",
+            "new-agent-takeover"
+          ]
+        },
+        {
+          "job_id": "J3-interrupted-go-recovery-handoff",
+          "tiers": [
+            "normal",
+            "concurrent",
+            "crash-recovery",
+            "whole-root-restore",
+            "historical-query",
+            "schema-evolution",
+            "new-agent-takeover"
+          ]
+        }
+      ]
     }
   }
 }

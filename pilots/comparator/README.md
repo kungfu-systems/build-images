@@ -11,7 +11,7 @@ program. It does **not** produce performance evidence.
 | Aeron | 1.52.2 JAR + SHA-256; Temurin image digest | Ready | recorded publisher, forced driver restart, archive copy/restore entry |
 | ClickHouse | 26.3.10.60 LTS image digest | Ready | create/insert/query, forced restart, Native export/import |
 | PostgreSQL | 18.4 Bookworm image digest | Ready | create/insert/query, forced restart, `pg_dump`/restore |
-| Kungfu | prebuilt CLI package + SHA-256 + source SHA + runtime image digest | Input required | Episode write/query, bundle export, forced restart, fsck, isolated restore |
+| Kungfu | prebuilt CLI package + SHA-256 + source SHA + runtime image digest | Package-bound Phase B | Package smoke plus J1/J2/J3 across seven user-outcome tiers |
 
 The Kungfu pilot consumes `kungfu-episodes-cli-linux-x64.tar.gz` after another
 job has built it. The Dockerfile verifies the supplied SHA-256 and
@@ -60,10 +60,13 @@ Package production and package consumption are deliberately separate:
 
 1. An upstream job builds `kungfu-episodes-cli-linux-x64.tar.gz` and uploads it
    as an Actions artifact.
-2. The reusable `Comparator Kungfu Package Smoke` workflow downloads that
+2. The reusable `Comparator Kungfu Package Qualification` workflow downloads that
    artifact, verifies its exact SHA-256, and places it in the Docker build
    context.
-3. The package-consumer image validates `product.json`, resolves the declared
+3. `materialize_kungfu_phase_b.py` validates `product.json`, compatibility and
+   upgrade metadata against the declared package version and source SHA, then
+   emits one digest-bound, non-test 3 x 21 qualification plan.
+4. The package-consumer image validates `product.json`, resolves the declared
    CLI and compatibility entries, and runs the functional/recovery smoke.
 
 The caller supplies the package artifact name, package version, exact package
@@ -83,18 +86,23 @@ package must already exist in the caller's workflow run:
 jobs:
   comparator-kungfu:
     needs: build-kungfu-cli
-    uses: kungfu-systems/build-images/.github/workflows/comparator-kungfu-package-smoke.yml@dev/v1/v1.2
+    uses: kungfu-systems/build-images/.github/workflows/comparator-kungfu-package-smoke.yml@v1.2.4-alpha.N
     with:
       package_artifact_name: ${{ needs.build-kungfu-cli.outputs.artifact_name }}
       package_sha256: ${{ needs.build-kungfu-cli.outputs.package_sha256 }}
       package_version: ${{ needs.build-kungfu-cli.outputs.package_version }}
       source_sha: ${{ needs.build-kungfu-cli.outputs.source_sha }}
+      build_images_ref: v1.2.4-alpha.N
+      build_images_sha: <40-character-build-images-sha>
 ```
 
-This Docker evidence remains explicitly unscored and non-authoritative for
-performance. Installation-cost comparisons must use the agreed user delivery
-path; neither upstream build time nor a prebuilt image's startup time should be
-silently substituted for that measurement.
+The package smoke remains explicitly unscored. The subsequent production plan
+can grant only containerized user-outcome qualification authority after all 63
+steps and the self-contained offline verifier pass. It never grants native
+performance, fresh-install cost, final scoring, or winner authority.
+Installation-cost comparisons must use the agreed user delivery path; neither
+upstream build time nor a prebuilt image's startup time should be silently
+substituted for that measurement.
 
 ## Frozen-plan qualification
 
@@ -109,9 +117,10 @@ fixture SHA-256, verifier-only oracle SHA-256, and job/tier mapping.
 
 The comparator program outside this repository owns the frozen charter,
 product-advocate review, report, scoring, and Phase B join. build-images owns
-only reproducible execution and bundle integrity. Containerized production
-plans exist for PostgreSQL, ClickHouse, and Aeron. Each plan binds its selected
-adapter,
+only reproducible execution and bundle integrity. Checked-in containerized
+production plans exist for PostgreSQL, ClickHouse, and Aeron. Kungfu uses a
+checked-in frozen template whose non-test plan is materialized only after an
+exact package exists. Each plan binds its selected adapter,
 digest-loaded semantics module, execution fixture, verifier-only oracle,
 Compose file, environment lock, exact subject image, and exact runner image.
 
@@ -133,6 +142,24 @@ python3 pilots/comparator/scripts/comparator_qualification.py \
 python3 pilots/comparator/scripts/comparator_qualification.py \
   verify-bundle --bundle pilots/comparator/.artifacts/<destination>/<bundle-id>
 ```
+
+For Kungfu, stage exactly one package at
+`pilots/comparator/images/kungfu/kungfu-episodes-cli-linux-x64.tar.gz`, then
+materialize before validation or execution:
+
+```bash
+python3 pilots/comparator/scripts/materialize_kungfu_phase_b.py \
+  --package-sha256 <sha256> \
+  --version <version> \
+  --source-sha <40-character-kungfu-sha> \
+  --evidence-url <https-package-workflow-url> \
+  --output pilots/comparator/.artifacts/materialized/kungfu-phase-b-v1.json \
+  --execute
+```
+
+The materializer rejects a package outside the fixed staging path, unsafe or
+missing metadata, SHA/source/version drift, non-HTTPS evidence, placeholder
+inputs, registry drift, or a changed template job/tier/repetition contract.
 
 `validate-plan` and `plan` do not start Docker. `run` requires `--execute`, uses
 only this directory's `compose.yaml`, and delegates each production step to the
@@ -204,7 +231,9 @@ explicitly forbidden from issuing qualification receipts. They remain generic
 non-test `plans/postgres-phase-a-v1.json`,
 `plans/clickhouse-phase-a-v1.json`, and `plans/aeron-phase-a-v1.json` plans
 each cover J1/J2/J3 across all seven Phase A tiers through their digest-locked
-adapters.
+adapters. `plans/kungfu-phase-b-v1.template.json` freezes the same 21-scenario,
+three-repetition shape while deferring only the exact package identity and its
+public evidence coordinate to the materialization step.
 
 ## Aeron native qualification
 
