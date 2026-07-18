@@ -1,0 +1,78 @@
+{
+  "schema": "urn:kungfu-systems:build-images:kungfu-phase-b-execution-input:v1",
+  "jobs": {
+    "J1-multi-session-progress-triage": {
+      "fixture_id": "F1-session-triage",
+      "facts": {
+        "sessions": [
+          {
+            "id": "s-live-detached",
+            "process": "alive",
+            "attachment": "detached",
+            "latest_evidence": "checkpoint-7",
+            "cost_state": "known"
+          },
+          {
+            "id": "s-false-done",
+            "process": "ended",
+            "claimed_state": "done",
+            "required_validation": "missing",
+            "latest_evidence": "implementation-commit"
+          },
+          {
+            "id": "s-burning",
+            "process": "alive",
+            "claimed_state": "active",
+            "minutes_since_useful_evidence": 90,
+            "tool_calls_since_useful_evidence": 47,
+            "blocker": "repeated same failure"
+          }
+        ]
+      }
+    },
+    "J2-cross-repo-delivery-trust": {
+      "fixture_id": "F2-cross-repo-delivery",
+      "facts": {
+        "source_sha": "source-1111111",
+        "runtime": {
+          "sha": "runtime-2222222",
+          "source_sha": "source-1111111"
+        },
+        "package": {
+          "sha256": "package-3333333",
+          "source_sha": "source-1111111",
+          "runtime_sha": "runtime-2222222"
+        },
+        "pull_request": {
+          "state": "merged",
+          "checks": "green"
+        },
+        "static_contract": "valid",
+        "downstream_runtime_smoke_receipt": {
+          "status": "missing"
+        }
+      }
+    },
+    "J3-interrupted-go-recovery-handoff": {
+      "fixture_id": "F3-go-recovery",
+      "facts": {
+        "goal_status": "stage-ready",
+        "latest_marker": {
+          "status": "stage-ready",
+          "ready": false,
+          "summary": "schema and fixtures complete"
+        },
+        "source_worktree": {
+          "path_state": "stale",
+          "dirty_state": "unknown"
+        },
+        "source_branch": {
+          "exists": true,
+          "contained_in_main": false
+        },
+        "latest_validation": "schema check passed",
+        "remaining_risk": "independent comparator advocate sign-off pending"
+      }
+    }
+  }
+}

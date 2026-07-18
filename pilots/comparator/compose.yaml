@@ -90,6 +90,8 @@ services:
     cpus: 1.00
 
   kungfu:
+    image: ${KUNGFU_CLI_IMAGE:-kungfu-package-input-required}
+    pull_policy: never
     build:
       context: ./images/kungfu
       args:

@@ -27,6 +27,7 @@ COMPOSE_PATH = PILOT_DIR / "compose.yaml"
 LOCK_PATH = PILOT_DIR / "environment.lock.json"
 PILOT_SCRIPT = SCRIPT_DIR / "pilot.sh"
 QUALIFICATION_RUNNER = pathlib.Path(__file__).resolve()
+KUNGFU_PLAN_MATERIALIZER = SCRIPT_DIR / "materialize_kungfu_phase_b.py"
 PLAN_SCHEMA_PATH = PILOT_DIR / "qualification-plan.schema.json"
 RUN_SCHEMA_PATH = PILOT_DIR / "qualification-run-manifest.schema.json"
 BUNDLE_SCHEMA_PATH = PILOT_DIR / "qualification-bundle-manifest.schema.json"
@@ -67,11 +68,15 @@ RUNTIME_ENV_ALLOWLIST = {
     "PATH", "HOME", "USER", "TMPDIR", "LANG", "LC_ALL",
     "DOCKER_HOST", "DOCKER_CONTEXT", "DOCKER_CONFIG", "DOCKER_CERT_PATH",
     "DOCKER_TLS_VERIFY", "XDG_RUNTIME_DIR",
+    "KUNGFU_CLI_ARTIFACT_NAME", "KUNGFU_CLI_PACKAGE_SHA256",
+    "KUNGFU_CLI_VERSION", "KUNGFU_CLI_SOURCE_SHA", "KUNGFU_CLI_EVIDENCE_URL",
+    "KUNGFU_CLI_IMAGE", "KUNGFU_CLI_IMAGE_ID",
 }
 
 sys.path.insert(0, str(SCRIPT_DIR))
 sys.path.insert(0, str(ADAPTER_DIR))
 import comparator_pilot  # noqa: E402
+import materialize_kungfu_phase_b  # noqa: E402
 
 
 class QualificationError(ValueError):
@@ -530,6 +535,7 @@ def validate_plan_document(plan: dict[str, Any]) -> None:
     if not isinstance(scenarios, list) or not scenarios:
         raise QualificationError("scenarios must be a non-empty array")
     scenario_ids: set[str] = set()
+    scenario_mappings: set[tuple[str, str]] = set()
     for scenario_index, scenario in enumerate(scenarios):
         context = f"scenarios[{scenario_index}]"
         if not isinstance(scenario, dict):
@@ -543,6 +549,9 @@ def validate_plan_document(plan: dict[str, Any]) -> None:
             tier = require_id(scenario["tier"], f"{context}.tier")
             if (job_id, tier) not in adapter_mappings:
                 raise QualificationError(f"scenario job/tier is not mapped by the workload adapter: {job_id}/{tier}")
+            if (job_id, tier) in scenario_mappings:
+                raise QualificationError(f"duplicate production scenario mapping: {job_id}/{tier}")
+            scenario_mappings.add((job_id, tier))
         if scenario_id in scenario_ids:
             raise QualificationError(f"duplicate scenario id: {scenario_id}")
         scenario_ids.add(scenario_id)
@@ -609,6 +618,11 @@ def validate_plan_document(plan: dict[str, Any]) -> None:
             if plan["test_only"] and has_semantic:
                 raise QualificationError(f"{step_context} cannot use a production semantic verdict oracle")
 
+    if profile == "kungfu" and not plan["test_only"] and scenario_mappings != adapter_mappings:
+        raise QualificationError("production scenarios do not cover the complete adapter job/tier mapping")
+    if profile == "kungfu" and not plan["test_only"] and repetitions != 3:
+        raise QualificationError("Kungfu Phase B requires exactly three scored repetitions")
+
     retention = plan["artifact_retention"]
     if not isinstance(retention, dict):
         raise QualificationError("artifact_retention must be an object")
@@ -637,12 +651,23 @@ def validate_plan_document(plan: dict[str, Any]) -> None:
         subject = plan.get("subject")
         if not isinstance(subject, dict):
             raise QualificationError("kungfu qualification requires a package subject")
-        require_keys(subject, {"artifact_name", "version", "package_sha256", "source_sha", "evidence_url"}, set(), "subject")
+        require_keys(
+            subject,
+            {"artifact_name", "version", "package_sha256", "source_sha", "evidence_url"},
+            {"package_size_bytes"},
+            "subject",
+        )
         if subject["artifact_name"] != "kungfu-episodes-cli-linux-x64.tar.gz":
             raise QualificationError("subject.artifact_name must match the fixed Kungfu package filename")
         if not isinstance(subject["version"], str) or not subject["version"]:
             raise QualificationError("subject.version must be non-empty")
         require_sha256(subject["package_sha256"], "subject.package_sha256")
+        if "package_size_bytes" in subject and (
+            not isinstance(subject["package_size_bytes"], int)
+            or isinstance(subject["package_size_bytes"], bool)
+            or subject["package_size_bytes"] < 1
+        ):
+            raise QualificationError("subject.package_size_bytes must be a positive integer")
         if not isinstance(subject["source_sha"], str) or not GIT_SHA.fullmatch(subject["source_sha"]):
             raise QualificationError("subject.source_sha must be an exact Git SHA")
         if not isinstance(subject["evidence_url"], str) or not subject["evidence_url"].startswith("https://"):
@@ -692,9 +717,27 @@ def resolve_plan(plan_path: pathlib.Path) -> tuple[dict[str, Any], dict[str, Any
         raise QualificationError("expert-tuned is unavailable without a separately reviewed active tuning record")
 
     profile = plan["profile"]
+    package_identity: dict[str, Any] | None = None
+    kungfu_image = ""
     if profile == "kungfu":
         subject = copy.deepcopy(lock["profiles"][profile])
         subject.update(plan["subject"])
+        kungfu_image = f"kungfu-phase-b-package:{subject['package_sha256'][:24]}"
+        if not plan["test_only"]:
+            try:
+                package_identity = materialize_kungfu_phase_b.verify_package(
+                    materialize_kungfu_phase_b.PACKAGE_PATH,
+                    subject["package_sha256"],
+                    subject["version"],
+                    subject["source_sha"],
+                )
+            except materialize_kungfu_phase_b.MaterializationError as error:
+                raise QualificationError(f"Kungfu package preflight failed: {error}") from error
+            if (
+                "package_size_bytes" in subject
+                and subject["package_size_bytes"] != package_identity["package_size_bytes"]
+            ):
+                raise QualificationError("Kungfu package size does not match the materialized plan")
     else:
         subject = copy.deepcopy(lock["profiles"][profile])
         if subject.get("status") != "ready":
@@ -723,6 +766,8 @@ def resolve_plan(plan_path: pathlib.Path) -> tuple[dict[str, Any], dict[str, Any
         "environment_lock": {"path": str(LOCK_PATH), "sha256": actual_lock_sha},
         "runner_image": environment["runner_image"],
         "subject": subject,
+        "package_identity": package_identity,
+        "kungfu_image": kungfu_image,
         "workload_adapter": workload_adapter,
         "resource_limits": {"runner": limits["runner"], profile: limits[profile]},
         "repetitions": plan["repetitions"],
@@ -839,6 +884,33 @@ def controlled_environment() -> dict[str, str]:
     return {name: value for name, value in os.environ.items() if name in RUNTIME_ENV_ALLOWLIST}
 
 
+def qualification_environment(
+    profile: str,
+    project: str,
+    subject: dict[str, Any] | None = None,
+    kungfu_image: str = "",
+    kungfu_image_id: str = "",
+) -> dict[str, str]:
+    environment = controlled_environment()
+    environment["COMPARATOR_PROJECT_NAME"] = project
+    if profile == "kungfu":
+        if not isinstance(subject, dict) or not kungfu_image:
+            raise QualificationError("Kungfu execution environment requires a materialized package subject")
+        environment.update(
+            {
+                "KUNGFU_CLI_ARTIFACT_NAME": subject["artifact_name"],
+                "KUNGFU_CLI_PACKAGE_SHA256": subject["package_sha256"],
+                "KUNGFU_CLI_VERSION": subject["version"],
+                "KUNGFU_CLI_SOURCE_SHA": subject["source_sha"],
+                "KUNGFU_CLI_EVIDENCE_URL": subject["evidence_url"],
+                "KUNGFU_CLI_IMAGE": kungfu_image,
+            }
+        )
+        if kungfu_image_id:
+            environment["KUNGFU_CLI_IMAGE_ID"] = kungfu_image_id
+    return environment
+
+
 def compose_project_name(
     profile: str,
     bundle_id: str,
@@ -868,7 +940,12 @@ def qualification_project_names(plan: dict[str, Any], profile: str, bundle_id: s
     return projects
 
 
-def preflight_compose_environment(profile: str, project: str) -> None:
+def preflight_compose_environment(
+    profile: str,
+    project: str,
+    subject: dict[str, Any] | None = None,
+    kungfu_image: str = "",
+) -> None:
     try:
         process = subprocess.run(
             [
@@ -878,7 +955,9 @@ def preflight_compose_environment(profile: str, project: str) -> None:
                 "config", "--quiet",
             ],
             cwd=REPO_ROOT,
-            env={**controlled_environment(), "COMPARATOR_PROJECT_NAME": project},
+            env=qualification_environment(profile, project, subject, kungfu_image)
+            if profile == "kungfu"
+            else {**controlled_environment(), "COMPARATOR_PROJECT_NAME": project},
             capture_output=True,
             text=True,
             timeout=60,
@@ -905,6 +984,7 @@ def compose_profile_images(
     profile: str,
     project: str,
     preparation_dir: pathlib.Path,
+    environment: dict[str, str],
     evidence: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     command = [
@@ -917,7 +997,7 @@ def compose_profile_images(
         process = subprocess.run(
             command,
             cwd=REPO_ROOT,
-            env={**controlled_environment(), "COMPARATOR_PROJECT_NAME": project},
+            env=environment,
             capture_output=True,
             text=True,
             timeout=60,
@@ -956,14 +1036,22 @@ def compose_profile_images(
             raise QualificationError(f"locked Compose service is invalid: {service_name}")
         image = service.get("image")
         platform_name = service.get("platform")
-        if not isinstance(image, str) or EXACT_IMAGE_REF.fullmatch(image) is None:
-            raise QualificationError(
-                f"locked Compose service is not backed by an exact digest: {service_name}"
-            )
+        local_package_build = profile == "kungfu" and service_name == "kungfu"
+        if not isinstance(image, str) or (
+            not local_package_build and EXACT_IMAGE_REF.fullmatch(image) is None
+        ):
+            raise QualificationError(f"locked Compose service image is invalid: {service_name}")
+        if local_package_build and image != environment.get("KUNGFU_CLI_IMAGE"):
+            raise QualificationError("Kungfu Compose service does not use the materialized package image")
         if not isinstance(platform_name, str) or not platform_name:
             raise QualificationError(f"locked Compose service platform is missing: {service_name}")
         discovery["services"].append(
-            {"service": service_name, "image": image, "platform": platform_name}
+            {
+                "service": service_name,
+                "image": image,
+                "platform": platform_name,
+                "source": "local-package-build" if local_package_build else "registry-digest",
+            }
         )
     if len({item["image"] for item in discovery["services"]}) != len(discovery["services"]):
         raise QualificationError("locked Compose profile reuses an image across multiple services")
@@ -1024,7 +1112,106 @@ def inspect_prepared_image(
     return {**record, "id": local_id, "repo_digests": sorted(repo_digests)}
 
 
-def prepare_exact_images(profile: str, project: str, preparation_dir: pathlib.Path) -> pathlib.Path:
+def build_local_kungfu_image(
+    project: str,
+    image: str,
+    environment: dict[str, str],
+    preparation_dir: pathlib.Path,
+    image_index: int,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    command = [
+        "docker", "compose", "-f", str(COMPOSE_PATH),
+        "--project-name", project, "--profile", "kungfu", "build", "kungfu",
+    ]
+    started_at = utc_now()
+    started = time.monotonic()
+    timed_out = False
+    try:
+        process = subprocess.run(
+            command,
+            cwd=REPO_ROOT,
+            env=environment,
+            capture_output=True,
+            text=True,
+            timeout=1800,
+        )
+    except subprocess.TimeoutExpired as error:
+        timed_out = True
+        process = subprocess.CompletedProcess(
+            command,
+            124,
+            normalize_timeout_output(error.stdout),
+            normalize_timeout_output(error.stderr) + "\nKungfu package image build timed out\n",
+        )
+    stdout_path = preparation_dir / f"image-{image_index:02d}.build.stdout.log"
+    stderr_path = preparation_dir / f"image-{image_index:02d}.build.stderr.log"
+    stdout_path.write_text(process.stdout, encoding="utf-8")
+    stderr_path.write_text(process.stderr, encoding="utf-8")
+    attempt = {
+        "attempt": 1,
+        "command": command,
+        "started_at": started_at,
+        "finished_at": utc_now(),
+        "duration_seconds": round(time.monotonic() - started, 6),
+        "timed_out": timed_out,
+        "exit_code": process.returncode,
+        "retryable": False,
+        "stdout": preparation_file_record(preparation_dir, stdout_path),
+        "stderr": preparation_file_record(preparation_dir, stderr_path),
+    }
+    if process.returncode != 0:
+        detail = process.stderr.strip() or process.stdout.strip() or "unknown package image build error"
+        raise QualificationError(f"Kungfu package image build failed: {detail}")
+    inspect_command = ["docker", "image", "inspect", image, "--format", "{{json .}}"]
+    inspected_process = subprocess.run(
+        inspect_command,
+        cwd=REPO_ROOT,
+        env=environment,
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    inspect_stdout = preparation_dir / f"image-{image_index:02d}.inspect.stdout.log"
+    inspect_stderr = preparation_dir / f"image-{image_index:02d}.inspect.stderr.log"
+    inspect_stdout.write_text(inspected_process.stdout, encoding="utf-8")
+    inspect_stderr.write_text(inspected_process.stderr, encoding="utf-8")
+    if inspected_process.returncode != 0:
+        raise QualificationError("built Kungfu package image cannot be inspected")
+    try:
+        inspected = json.loads(inspected_process.stdout)
+    except json.JSONDecodeError as error:
+        raise QualificationError(f"built Kungfu image inspection is not JSON: {error}") from error
+    image_id = inspected.get("Id") if isinstance(inspected, dict) else None
+    labels = inspected.get("Config", {}).get("Labels", {}) if isinstance(inspected, dict) else None
+    if not isinstance(image_id, str) or LOCAL_IMAGE_ID.fullmatch(image_id) is None:
+        raise QualificationError("built Kungfu package image has no immutable local image ID")
+    if not isinstance(labels, dict) or (
+        labels.get("org.opencontainers.image.version") != environment["KUNGFU_CLI_VERSION"]
+        or labels.get("org.opencontainers.image.revision") != environment["KUNGFU_CLI_SOURCE_SHA"]
+    ):
+        raise QualificationError("built Kungfu package image labels do not match the materialized subject")
+    local = {
+        "command": inspect_command,
+        "exit_code": inspected_process.returncode,
+        "stdout": preparation_file_record(preparation_dir, inspect_stdout),
+        "stderr": preparation_file_record(preparation_dir, inspect_stderr),
+        "id": image_id,
+        "repo_tags": sorted(inspected.get("RepoTags") or []),
+        "labels": {
+            "org.opencontainers.image.version": labels["org.opencontainers.image.version"],
+            "org.opencontainers.image.revision": labels["org.opencontainers.image.revision"],
+        },
+    }
+    return attempt, local
+
+
+def prepare_exact_images(
+    profile: str,
+    project: str,
+    preparation_dir: pathlib.Path,
+    subject: dict[str, Any] | None = None,
+    kungfu_image: str = "",
+) -> pathlib.Path:
     preparation_dir.mkdir(parents=True, exist_ok=False)
     started_at = utc_now()
     started = time.monotonic()
@@ -1044,14 +1231,35 @@ def prepare_exact_images(profile: str, project: str, preparation_dir: pathlib.Pa
     }
     manifest_path = preparation_dir / "image-preparation.json"
     try:
+        environment = (
+            qualification_environment(profile, project, subject, kungfu_image)
+            if profile == "kungfu"
+            else {**controlled_environment(), "COMPARATOR_PROJECT_NAME": project}
+        )
         discovery = compose_profile_images(
             profile,
             project,
             preparation_dir,
+            environment,
             manifest["discovery"],
         )
         for image_index, service in enumerate(discovery["services"], start=1):
             image = service["image"]
+            if service.get("source") == "local-package-build":
+                image_record = {
+                    **service,
+                    "package_sha256": environment["KUNGFU_CLI_PACKAGE_SHA256"],
+                    "attempts": [],
+                    "final_status": "failed",
+                }
+                manifest["images"].append(image_record)
+                attempt, local = build_local_kungfu_image(
+                    project, image, environment, preparation_dir, image_index
+                )
+                image_record["attempts"].append(attempt)
+                image_record["local"] = local
+                image_record["final_status"] = "passed"
+                continue
             expected_digest = image.rsplit("@", 1)[1]
             image_record: dict[str, Any] = {
                 **service,
@@ -1251,22 +1459,19 @@ def execute_step(
     scenario: dict[str, Any],
     step: dict[str, Any],
     repetition_dir: pathlib.Path,
+    kungfu_image: str = "",
+    kungfu_image_id: str = "",
 ) -> dict[str, Any]:
     project = compose_project_name(profile, bundle_id, repetition, scenario, step)
     step_dir = repetition_dir / "raw" / scenario["id"] / step["id"]
     step_dir.mkdir(parents=True, exist_ok=True)
-    environment = controlled_environment()
-    environment["COMPARATOR_PROJECT_NAME"] = project
-    if profile == "kungfu":
-        environment.update(
-            {
-                "KUNGFU_CLI_ARTIFACT_NAME": subject["artifact_name"],
-                "KUNGFU_CLI_PACKAGE_SHA256": subject["package_sha256"],
-                "KUNGFU_CLI_VERSION": subject["version"],
-                "KUNGFU_CLI_SOURCE_SHA": subject["source_sha"],
-                "KUNGFU_CLI_EVIDENCE_URL": subject["evidence_url"],
-            }
+    environment = (
+        qualification_environment(
+            profile, project, subject, kungfu_image, kungfu_image_id
         )
+        if profile == "kungfu"
+        else {**controlled_environment(), "COMPARATOR_PROJECT_NAME": project}
+    )
     adapter_evidence: dict[str, Any] | None = None
     semantic_context: dict[str, Any] | None = None
     if step["action"] == WORKLOAD_ACTION:
@@ -1455,6 +1660,7 @@ def copy_bundle_inputs(bundle_dir: pathlib.Path, resolved: dict[str, Any]) -> di
         ("environment_lock", LOCK_PATH),
         ("pilot_script", PILOT_SCRIPT),
         ("qualification_runner", QUALIFICATION_RUNNER),
+        ("kungfu_plan_materializer", KUNGFU_PLAN_MATERIALIZER),
     ):
         target = input_dir / source.name
         shutil.copy2(source, target)
@@ -1502,7 +1708,12 @@ def run_plan(plan_path: pathlib.Path) -> pathlib.Path:
     require_clean_source()
     bundle_id = f"qual-{resolved['profile']}-{dt.datetime.now(dt.timezone.utc).strftime('%Y%m%dT%H%M%SZ')}-{os.getpid()}"
     projects = qualification_project_names(plan, resolved["profile"], bundle_id)
-    preflight_compose_environment(resolved["profile"], projects[0])
+    preflight_compose_environment(
+        resolved["profile"],
+        projects[0],
+        resolved["subject"],
+        resolved["kungfu_image"],
+    )
     runtime = runtime_facts(resolved["resource_limits"])
     destination = pathlib.Path(resolved["artifact_destination"])
     bundle_dir = destination / bundle_id
@@ -1519,6 +1730,8 @@ def run_plan(plan_path: pathlib.Path) -> pathlib.Path:
             resolved["profile"],
             projects[0],
             preparation_path.parent,
+            resolved["subject"],
+            resolved["kungfu_image"],
         )
     except QualificationError as error:
         raise QualificationError(
@@ -1528,6 +1741,19 @@ def run_plan(plan_path: pathlib.Path) -> pathlib.Path:
         "path": preparation_path.relative_to(bundle_dir).as_posix(),
         "sha256": sha256_file(preparation_path),
     }
+    kungfu_image_id = ""
+    if resolved["profile"] == "kungfu":
+        preparation_document = load_json(preparation_path)
+        package_images = [
+            image
+            for image in preparation_document.get("images", [])
+            if image.get("source") == "local-package-build"
+        ]
+        if len(package_images) != 1:
+            raise QualificationError("image preparation did not retain one Kungfu package image")
+        kungfu_image_id = package_images[0].get("local", {}).get("id", "")
+        if not isinstance(kungfu_image_id, str) or LOCAL_IMAGE_ID.fullmatch(kungfu_image_id) is None:
+            raise QualificationError("prepared Kungfu package image ID is invalid")
     run_records: list[dict[str, Any]] = []
     completed = 0
 
@@ -1548,6 +1774,8 @@ def run_plan(plan_path: pathlib.Path) -> pathlib.Path:
                         scenario,
                         step,
                         repetition_dir,
+                        kungfu_image=resolved["kungfu_image"],
+                        kungfu_image_id=kungfu_image_id,
                     )
                 )
         retained = retention_results(repetition_dir, plan["artifact_retention"]["required_patterns"])
@@ -1744,12 +1972,21 @@ def verify_preparation(
             "service": service_name,
             "image": service.get("image") if isinstance(service, dict) else None,
             "platform": service.get("platform") if isinstance(service, dict) else None,
+            "source": (
+                "local-package-build"
+                if bundle["profile"] == "kungfu" and service_name == "kungfu"
+                else "registry-digest"
+            ),
         }
         for service_name, service in sorted(discovered_services.items())
     ]
     if services != services_from_log:
         raise QualificationError("image preparation services do not match the discovery log")
     expected_images = {bundle_inputs["runner_image"]}
+    if bundle["profile"] == "kungfu":
+        expected_images.add(
+            f"kungfu-phase-b-package:{plan['subject']['package_sha256'][:24]}"
+        )
     subject_image = bundle_inputs.get("subject", {}).get("image")
     if isinstance(subject_image, str):
         expected_images.add(subject_image)
@@ -1760,11 +1997,101 @@ def verify_preparation(
     for image_index, (service, image_record) in enumerate(zip(services, images), start=1):
         if not isinstance(service, dict) or not isinstance(image_record, dict):
             raise QualificationError("image preparation image record is invalid")
-        require_keys(service, {"service", "image", "platform"}, set(), "prepared Compose service")
+        require_keys(
+            service,
+            {"service", "image", "platform", "source"},
+            set(),
+            "prepared Compose service",
+        )
+        local_package_build = service.get("source") == "local-package-build"
+        if local_package_build:
+            require_keys(
+                image_record,
+                {
+                    "service", "image", "platform", "source", "package_sha256",
+                    "attempts", "final_status", "local",
+                },
+                set(),
+                "prepared Kungfu package image",
+            )
+            if {key: image_record.get(key) for key in service} != service:
+                raise QualificationError("prepared Kungfu image is not bound to Compose discovery")
+            if (
+                bundle["profile"] != "kungfu"
+                or service.get("service") != "kungfu"
+                or service.get("image") != f"kungfu-phase-b-package:{plan['subject']['package_sha256'][:24]}"
+                or image_record.get("package_sha256") != plan["subject"]["package_sha256"]
+                or image_record.get("final_status") != "passed"
+            ):
+                raise QualificationError("prepared Kungfu package image identity/status is invalid")
+            attempts = image_record.get("attempts")
+            if not isinstance(attempts, list) or len(attempts) != 1:
+                raise QualificationError("Kungfu package image must have one retained build attempt")
+            attempt = attempts[0]
+            require_keys(
+                attempt,
+                {
+                    "attempt", "command", "started_at", "finished_at", "duration_seconds",
+                    "timed_out", "exit_code", "retryable", "stdout", "stderr",
+                },
+                set(),
+                "Kungfu package image build attempt",
+            )
+            expected_build = [
+                "docker", "compose", "-f", str(COMPOSE_PATH),
+                "--project-name", expected_project, "--profile", "kungfu", "build", "kungfu",
+            ]
+            if (
+                attempt.get("attempt") != 1
+                or attempt.get("command") != expected_build
+                or attempt.get("exit_code") != 0
+                or attempt.get("timed_out") is not False
+                or attempt.get("retryable") is not False
+                or not isinstance(attempt.get("duration_seconds"), (int, float))
+                or attempt["duration_seconds"] < 0
+            ):
+                raise QualificationError("Kungfu package image build attempt is invalid")
+            verify_log(attempt.get("stdout"), f"prepared image {image_index} build stdout")
+            verify_log(attempt.get("stderr"), f"prepared image {image_index} build stderr")
+            local = image_record.get("local")
+            require_keys(
+                local,
+                {"command", "exit_code", "stdout", "stderr", "id", "repo_tags", "labels"},
+                set(),
+                "prepared Kungfu image local identity",
+            )
+            if (
+                local.get("command") != [
+                    "docker", "image", "inspect", service["image"], "--format", "{{json .}}"
+                ]
+                or local.get("exit_code") != 0
+                or not isinstance(local.get("id"), str)
+                or LOCAL_IMAGE_ID.fullmatch(local["id"]) is None
+                or local.get("labels") != {
+                    "org.opencontainers.image.version": plan["subject"]["version"],
+                    "org.opencontainers.image.revision": plan["subject"]["source_sha"],
+                }
+            ):
+                raise QualificationError("prepared Kungfu image local identity is invalid")
+            inspect_stdout = verify_log(
+                local.get("stdout"), f"prepared image {image_index} inspect stdout"
+            )
+            verify_log(local.get("stderr"), f"prepared image {image_index} inspect stderr")
+            try:
+                inspected = json.loads(inspect_stdout.read_text(encoding="utf-8"))
+            except json.JSONDecodeError as error:
+                raise QualificationError(f"prepared Kungfu image inspect log is not JSON: {error}") from error
+            if (
+                not isinstance(inspected, dict)
+                or inspected.get("Id") != local["id"]
+                or sorted(inspected.get("RepoTags") or []) != local.get("repo_tags")
+            ):
+                raise QualificationError("prepared Kungfu image does not match retained inspect output")
+            continue
         require_keys(
             image_record,
             {
-                "service", "image", "platform", "expected_digest", "attempts",
+                "service", "image", "platform", "source", "expected_digest", "attempts",
                 "final_status", "local",
             },
             set(),
@@ -1915,6 +2242,7 @@ def verify_bundle(bundle_dir: pathlib.Path, *, require_authority: bool = True) -
         bundle_inputs,
         {
             "compose", "environment_lock", "pilot_script", "qualification_runner",
+            "kungfu_plan_materializer",
             "runner_image", "subject", "subject_sha256", "workload_adapter",
         },
         set(),
@@ -1925,6 +2253,7 @@ def verify_bundle(bundle_dir: pathlib.Path, *, require_authority: bool = True) -
         "environment_lock": "inputs/environment.lock.json",
         "pilot_script": "inputs/pilot.sh",
         "qualification_runner": "inputs/comparator_qualification.py",
+        "kungfu_plan_materializer": "inputs/materialize_kungfu_phase_b.py",
     }
     input_paths: dict[str, pathlib.Path] = {}
     for role, expected_path in expected_input_paths.items():

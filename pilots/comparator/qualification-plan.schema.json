@@ -66,6 +66,7 @@
         "artifact_name": { "const": "kungfu-episodes-cli-linux-x64.tar.gz" },
         "version": { "type": "string", "minLength": 1 },
         "package_sha256": { "$ref": "#/$defs/sha256" },
+        "package_size_bytes": { "type": "integer", "minimum": 1 },
         "source_sha": { "pattern": "^[0-9a-f]{40}$" },
         "evidence_url": { "type": "string", "pattern": "^https://" }
       }

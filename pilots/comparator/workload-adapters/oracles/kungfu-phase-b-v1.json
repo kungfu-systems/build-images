@@ -1,0 +1,32 @@
+{
+  "schema": "urn:kungfu-systems:build-images:kungfu-phase-b-verifier-oracle:v1",
+  "jobs": {
+    "J1-multi-session-progress-triage": {
+      "state": "mixed-action-required",
+      "required_findings": [
+        "reattach s-live-detached",
+        "reject s-false-done as false receipt",
+        "pause or inspect s-burning before further spend"
+      ],
+      "false_receipt_rejected": true
+    },
+    "J2-cross-repo-delivery-trust": {
+      "state": "waiting",
+      "completion": false,
+      "only_blocker": "missing downstream runtime smoke receipt bound to source, runtime, and package identity",
+      "blockers": [
+        "missing downstream runtime smoke receipt bound to source, runtime, and package identity"
+      ]
+    },
+    "J3-interrupted-go-recovery-handoff": {
+      "state": "resume-from-stage",
+      "final_ready": false,
+      "required_actions": [
+        "preserve the live source branch",
+        "recreate or relocate only after policy check",
+        "continue from the recorded remaining risk",
+        "do not clean or mark merged"
+      ]
+    }
+  }
+}
