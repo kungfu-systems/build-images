@@ -94,7 +94,7 @@ jobs:
       - name: Run disposable unscored Kungfu package smoke
         working-directory: build-images
         env:
-          KUNGFU_CLI_ARTIFACT_NAME: ${{ inputs.package_artifact_name }}
+          KUNGFU_CLI_ARTIFACT_NAME: kungfu-episodes-cli-linux-x64.tar.gz
           KUNGFU_CLI_PACKAGE_SHA256: ${{ inputs.package_sha256 }}
           KUNGFU_CLI_VERSION: ${{ inputs.package_version }}
           KUNGFU_CLI_SOURCE_SHA: ${{ inputs.source_sha }}
