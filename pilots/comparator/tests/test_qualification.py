@@ -4,6 +4,7 @@ import copy
 import json
 import os
 import pathlib
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -228,6 +229,153 @@ class WorkloadSemanticTests(unittest.TestCase):
 
 
 class QualificationExecutionTests(unittest.TestCase):
+    def write_kungfu_preparation(
+        self,
+        root: pathlib.Path,
+    ) -> tuple[dict[str, object], dict[str, object], dict[str, object]]:
+        plan = qualification.load_json(FIXTURE_DIR / "kungfu.json")
+        plan["scenarios"] = plan["scenarios"][:1]
+        bundle_id = "synthetic-relocated-kungfu"
+        project = qualification.qualification_project_names(
+            plan,
+            "kungfu",
+            bundle_id,
+        )[0]
+        subject = plan["subject"]
+        kungfu_image = f"kungfu-phase-b-package:{subject['package_sha256'][:24]}"
+        runner_image = plan["environment"]["runner_image"]
+        discovery_output = json.dumps(
+            {
+                "services": {
+                    "kungfu": {
+                        "image": kungfu_image,
+                        "platform": "linux/amd64",
+                    },
+                    "runner": {
+                        "image": runner_image,
+                        "platform": "linux/amd64",
+                    },
+                }
+            }
+        )
+        local_image = json.dumps(
+            {
+                "Id": f"sha256:{'1' * 64}",
+                "RepoTags": [kungfu_image],
+                "Config": {
+                    "Labels": {
+                        "org.opencontainers.image.version": subject["version"],
+                        "org.opencontainers.image.revision": subject["source_sha"],
+                    }
+                },
+            }
+        )
+        runner_inspect = json.dumps(
+            {
+                "Id": f"sha256:{'2' * 64}",
+                "RepoDigests": [runner_image],
+            }
+        )
+        docker_results = iter(
+            [
+                subprocess.CompletedProcess([], 0, discovery_output, ""),
+                subprocess.CompletedProcess([], 0, "built\n", ""),
+                subprocess.CompletedProcess([], 0, local_image, ""),
+                subprocess.CompletedProcess([], 0, "pulled\n", ""),
+                subprocess.CompletedProcess([], 0, runner_inspect, ""),
+            ]
+        )
+        preparation_dir = root / "preparation"
+        with mock.patch.object(
+            qualification.subprocess,
+            "run",
+            side_effect=docker_results,
+        ):
+            preparation_path = qualification.prepare_exact_images(
+                "kungfu",
+                project,
+                preparation_dir,
+                subject,
+                kungfu_image,
+            )
+        bundle = {
+            "profile": "kungfu",
+            "bundle_id": bundle_id,
+            "preparation": {
+                "path": "preparation/image-preparation.json",
+                "sha256": qualification.sha256_file(preparation_path),
+            },
+        }
+        return plan, bundle, {"runner_image": runner_image}
+
+    def test_kungfu_preparation_verifies_after_checkout_relocation(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = pathlib.Path(temporary)
+            producer = root / "producer"
+            consumer = root / "consumer"
+            producer.mkdir()
+            plan, bundle, bundle_inputs = self.write_kungfu_preparation(producer)
+            shutil.copytree(producer, consumer)
+            with mock.patch.object(
+                qualification,
+                "COMPOSE_PATH",
+                pathlib.Path("/relocated/checkout/pilots/comparator/compose.yaml"),
+            ):
+                qualification.verify_preparation(
+                    consumer,
+                    bundle,
+                    plan,
+                    bundle_inputs,
+                )
+
+    def test_kungfu_preparation_rejects_inconsistent_recorded_compose_path(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = pathlib.Path(temporary)
+            plan, bundle, bundle_inputs = self.write_kungfu_preparation(root)
+            preparation_path = root / "preparation" / "image-preparation.json"
+            preparation = qualification.load_json(preparation_path)
+            preparation["images"][0]["attempts"][0]["command"][3] = (
+                "/different/checkout/pilots/comparator/compose.yaml"
+            )
+            qualification.write_json(preparation_path, preparation)
+            bundle["preparation"]["sha256"] = qualification.sha256_file(
+                preparation_path
+            )
+            with self.assertRaisesRegex(
+                qualification.QualificationError,
+                "build attempt is invalid",
+            ):
+                qualification.verify_preparation(
+                    root,
+                    bundle,
+                    plan,
+                    bundle_inputs,
+                )
+
+    def test_kungfu_preparation_rejects_noncanonical_recorded_compose_path(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = pathlib.Path(temporary)
+            plan, bundle, bundle_inputs = self.write_kungfu_preparation(root)
+            preparation_path = root / "preparation" / "image-preparation.json"
+            preparation = qualification.load_json(preparation_path)
+            replacement = "/tmp/replacement.yaml"
+            preparation["discovery"]["command"][3] = replacement
+            preparation["images"][0]["attempts"][0]["command"][3] = replacement
+            qualification.write_json(preparation_path, preparation)
+            bundle["preparation"]["sha256"] = qualification.sha256_file(
+                preparation_path
+            )
+            with self.assertRaisesRegex(
+                qualification.QualificationError,
+                "discovery Compose path is invalid",
+            ):
+                qualification.verify_preparation(
+                    root,
+                    bundle,
+                    plan,
+                    bundle_inputs,
+                )
+
     def test_clickhouse_bootstrap_creates_database_before_database_scoped_schema(self) -> None:
         project = clickhouse_adapter.ComposeProject("kf-clickhouse-bootstrap", pathlib.Path("/tmp"))
         completed = subprocess.CompletedProcess([], 0, "", "")
