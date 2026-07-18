@@ -787,6 +787,19 @@ def command_text(command: list[str]) -> str:
     return result.stdout.strip()
 
 
+def retained_compose_path(value: Any, context: str) -> str:
+    if not isinstance(value, str):
+        raise QualificationError(f"{context} Compose path is invalid")
+    path = pathlib.PurePosixPath(value)
+    if (
+        not path.is_absolute()
+        or ".." in path.parts
+        or path.parts[-3:] != ("pilots", "comparator", "compose.yaml")
+    ):
+        raise QualificationError(f"{context} Compose path is invalid")
+    return value
+
+
 def runtime_facts(resource_limits: dict[str, Any]) -> dict[str, Any]:
     memory_bytes = 0
     try:
@@ -1953,6 +1966,10 @@ def verify_preparation(
         or discovery.get("exit_code") != 0
     ):
         raise QualificationError("image preparation discovery command is invalid")
+    compose_path = retained_compose_path(
+        command[3],
+        "image preparation discovery",
+    )
     discovery_stdout = verify_log(discovery.get("stdout"), "image preparation discovery stdout")
     verify_log(discovery.get("stderr"), "image preparation discovery stderr")
 
@@ -2038,7 +2055,7 @@ def verify_preparation(
                 "Kungfu package image build attempt",
             )
             expected_build = [
-                "docker", "compose", "-f", str(COMPOSE_PATH),
+                "docker", "compose", "-f", compose_path,
                 "--project-name", expected_project, "--profile", "kungfu", "build", "kungfu",
             ]
             if (
