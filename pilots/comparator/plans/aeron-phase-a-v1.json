@@ -16,14 +16,14 @@
   "configuration_slot": "realistic-default",
   "environment": {
     "compose_path": "compose.yaml",
-    "compose_sha256": "1c0e8872402a110d7c0c1014c106491102f2e126574fe3a67e54765b4fbd1613",
+    "compose_sha256": "496fc3760aee9712d6b1487cf6ede9c3f13eda3d2fda9c1840d3611f3aec1c68",
     "environment_lock_path": "environment.lock.json",
     "environment_lock_sha256": "4f08255a001919e8db0c8f6c9936d49d5c7fed66ad5299240895c1323e390c66",
     "runner_image": "ghcr.io/kungfu-systems/build-images/kungfu-verify@sha256:cb6d939d567c129903d6e3ad858e2c09a9475b3b8f81b1aad10279d0e63a920d"
   },
   "adapter_registry": {
     "path": "workload-adapters/registry.json",
-    "sha256": "9e412843d5c6c13132a3c1e25ce6918fbab19d37549a1f4aebc1a783347124d9"
+    "sha256": "a58d945abcd9498e8a03663e1882d23a2b4291b394487c13aeaf716b1c607167"
   },
   "workload_adapter": {
     "id": "aeron-phase-a-v1",
