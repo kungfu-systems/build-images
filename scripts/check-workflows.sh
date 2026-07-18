@@ -47,6 +47,18 @@ if ! grep -Fq 'fetch-depth: 0' "$promotion_workflow"; then
   exit 1
 fi
 
+kungfu_package_workflow="$repo_root/.github/workflows/comparator-kungfu-package-smoke.yml"
+# shellcheck disable=SC2016
+if ! grep -Fq 'name: ${{ inputs.package_artifact_name }}' "$kungfu_package_workflow"; then
+  echo "Kungfu qualification must download the caller-provided Actions artifact" >&2
+  exit 1
+fi
+if ! grep -Fq 'KUNGFU_CLI_ARTIFACT_NAME: kungfu-episodes-cli-linux-x64.tar.gz' "$kungfu_package_workflow" ||
+   grep -Fq 'KUNGFU_CLI_ARTIFACT_NAME: ${{ inputs.package_artifact_name }}' "$kungfu_package_workflow"; then
+  echo "Kungfu smoke must receive the fixed package filename, not the Actions artifact name" >&2
+  exit 1
+fi
+
 public_verifier="$repo_root/scripts/verify-ghcr-public.sh"
 if grep -Fq 'api.github.com/orgs/' "$public_verifier" ||
    ! grep -Fq 'https://ghcr.io/token?scope=repository:' "$public_verifier"; then
