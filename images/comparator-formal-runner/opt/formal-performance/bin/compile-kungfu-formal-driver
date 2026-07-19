@@ -1,0 +1,189 @@
+#!/usr/bin/env python3
+"""Compile the published external driver against one frozen Kungfu core build."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import pathlib
+import shlex
+import subprocess
+import sys
+from typing import Any
+
+
+class CompileError(RuntimeError):
+    pass
+
+
+def sha256_file(path: pathlib.Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def run(command: list[str], cwd: pathlib.Path) -> subprocess.CompletedProcess[str]:
+    result = subprocess.run(
+        command, cwd=cwd, capture_output=True, text=True, check=False
+    )
+    if result.returncode != 0:
+        raise CompileError(
+            f"command failed ({result.returncode}): {shlex.join(command)}\n"
+            f"{result.stderr}"
+        )
+    return result
+
+
+def load_commands(path: pathlib.Path) -> list[dict[str, Any]]:
+    value = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(value, list):
+        raise CompileError("compile_commands.json root is not an array")
+    return [entry for entry in value if isinstance(entry, dict)]
+
+
+def compile_driver(
+    source_root: pathlib.Path,
+    driver_source: pathlib.Path,
+    output: pathlib.Path,
+) -> dict[str, Any]:
+    build = source_root / "framework/core/build"
+    compile_db = build / "compile_commands.json"
+    original_source = (
+        source_root
+        / "framework/core/src/libkungfu/tests/durability_slo_fixture.cpp"
+    )
+    entries = [
+        entry
+        for entry in load_commands(compile_db)
+        if pathlib.Path(str(entry.get("file", ""))).name
+        == "durability_slo_fixture.cpp"
+    ]
+    if len(entries) != 1:
+        raise CompileError("cannot identify the frozen durability fixture compile command")
+    entry = entries[0]
+    compile_command = (
+        list(entry["arguments"])
+        if isinstance(entry.get("arguments"), list)
+        else shlex.split(str(entry.get("command", "")))
+    )
+    original_object = next(
+        (
+            pathlib.Path(compile_command[index + 1])
+            for index, value in enumerate(compile_command[:-1])
+            if value == "-o"
+        ),
+        None,
+    )
+    if original_object is None:
+        raise CompileError("frozen fixture compile command has no output")
+    object_path = build / "formal-performance-driver.o"
+    rewritten: list[str] = []
+    skip_next = False
+    for index, value in enumerate(compile_command):
+        if skip_next:
+            skip_next = False
+            continue
+        if value == "-o":
+            rewritten += ["-o", str(object_path)]
+            skip_next = True
+        elif value == "-MD" or value.startswith("-fdeps-format=") or value.startswith(
+            "-fmodule-mapper="
+        ):
+            continue
+        elif pathlib.Path(value) == original_source:
+            rewritten.append(str(driver_source))
+        else:
+            rewritten.append(value)
+    run(rewritten, build)
+    if not object_path.is_file():
+        raise CompileError("external driver object was not produced")
+
+    link_output = run(
+        ["ninja", "-t", "commands", "kungfu_durability_slo_fixture"], build
+    ).stdout
+    link_lines = [
+        line
+        for line in link_output.splitlines()
+        if str(original_object) in line
+        and " -o " in f" {line} "
+        and "kungfu_durability_slo_fixture" in line
+        and line.startswith(": && ")
+    ]
+    if len(link_lines) != 1:
+        raise CompileError("cannot identify the frozen durability fixture link command")
+    link_line = link_lines[0]
+    link_command = shlex.split(link_line)
+    link_output_index = link_command.index("-o") + 1
+    original_link_output = link_command[link_output_index]
+    output.parent.mkdir(parents=True, exist_ok=True)
+    rewritten_link: list[str] = []
+    skip_next = False
+    for value in link_command:
+        if value in {":", "&&"}:
+            continue
+        if skip_next:
+            skip_next = False
+            continue
+        if value == "-o":
+            rewritten_link += ["-o", str(output)]
+            skip_next = True
+        elif pathlib.Path(value) == original_object:
+            rewritten_link.append(str(object_path))
+        elif value.startswith("-L/home/kungfu/.cache/conan2/"):
+            continue
+        elif value.startswith("/home/kungfu/.cache/conan2/"):
+            continue
+        elif value == original_link_output:
+            continue
+        else:
+            rewritten_link.append(value.replace("\\$ORIGIN", "$ORIGIN"))
+    run(rewritten_link, build)
+    if not output.is_file():
+        raise CompileError("external Kungfu formal driver was not produced")
+    return {
+        "schema": "urn:kungfu-systems:build-images:kungfu-formal-driver-build:v1",
+        "source_sha": run(
+            ["git", "-C", str(source_root), "rev-parse", "HEAD"], build
+        ).stdout.strip(),
+        "driver_source_sha256": sha256_file(driver_source),
+        "driver_binary_sha256": sha256_file(output),
+        "compile_command_sha256": hashlib.sha256(
+            shlex.join(rewritten).encode("utf-8")
+        ).hexdigest(),
+        "link_command_sha256": hashlib.sha256(
+            shlex.join(rewritten_link).encode("utf-8")
+        ).hexdigest(),
+        "output": str(output),
+    }
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--source-root", type=pathlib.Path, required=True)
+    parser.add_argument("--driver-source", type=pathlib.Path, required=True)
+    parser.add_argument("--output", type=pathlib.Path, required=True)
+    parser.add_argument("--receipt", type=pathlib.Path, required=True)
+    args = parser.parse_args()
+    try:
+        receipt = compile_driver(
+            args.source_root.resolve(),
+            args.driver_source.resolve(),
+            args.output.resolve(),
+        )
+        args.receipt.parent.mkdir(parents=True, exist_ok=True)
+        args.receipt.write_text(
+            json.dumps(receipt, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        print(json.dumps(receipt, sort_keys=True))
+    except (CompileError, OSError, ValueError, subprocess.SubprocessError) as error:
+        print(f"compile-kungfu-formal-driver: {error}", file=sys.stderr)
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

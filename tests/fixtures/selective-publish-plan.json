@@ -2,6 +2,16 @@
   "schema": 1,
   "cases": [
     {
+      "name": "comparator-formal-runner-context-only",
+      "changed_paths": [
+        "images/comparator-formal-runner/opt/formal-performance/bin/formal-performance"
+      ],
+      "selected_images": [
+        "comparator-formal-runner"
+      ],
+      "full_rebuild": false
+    },
+    {
       "name": "latex-context-only",
       "changed_paths": [
         "images/latex-pdf-builder/Dockerfile"
@@ -70,6 +80,7 @@
       "selected_images": [
         "base-linux",
         "kungfu-verify",
+        "comparator-formal-runner",
         "kungfu-native-linux-x64",
         "node24-pnpm",
         "latex-pdf-builder",
@@ -87,6 +98,7 @@
         "base-linux",
         "clickhouse-server",
         "kungfu-verify",
+        "comparator-formal-runner",
         "kungfu-native-linux-x64",
         "node24-pnpm",
         "latex-pdf-builder",
@@ -104,6 +116,7 @@
         "base-linux",
         "clickhouse-server",
         "kungfu-verify",
+        "comparator-formal-runner",
         "kungfu-native-linux-x64",
         "node24-pnpm",
         "latex-pdf-builder",
@@ -121,6 +134,7 @@
         "base-linux",
         "clickhouse-server",
         "kungfu-verify",
+        "comparator-formal-runner",
         "kungfu-native-linux-x64",
         "node24-pnpm",
         "latex-pdf-builder",
@@ -138,6 +152,7 @@
         "base-linux",
         "clickhouse-server",
         "kungfu-verify",
+        "comparator-formal-runner",
         "kungfu-native-linux-x64",
         "node24-pnpm",
         "latex-pdf-builder",
@@ -155,6 +170,7 @@
         "base-linux",
         "clickhouse-server",
         "kungfu-verify",
+        "comparator-formal-runner",
         "kungfu-native-linux-x64",
         "node24-pnpm",
         "latex-pdf-builder",
@@ -170,6 +186,7 @@
         "base-linux",
         "clickhouse-server",
         "kungfu-verify",
+        "comparator-formal-runner",
         "kungfu-native-linux-x64",
         "node24-pnpm",
         "latex-pdf-builder",

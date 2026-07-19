@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:kungfu-systems:build-images:formal-performance-bundle:v1",
+  "title": "Symmetric formal performance bundle",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "bundle_schema",
+    "schema_version",
+    "evidence_class",
+    "status",
+    "plan",
+    "runner",
+    "unscored_preparation",
+    "samples",
+    "aggregates",
+    "attachments",
+    "authority"
+  ],
+  "properties": {
+    "bundle_schema": {
+      "const": "urn:kungfu-systems:build-images:formal-performance-bundle:v1"
+    },
+    "schema_version": { "const": 1 },
+    "evidence_class": { "const": "symmetric-formal-performance" },
+    "status": { "enum": ["complete", "incomplete"] },
+    "plan": { "type": "object" },
+    "runner": { "type": "object" },
+    "unscored_preparation": { "type": "object" },
+    "samples": { "type": "array" },
+    "aggregates": { "type": "object" },
+    "attachments": { "type": "array" },
+    "authority": { "type": "object" }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:kungfu-systems:build-images:formal-performance-plan:v1",
+  "title": "Symmetric formal performance plan",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "plan_schema",
+    "schema_version",
+    "evidence_class",
+    "seed",
+    "inputs",
+    "full_stack",
+    "matched_lane",
+    "authority"
+  ],
+  "properties": {
+    "plan_schema": {
+      "const": "urn:kungfu-systems:build-images:formal-performance-plan:v1"
+    },
+    "schema_version": { "const": 1 },
+    "evidence_class": { "const": "symmetric-formal-performance" },
+    "seed": { "const": 20260719 },
+    "inputs": { "type": "object" },
+    "full_stack": { "type": "object" },
+    "matched_lane": { "type": "object" },
+    "authority": { "type": "object" }
+  }
+}

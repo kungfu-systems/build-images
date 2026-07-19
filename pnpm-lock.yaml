@@ -9,8 +9,8 @@ importers:
   .:
     devDependencies:
       '@kungfu-tech/buildchain':
-        specifier: 2.14.3-alpha.6
-        version: 2.14.3-alpha.6
+        specifier: 2.14.3-alpha.8
+        version: 2.14.3-alpha.8
       '@kungfu-tech/buildchain-stable':
         specifier: npm:@kungfu-tech/buildchain@2.13.0
         version: '@kungfu-tech/buildchain@2.13.0'
@@ -25,8 +25,8 @@ packages:
     engines: {node: '>=22.14.0'}
     hasBin: true
 
-  '@kungfu-tech/buildchain@2.14.3-alpha.6':
-    resolution: {integrity: sha512-CTNKBWJlHaO3E6iR8aI6f/tKnc9ka1NxReL2IYNjX7dtMOnR9FCobOBleZeIQ3pnYIbmBgrQYyiYnsg1ltIccA==}
+  '@kungfu-tech/buildchain@2.14.3-alpha.8':
+    resolution: {integrity: sha512-8LJt5XXbNk5VPFzoK/8AHIzjxOvdiZnDxGKYiAApLrrONTuPCqfCbhNMk8zymvtdLch0b1FEZ+v6PnmHgfj+iQ==}
     engines: {node: '>=22.14.0'}
     hasBin: true
 
@@ -48,7 +48,7 @@ snapshots:
       '@kungfu-tech/kfd': 1.0.0-alpha.21
       smol-toml: 1.7.0
 
-  '@kungfu-tech/buildchain@2.14.3-alpha.6':
+  '@kungfu-tech/buildchain@2.14.3-alpha.8':
     dependencies:
       '@kungfu-tech/kfd': 1.0.0-alpha.29
       smol-toml: 1.7.0

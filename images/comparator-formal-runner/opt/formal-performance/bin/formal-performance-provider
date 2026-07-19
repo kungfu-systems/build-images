@@ -1,0 +1,1050 @@
+#!/usr/bin/env python3
+"""Execute one frozen formal-performance sample on a Docker/cgroup-v2 host."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import importlib.util
+import json
+import os
+import pathlib
+import re
+import shlex
+import shutil
+import signal
+import subprocess
+import sys
+import time
+from typing import Any
+
+
+REQUEST_SCHEMA = (
+    "urn:kungfu-systems:build-images:formal-performance-provider-request:v1"
+)
+RUN_SCHEMA = "urn:kungfu-systems:build-images:formal-performance-run:v1"
+EVIDENCE_CLASS = "symmetric-formal-performance"
+RUN_AUTHORITY = {
+    "measurement_candidate": True,
+    "winner_authority": False,
+    "blinded_m3_m4_self_grading": False,
+    "active_operator_self_timing": False,
+    "aeron_complete_product_verdict": False,
+}
+ANOMALIES = ("loss", "duplicates", "reordered", "marker_mismatches")
+PROFILE = {
+    "postgresql": "postgres",
+    "clickhouse": "clickhouse",
+    "kungfu": "kungfu",
+}
+ADAPTER_MODULE = {
+    "postgresql": "postgres_phase_a_v1.py",
+    "clickhouse": "clickhouse_phase_a_v1.py",
+    "kungfu": "kungfu_phase_b_v1.py",
+}
+SUBJECT_SERVICE = {
+    "postgresql": "postgres",
+    "clickhouse": "clickhouse",
+    "kungfu": "kungfu",
+    "aeron": "aeron",
+}
+DATA_ROOT = {
+    "postgresql": "/var/lib/postgresql",
+    "clickhouse": "/var/lib/clickhouse",
+    "kungfu": "/var/lib/kungfu",
+    "aeron": "/var/lib/aeron",
+}
+SHA256 = re.compile(r"^[0-9a-f]{64}$")
+PROJECT = re.compile(r"^[a-z0-9][a-z0-9_-]{0,62}$")
+KIT_ROOT = pathlib.Path(__file__).resolve().parents[1]
+AERON_DRIVER_JAR = KIT_ROOT / "drivers/aeron/formal-performance-aeron.jar"
+
+
+class ProviderError(RuntimeError):
+    """A host, subject, sample, or retained-evidence contract failed."""
+
+
+def load_json(path: pathlib.Path) -> dict[str, Any]:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise ProviderError(f"cannot read JSON {path}: {error}") from error
+    if not isinstance(value, dict):
+        raise ProviderError(f"JSON root must be an object: {path}")
+    return value
+
+
+def write_json(path: pathlib.Path, value: Any) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+
+
+def sha256_file(path: pathlib.Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def run_text(
+    command: list[str],
+    *,
+    cwd: pathlib.Path | None = None,
+    env: dict[str, str] | None = None,
+    check: bool = True,
+    timeout: int = 120,
+) -> subprocess.CompletedProcess[str]:
+    try:
+        result = subprocess.run(
+            command,
+            cwd=cwd,
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired) as error:
+        raise ProviderError(f"command failed: {' '.join(command)}: {error}") from error
+    if check and result.returncode != 0:
+        raise ProviderError(
+            f"command failed ({result.returncode}): {' '.join(command)}: "
+            f"{result.stderr.strip()}"
+        )
+    return result
+
+
+def require_environment(name: str) -> str:
+    value = os.environ.get(name, "")
+    if not value:
+        raise ProviderError(f"{name} is required")
+    return value
+
+
+def exact_image(value: str, repository: str) -> str:
+    prefix = f"ghcr.io/kungfu-systems/build-images/{repository}@sha256:"
+    if not value.startswith(prefix) or not SHA256.fullmatch(value[len(prefix) :]):
+        raise ProviderError(f"{repository} must use its exact published digest")
+    return value
+
+
+def validate_request(request: dict[str, Any], output: pathlib.Path) -> None:
+    required = {
+        "schema",
+        "attempt",
+        "plan_sha256",
+        "runner_image",
+        "schedule_index",
+        "lane",
+        "phase",
+        "round",
+        "candidate",
+        "variant",
+        "input_identity",
+        "limits",
+        "output",
+    }
+    if set(request) != required:
+        raise ProviderError("provider request fields are incomplete or unexpected")
+    if (
+        request["schema"] != REQUEST_SCHEMA
+        or request["attempt"] != 1
+        or request["output"] != str(output.resolve())
+        or not SHA256.fullmatch(str(request["plan_sha256"]))
+    ):
+        raise ProviderError("provider request identity is invalid")
+    if request["lane"] not in {"full-stack", "kungfu-aeron"}:
+        raise ProviderError("provider request lane is unsupported")
+    if not isinstance(request["schedule_index"], int) or request["schedule_index"] < 0:
+        raise ProviderError("provider schedule index is invalid")
+    if request["limits"] != {
+        "subject": {"cpu_micros": 2000000, "memory_bytes": 2147483648},
+        "runner": {"cpu_micros": 1000000, "memory_bytes": 1073741824},
+    }:
+        raise ProviderError("provider resource limit contract drifted")
+
+
+def import_adapter(path: pathlib.Path) -> Any:
+    sys.path.insert(0, str(path.parent))
+    name = f"formal_adapter_{path.stem}_{sha256_file(path)[:12]}"
+    spec = importlib.util.spec_from_file_location(name, path)
+    if spec is None or spec.loader is None:
+        raise ProviderError(f"cannot load workload adapter: {path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def project_name(request: dict[str, Any]) -> str:
+    candidate = request["candidate"].replace("postgresql", "pg")
+    value = f"fp{request['schedule_index']:04d}-{candidate}"
+    if not PROJECT.fullmatch(value):
+        raise ProviderError("derived Compose project name is invalid")
+    return value
+
+
+def docker_ids(project: str, *, all_containers: bool = False) -> list[str]:
+    command = ["docker", "ps", "-q"]
+    if all_containers:
+        command.insert(2, "-a")
+    command += ["--filter", f"label=com.docker.compose.project={project}"]
+    return [line for line in run_text(command).stdout.splitlines() if line]
+
+
+def cgroup_path(pid: int) -> pathlib.Path:
+    path = pathlib.Path(f"/proc/{pid}/cgroup")
+    for line in path.read_text(encoding="utf-8").splitlines():
+        fields = line.split(":", 2)
+        if len(fields) == 3 and fields[0] == "0" and fields[1] == "":
+            relative = fields[2].lstrip("/")
+            return pathlib.Path("/sys/fs/cgroup") / relative
+    raise ProviderError(f"container pid {pid} has no cgroup-v2 path")
+
+
+def scalar(path: pathlib.Path) -> int:
+    return int(path.read_text(encoding="utf-8").strip())
+
+
+def cpu_usage_ns(root: pathlib.Path) -> int:
+    for line in (root / "cpu.stat").read_text(encoding="utf-8").splitlines():
+        key, value = line.split()
+        if key == "usage_usec":
+            return int(value) * 1000
+    raise ProviderError(f"cgroup cpu.stat has no usage_usec: {root}")
+
+
+def io_bytes(root: pathlib.Path) -> tuple[int, int]:
+    read_bytes = 0
+    write_bytes = 0
+    for line in (root / "io.stat").read_text(encoding="utf-8").splitlines():
+        for field in line.split()[1:]:
+            key, value = field.split("=", 1)
+            if key == "rbytes":
+                read_bytes += int(value)
+            elif key == "wbytes":
+                write_bytes += int(value)
+    return read_bytes, write_bytes
+
+
+def rss_bytes(root: pathlib.Path) -> int:
+    values: dict[str, int] = {}
+    for line in (root / "memory.stat").read_text(encoding="utf-8").splitlines():
+        key, value = line.split()
+        if key in {"anon", "file_mapped", "shmem"}:
+            values[key] = int(value)
+    if set(values) != {"anon", "file_mapped", "shmem"}:
+        raise ProviderError(f"cgroup memory.stat has no RSS components: {root}")
+    return sum(values.values())
+
+
+def inspect_containers(ids: list[str]) -> list[dict[str, Any]]:
+    if not ids:
+        return []
+    result = run_text(["docker", "inspect", *ids])
+    try:
+        value = json.loads(result.stdout)
+    except json.JSONDecodeError as error:
+        raise ProviderError(f"docker inspect did not return JSON: {error}") from error
+    if not isinstance(value, list):
+        raise ProviderError("docker inspect result is not an array")
+    return value
+
+
+class CgroupSampler:
+    def __init__(self, project: str, expected_subject: str) -> None:
+        self.project = project
+        self.expected_subject = expected_subject
+        self.samples: list[dict[str, Any]] = []
+        self.first: dict[str, dict[str, int]] = {}
+        self.last: dict[str, dict[str, int]] = {}
+        self.peak_rss_bytes = 0
+        self.services: dict[str, dict[str, int]] = {}
+
+    def sample(self) -> None:
+        current: list[dict[str, Any]] = []
+        total_memory = 0
+        for container in inspect_containers(docker_ids(self.project)):
+            state = container.get("State", {})
+            pid = state.get("Pid", 0)
+            if not isinstance(pid, int) or pid <= 0 or state.get("Running") is not True:
+                continue
+            root = cgroup_path(pid)
+            read_bytes, write_bytes = io_bytes(root)
+            record = {
+                "cpu_usage_ns": cpu_usage_ns(root),
+                "memory_current_bytes": scalar(root / "memory.current"),
+                "rss_bytes": rss_bytes(root),
+                "read_bytes": read_bytes,
+                "write_bytes": write_bytes,
+            }
+            identity = str(root)
+            self.first.setdefault(identity, record)
+            self.last[identity] = record
+            total_memory += record["rss_bytes"]
+            labels = container.get("Config", {}).get("Labels", {}) or {}
+            service = labels.get("com.docker.compose.service", "")
+            host = container.get("HostConfig", {})
+            if service:
+                self.services[service] = {
+                    "cpu_micros": int(host.get("NanoCpus", 0)) // 1000,
+                    "memory_bytes": int(host.get("Memory", 0)),
+                }
+            current.append({"cgroup": identity, **record})
+        if current:
+            self.peak_rss_bytes = max(self.peak_rss_bytes, total_memory)
+            self.samples.append(
+                {"monotonic_ns": time.monotonic_ns(), "cgroups": current}
+            )
+
+    def result(self, limits: dict[str, Any]) -> dict[str, Any]:
+        if len(self.samples) < 2 or not self.first:
+            raise ProviderError("cgroup-v2 sampler retained fewer than two samples")
+        subject_limits = self.services.get(self.expected_subject)
+        if subject_limits != limits["subject"]:
+            raise ProviderError(
+                f"subject limits are not proved: {self.expected_subject}={subject_limits}"
+            )
+        runner_limits = self.services.get("runner")
+        if runner_limits is not None and runner_limits != limits["runner"]:
+            raise ProviderError(f"runner limits are not proved: {runner_limits}")
+        start = {
+            key: sum(record[key] for record in self.first.values())
+            for key in (
+                "cpu_usage_ns",
+                "memory_current_bytes",
+                "read_bytes",
+                "write_bytes",
+            )
+        }
+        end = {
+            key: sum(record[key] for record in self.last.values())
+            for key in (
+                "cpu_usage_ns",
+                "memory_current_bytes",
+                "read_bytes",
+                "write_bytes",
+            )
+        }
+        for key in ("cpu_usage_ns", "read_bytes", "write_bytes"):
+            if end[key] < start[key]:
+                raise ProviderError(f"cgroup counter moved backwards: {key}")
+        return {
+            "cgroup_version": 2,
+            "sample_count": len(self.samples),
+            "start": start,
+            "end": end,
+            "cpu_usage_ns": end["cpu_usage_ns"] - start["cpu_usage_ns"],
+            "peak_rss_bytes": self.peak_rss_bytes,
+            "read_bytes": end["read_bytes"] - start["read_bytes"],
+            "write_bytes": end["write_bytes"] - start["write_bytes"],
+            "data_root_bytes": 0,
+            "limits": limits,
+        }
+
+
+def measured_process(
+    command: list[str],
+    *,
+    project: str,
+    subject_service: str,
+    limits: dict[str, Any],
+    cwd: pathlib.Path,
+    env: dict[str, str],
+    timeout_seconds: int,
+) -> tuple[subprocess.CompletedProcess[str], int, CgroupSampler]:
+    started = time.monotonic_ns()
+    process = subprocess.Popen(
+        command,
+        cwd=cwd,
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        start_new_session=True,
+    )
+    sampler = CgroupSampler(project, subject_service)
+    deadline = time.monotonic() + timeout_seconds
+    while process.poll() is None:
+        if time.monotonic() > deadline:
+            os.killpg(process.pid, signal.SIGKILL)
+            process.wait()
+            raise ProviderError(f"sample timed out after {timeout_seconds}s")
+        sampler.sample()
+        time.sleep(0.02)
+    stdout, stderr = process.communicate()
+    sampler.sample()
+    result = subprocess.CompletedProcess(command, process.returncode, stdout, stderr)
+    if result.returncode != 0:
+        raise ProviderError(
+            f"sample command failed ({result.returncode}): {stderr.strip()}"
+        )
+    resources = sampler.result(limits)
+    if resources["cpu_usage_ns"] <= 0 or resources["peak_rss_bytes"] <= 0:
+        raise ProviderError("sample cgroup counters contain no measured work")
+    return result, time.monotonic_ns() - started, sampler
+
+
+def compose_command(
+    repo_root: pathlib.Path,
+    project: str,
+    profile: str,
+    *arguments: str,
+    override: pathlib.Path | None = None,
+) -> list[str]:
+    command = [
+        "docker",
+        "compose",
+        "-f",
+        str(repo_root / "pilots/comparator/compose.yaml"),
+    ]
+    if override is not None:
+        command += ["-f", str(override)]
+    return command + ["--project-name", project, "--profile", profile, *arguments]
+
+
+def cleanup_project(
+    repo_root: pathlib.Path,
+    project: str,
+    profile: str,
+    env: dict[str, str],
+    *,
+    override: pathlib.Path | None = None,
+) -> dict[str, list[str]]:
+    run_text(
+        compose_command(
+            repo_root,
+            project,
+            profile,
+            "down",
+            "--volumes",
+            "--remove-orphans",
+            override=override,
+        ),
+        cwd=repo_root,
+        env=env,
+        check=False,
+        timeout=180,
+    )
+    residue = {
+        "containers": docker_ids(project, all_containers=True),
+        "networks": [
+            line
+            for line in run_text(
+                [
+                    "docker",
+                    "network",
+                    "ls",
+                    "-q",
+                    "--filter",
+                    f"label=com.docker.compose.project={project}",
+                ]
+            ).stdout.splitlines()
+            if line
+        ],
+        "volumes": [
+            line
+            for line in run_text(
+                [
+                    "docker",
+                    "volume",
+                    "ls",
+                    "-q",
+                    "--filter",
+                    f"label=com.docker.compose.project={project}",
+                ]
+            ).stdout.splitlines()
+            if line
+        ],
+    }
+    if any(residue.values()):
+        raise ProviderError(f"Compose project retained residue: {residue}")
+    return residue
+
+
+def cleanup_direct_project(project: str) -> dict[str, list[str]]:
+    ids = docker_ids(project, all_containers=True)
+    if ids:
+        run_text(["docker", "rm", "-f", *ids], check=False, timeout=180)
+    residue = {
+        "containers": docker_ids(project, all_containers=True),
+        "networks": [
+            line
+            for line in run_text(
+                [
+                    "docker",
+                    "network",
+                    "ls",
+                    "-q",
+                    "--filter",
+                    f"label=com.docker.compose.project={project}",
+                ]
+            ).stdout.splitlines()
+            if line
+        ],
+        "volumes": [
+            line
+            for line in run_text(
+                [
+                    "docker",
+                    "volume",
+                    "ls",
+                    "-q",
+                    "--filter",
+                    f"label=com.docker.compose.project={project}",
+                ]
+            ).stdout.splitlines()
+            if line
+        ],
+    }
+    if any(residue.values()):
+        raise ProviderError(f"direct project retained residue: {residue}")
+    return residue
+
+
+def artifact_inventory(output: pathlib.Path) -> list[dict[str, Any]]:
+    records = []
+    for path in sorted(output.rglob("*")):
+        if (
+            path.is_file()
+            and path.name != "run.json"
+            and not path.name.startswith(".request")
+        ):
+            relative = path.relative_to(output).as_posix()
+            records.append(
+                {
+                    "path": relative,
+                    "size": path.stat().st_size,
+                    "sha256": sha256_file(path),
+                }
+            )
+    return records
+
+
+def compose_data_root_bytes(
+    repo_root: pathlib.Path,
+    project: str,
+    profile: str,
+    service: str,
+    env: dict[str, str],
+) -> int:
+    result = run_text(
+        compose_command(
+            repo_root,
+            project,
+            profile,
+            "exec",
+            "-T",
+            service,
+            "du",
+            "-sb",
+            DATA_ROOT[
+                "postgresql" if service == "postgres" else service
+            ],
+        ),
+        cwd=repo_root,
+        env=env,
+    )
+    try:
+        value = int(result.stdout.split()[0])
+    except (IndexError, ValueError) as error:
+        raise ProviderError("subject data-root size is invalid") from error
+    if value <= 0:
+        raise ProviderError("subject data root is empty")
+    return value
+
+
+def full_stack_sample(
+    request: dict[str, Any],
+    output: pathlib.Path,
+    repo_root: pathlib.Path,
+    project: str,
+) -> tuple[int, dict[str, Any], dict[str, Any]]:
+    candidate = request["candidate"]
+    profile = PROFILE[candidate]
+    adapter_path = (
+        repo_root
+        / "pilots/comparator/workload-adapters"
+        / ADAPTER_MODULE[candidate]
+    )
+    adapter = import_adapter(adapter_path)
+    variant = request["variant"]
+    job_id = variant["job"]
+    tier = variant["tier"]
+    scenario_id = f"j{job_id[1]}-{tier}"
+    adapter_identity, _, _, registry_sha = adapter.validate_adapter(job_id, tier)
+    binding = adapter.adapter_binding(
+        registry_sha,
+        adapter_identity,
+        scenario_id,
+        job_id,
+        tier,
+        "execute",
+    )
+    work = repo_root / "pilots/comparator/.artifacts/formal" / project
+    if work.exists():
+        raise ProviderError(f"fresh adapter artifact root already exists: {work}")
+    work.mkdir(parents=True)
+    env = dict(os.environ)
+    env["COMPARATOR_PROJECT_NAME"] = project
+    if candidate == "kungfu":
+        env.update(
+            {
+                "KUNGFU_CLI_ARTIFACT_NAME": "kungfu-episodes-cli-linux-x64.tar.gz",
+                "KUNGFU_CLI_PACKAGE_SHA256": request["input_identity"][
+                    "package_sha256"
+                ],
+                "KUNGFU_CLI_VERSION": require_environment(
+                    "FORMAL_PERFORMANCE_KUNGFU_VERSION"
+                ),
+                "KUNGFU_CLI_SOURCE_SHA": request["input_identity"]["source_sha"],
+                "KUNGFU_CLI_EVIDENCE_URL": require_environment(
+                    "FORMAL_PERFORMANCE_KUNGFU_EVIDENCE_URL"
+                ),
+                "KUNGFU_CLI_IMAGE": require_environment(
+                    "FORMAL_PERFORMANCE_KUNGFU_IMAGE"
+                ),
+                "KUNGFU_CLI_IMAGE_ID": require_environment(
+                    "FORMAL_PERFORMANCE_KUNGFU_IMAGE_ID"
+                ),
+            }
+        )
+    command = [
+        sys.executable,
+        str(adapter_path),
+        "run",
+        "--project",
+        project,
+        "--scenario-id",
+        scenario_id,
+        "--job-id",
+        job_id,
+        "--tier",
+        tier,
+        "--step-id",
+        "execute",
+        "--expected-binding-sha256",
+        binding["sha256"],
+        "--output-dir",
+        str(work),
+    ]
+    try:
+        process, wall_ns, sampler = measured_process(
+            command,
+            project=project,
+            subject_service=SUBJECT_SERVICE[candidate],
+            limits=request["limits"],
+            cwd=repo_root,
+            env=env,
+            timeout_seconds=1800,
+        )
+        receipt = load_json(work / "adapter-receipt.json")
+        if (
+            receipt.get("status") != "passed"
+            or receipt.get("binding_sha256") != binding["sha256"]
+            or receipt.get("job_id") != job_id
+            or receipt.get("tier") != tier
+        ):
+            raise ProviderError("full-stack adapter receipt is invalid")
+        shutil.copytree(work, output / "driver")
+        (output / "driver.stdout.log").write_text(
+            process.stdout, encoding="utf-8"
+        )
+        (output / "driver.stderr.log").write_text(
+            process.stderr, encoding="utf-8"
+        )
+        write_json(output / "cgroup-samples.json", sampler.samples)
+        resources = sampler.result(request["limits"])
+        resources["data_root_bytes"] = compose_data_root_bytes(
+            repo_root,
+            project,
+            profile,
+            SUBJECT_SERVICE[candidate],
+            env,
+        )
+        return wall_ns, resources, {}
+    finally:
+        cleanup_project(repo_root, project, profile, env)
+        shutil.rmtree(work, ignore_errors=True)
+
+
+def matched_arguments(request: dict[str, Any]) -> tuple[int, int]:
+    workload = request["variant"]["workload"]
+    if workload == "latency":
+        return 10000, 0
+    if workload == "throughput":
+        return 100000, 0
+    if workload == "soak":
+        return 0, 60
+    if workload == "recovery":
+        return 10000, 0
+    raise ProviderError(f"matched workload is unsupported: {workload}")
+
+
+def matched_timeout_seconds(request: dict[str, Any]) -> int:
+    variant = request["variant"]
+    if (
+        request["candidate"] == "kungfu"
+        and variant["mode"] == "durable_sync"
+        and variant["workload"] in {"throughput", "recovery"}
+    ):
+        return 1800
+    return 600
+
+
+def parse_driver_result(stdout: str, request: dict[str, Any]) -> dict[str, Any]:
+    lines = [line for line in stdout.splitlines() if line.strip()]
+    if not lines:
+        raise ProviderError("matched driver emitted no JSON")
+    try:
+        value = json.loads(lines[-1])
+    except json.JSONDecodeError as error:
+        raise ProviderError(f"matched driver emitted invalid JSON: {error}") from error
+    if not isinstance(value, dict) or value.get("schema") != (
+        "urn:kungfu-systems:build-images:formal-performance-driver-result:v1"
+    ):
+        raise ProviderError("matched driver result schema is invalid")
+    anomalies = value.get("anomalies")
+    if anomalies != {name: 0 for name in ANOMALIES}:
+        raise ProviderError(f"matched driver correctness failed: {anomalies}")
+    variant = request["variant"]
+    expected = {
+        "product": request["candidate"],
+        "mode": variant["mode"],
+        "payload_bytes": variant["payload_bytes"],
+        "workload": variant["workload"],
+        "durable_group": {"max_messages": 100, "max_millis": 10},
+    }
+    for key, expected_value in expected.items():
+        if value.get(key) != expected_value:
+            raise ProviderError(
+                f"matched driver result drifted: {key}={value.get(key)!r}"
+            )
+    for key in (
+        "messages_per_second",
+        "bytes_per_second",
+        "p50_ns",
+        "p95_ns",
+        "p99_ns",
+        "p999_ns",
+        "max_ns",
+        "recovery_ns",
+        "crash_replay_ns",
+        "whole_root_restore_ns",
+        "data_root_bytes",
+        "backpressure",
+    ):
+        metric = value.get(key)
+        if (
+            isinstance(metric, bool)
+            or not isinstance(metric, (int, float))
+            or metric < 0
+        ):
+            raise ProviderError(f"matched driver metric is invalid: {key}")
+    if value["messages_per_second"] <= 0 or value["data_root_bytes"] <= 0:
+        raise ProviderError("matched driver retained no measured work")
+    if (
+        value["crash_replay_ns"] <= 0
+        or value["recovery_ns"]
+        != value["crash_replay_ns"] + value["whole_root_restore_ns"]
+        or (
+            variant["workload"] == "recovery"
+            and value["whole_root_restore_ns"] <= 0
+        )
+        or (
+            variant["workload"] != "recovery"
+            and value["whole_root_restore_ns"] != 0
+        )
+    ):
+        raise ProviderError("matched driver recovery metrics drifted")
+    return value
+
+
+def matched_sample(
+    request: dict[str, Any],
+    output: pathlib.Path,
+    repo_root: pathlib.Path,
+    project: str,
+) -> tuple[int, dict[str, Any], dict[str, Any]]:
+    candidate = request["candidate"]
+    variant = request["variant"]
+    records, duration = matched_arguments(request)
+    env = dict(os.environ)
+    env["COMPARATOR_PROJECT_NAME"] = project
+    override: pathlib.Path | None = None
+    scratch_root = pathlib.Path(
+        require_environment("FORMAL_PERFORMANCE_SCRATCH_ROOT")
+    ).resolve()
+    if not scratch_root.is_dir():
+        raise ProviderError("FORMAL_PERFORMANCE_SCRATCH_ROOT is not a directory")
+    data_root = scratch_root / f"{project}-data"
+    if data_root.exists():
+        raise ProviderError(f"fresh matched data root already exists: {data_root}")
+    data_root.mkdir(parents=True)
+    try:
+        if candidate == "aeron":
+            if not AERON_DRIVER_JAR.is_file():
+                raise ProviderError("published Aeron matched driver is missing")
+            override = output / "aeron-override.yaml"
+            write_json(
+                override,
+                {
+                    "services": {
+                        "aeron": {
+                            "volumes": [
+                                f"{AERON_DRIVER_JAR.resolve()}:/opt/formal-performance/formal-performance-aeron.jar:ro"
+                            ]
+                        }
+                    }
+                },
+            )
+            driver = [
+                "/opt/java/openjdk/bin/java",
+                "--add-opens",
+                "java.base/jdk.internal.misc=ALL-UNNAMED",
+                "--add-opens",
+                "java.base/java.util.zip=ALL-UNNAMED",
+                "-cp",
+                "/opt/formal-performance/formal-performance-aeron.jar:"
+                "/opt/aeron-native-kit/lib/aeron-all.jar",
+                "io.kungfu.aeron.FormalPerformanceHarness",
+                "run",
+                "--root",
+                "/var/lib/aeron",
+            ]
+            driver += [
+                "--mode",
+                variant["mode"],
+                "--payload",
+                str(variant["payload_bytes"]),
+                "--workload",
+                variant["workload"],
+                "--records",
+                str(records),
+                "--duration-seconds",
+                str(duration),
+                "--group-max-messages",
+                "100",
+                "--group-max-millis",
+                "10",
+            ]
+            command = compose_command(
+                repo_root,
+                project,
+                "aeron",
+                "up",
+                "-d",
+                "--wait",
+                "--no-build",
+                "--pull",
+                "never",
+                "aeron",
+                override=override,
+            )
+            command = [
+                "bash",
+                "-c",
+                shlex.join(command)
+                + " && "
+                + shlex.join(
+                    compose_command(
+                        repo_root,
+                        project,
+                        "aeron",
+                        "exec",
+                        "-T",
+                        "aeron",
+                        *driver,
+                        override=override,
+                    )
+                ),
+            ]
+            subject_service = "aeron"
+        else:
+            binary = pathlib.Path(
+                require_environment("FORMAL_PERFORMANCE_KUNGFU_MATCHED_BINARY")
+            ).resolve()
+            source = pathlib.Path(
+                require_environment("FORMAL_PERFORMANCE_KUNGFU_SOURCE")
+            ).resolve()
+            builder = exact_image(
+                require_environment("FORMAL_PERFORMANCE_KUNGFU_BUILDER_IMAGE"),
+                "kungfu-native-linux-x64",
+            )
+            if not binary.is_file() or source not in binary.parents:
+                raise ProviderError("prepared Kungfu matched driver is invalid")
+            relative_binary = binary.relative_to(source)
+            command = [
+                "docker",
+                "run",
+                "--rm",
+                "--platform",
+                "linux/amd64",
+                "--name",
+                project,
+                "--label",
+                f"com.docker.compose.project={project}",
+                "--label",
+                "com.docker.compose.service=kungfu",
+                "--network",
+                "none",
+                "--cpus",
+                "2",
+                "--memory",
+                "2g",
+                "--user",
+                f"{os.getuid()}:{os.getgid()}",
+                "-v",
+                f"{source}:/work:ro",
+                "-v",
+                f"{data_root}:/data",
+                builder,
+                f"/work/{relative_binary.as_posix()}",
+                "run",
+                "/data/run",
+                variant["mode"],
+                variant["workload"],
+                str(records),
+                str(variant["payload_bytes"]),
+                "100",
+                "10",
+                str(duration),
+            ]
+            subject_service = "kungfu"
+        process, wall_ns, sampler = measured_process(
+            command,
+            project=project,
+            subject_service=subject_service,
+            limits=request["limits"],
+            cwd=repo_root,
+            env=env,
+            timeout_seconds=matched_timeout_seconds(request),
+        )
+        driver_result = parse_driver_result(process.stdout, request)
+        write_json(output / "driver-result.json", driver_result)
+        (output / "driver.stdout.log").write_text(process.stdout, encoding="utf-8")
+        (output / "driver.stderr.log").write_text(process.stderr, encoding="utf-8")
+        write_json(output / "cgroup-samples.json", sampler.samples)
+        resources = sampler.result(request["limits"])
+        resources["data_root_bytes"] = int(driver_result["data_root_bytes"])
+        metrics = {
+            key: driver_result[key]
+            for key in (
+                "messages_per_second",
+                "bytes_per_second",
+                "p50_ns",
+                "p95_ns",
+                "p99_ns",
+                "p999_ns",
+                "max_ns",
+                "recovery_ns",
+                "crash_replay_ns",
+                "whole_root_restore_ns",
+            )
+        }
+        return wall_ns, resources, metrics
+    finally:
+        if candidate == "aeron":
+            cleanup_project(
+                repo_root, project, "aeron", env, override=override
+            )
+        else:
+            cleanup_direct_project(project)
+        if data_root.exists():
+            shutil.rmtree(data_root)
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--request", type=pathlib.Path, required=True)
+    parser.add_argument("--output", type=pathlib.Path, required=True)
+    args = parser.parse_args()
+    output = args.output.resolve()
+    try:
+        request = load_json(args.request)
+        validate_request(request, output)
+        repo_root = pathlib.Path(
+            require_environment("FORMAL_PERFORMANCE_REPO_ROOT")
+        ).resolve()
+        if not (repo_root / "pilots/comparator/compose.yaml").is_file():
+            raise ProviderError("FORMAL_PERFORMANCE_REPO_ROOT is not build-images")
+        project = project_name(request)
+        if docker_ids(project, all_containers=True):
+            raise ProviderError(f"sample Compose project is not fresh: {project}")
+        if request["lane"] == "full-stack":
+            wall_ns, resources, metrics = full_stack_sample(
+                request, output, repo_root, project
+            )
+        else:
+            wall_ns, resources, metrics = matched_sample(
+                request, output, repo_root, project
+            )
+        run = {
+            "run_schema": RUN_SCHEMA,
+            "schema_version": 1,
+            "evidence_class": EVIDENCE_CLASS,
+            **{
+                key: request[key]
+                for key in (
+                    "schedule_index",
+                    "lane",
+                    "phase",
+                    "round",
+                    "candidate",
+                    "variant",
+                )
+            },
+            "attempt": 1,
+            "input_identity": request["input_identity"],
+            "timing": {
+                "wall_ns": wall_ns,
+                "timer_scope": "fresh-project-after-staging",
+                "network_during_timer": False,
+                "upstream_build_during_timer": False,
+            },
+            "resources": resources,
+            "correctness": {
+                "passed": True,
+                "oracle_passed": True,
+                "retry_count": 0,
+                "manual_intervention_count": 0,
+                "anomalies": {name: 0 for name in ANOMALIES},
+                "metrics": metrics,
+            },
+            "cleanup": {
+                "passed": True,
+                "containers": [],
+                "processes": [],
+                "networks": [],
+                "volumes": [],
+                "data_roots": [],
+            },
+            "artifacts": artifact_inventory(output),
+            "authority": RUN_AUTHORITY,
+        }
+        write_json(output / "run.json", run)
+    except (
+        ProviderError,
+        OSError,
+        ValueError,
+        subprocess.SubprocessError,
+    ) as error:
+        print(f"formal-performance provider error: {error}", file=sys.stderr)
+        return 1
+    print(
+        json.dumps(
+            {
+                "status": "passed",
+                "schedule_index": request["schedule_index"],
+                "project": project,
+            },
+            sort_keys=True,
+        )
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

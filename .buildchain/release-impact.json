@@ -2,15 +2,22 @@
   "schemaVersion": 1,
   "contract": "kungfu-buildchain-impact",
   "release": {
-    "version": "1.3.0-alpha.0",
+    "version": "1.3.0-alpha.1",
     "line": "v1.3"
   },
   "versionImpact": {
     "final": "minor",
     "source": "build-images-surface-review",
-    "rationale": "The release adds the kungfu-native-linux-x64 image and its exact-digest fresh-consumer source-build contract without changing existing image identities."
+    "rationale": "The release adds the kungfu-native-linux-x64 source builder and comparator-formal-runner evidence distribution contracts without changing existing image identities."
   },
   "surfaceImpacts": [
+    {
+      "id": "comparator-formal-performance-runner",
+      "impact": "minor",
+      "class": "container-runtime",
+      "rationale": "The image family gains an exact-digest host-extracted runner with a frozen balanced schedule, formal-performance schemas, symmetric cgroup-v2 resource contracts, and a fail-closed offline verifier that cannot assign a product winner.",
+      "source": "images/comparator-formal-runner"
+    },
     {
       "id": "kungfu-native-linux-source-build",
       "impact": "minor",
@@ -58,5 +65,5 @@
   "breaking": false,
   "security": false,
   "migrationRequired": false,
-  "summary": "Build images v1.3 adds an exact-digest Kungfu native source-build image and fresh-consumer receipt while keeping host-native performance qualification outside Docker."
+  "summary": "Build images v1.3 adds exact-digest Kungfu source-build and formal comparator runner contracts while keeping measured host execution and winner authority outside Docker."
 }
