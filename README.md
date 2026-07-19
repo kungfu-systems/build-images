@@ -12,6 +12,7 @@ trusted workflows by exact tag or immutable digest.
 ```text
 base-linux
   -> kungfu-verify
+    -> kungfu-native-linux-x64
   -> node24-pnpm
     -> latex-pdf-builder
   -> native-linux-x64
@@ -20,6 +21,8 @@ base-linux
 - `base-linux` defines the common Linux build baseline.
 - `kungfu-verify` fixes the lightweight Kungfu CI entry tools used by
   `kungfu-code sync`, verify jobs, and publish preparation jobs.
+- `kungfu-native-linux-x64` adds the pinned GCC 14, Node 22, Python, Conan, and
+  Rust toolchains required to build Kungfu native source reproducibly.
 - `node24-pnpm` adds Node.js 24 and pnpm for GitHub Action and JavaScript build
   surfaces.
 - `latex-pdf-builder` adds LaTeX PDF publication tooling while preserving pnpm
@@ -64,6 +67,7 @@ repository tags, for example:
 ```text
 ghcr.io/kungfu-systems/build-images/base-linux:v1.0.0
 ghcr.io/kungfu-systems/build-images/kungfu-verify:v1.0.0
+ghcr.io/kungfu-systems/build-images/kungfu-native-linux-x64:v1.3.0-alpha.0
 ghcr.io/kungfu-systems/build-images/node24-pnpm:v1.0.0
 ghcr.io/kungfu-systems/build-images/latex-pdf-builder:v1.2.0-alpha.0
 ghcr.io/kungfu-systems/build-images/native-linux-x64:v1.0.0
@@ -74,8 +78,8 @@ provenance-complete `images.lock.json` exists. The changed image plus its
 downstream DAG closure is built; unchanged members are retagged from immutable
 accepted digests, publicly verified, and smoked again. Missing provenance or
 any unknown/global change fails closed to a full-family build. The Release
-Passport still contains all five images and records `built` versus `reused`
-content truthfully.
+Passport still contains the complete manifest-declared family and records
+`built` versus `reused` content truthfully.
 
 See `docs/release-and-tags.md` for the tag and digest contract.
 

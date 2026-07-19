@@ -349,7 +349,7 @@ function runReleasePassportSmoke() {
       channel: "release",
       source_sha: smokeSha,
       release_sha: smokeSha,
-      target_ref: "release/v1/v1.2",
+      target_ref: "release/v1/v1.3",
       release_material_sha: smokeSha,
       publish_tooling_sha: smokeSha,
       artifacts: [

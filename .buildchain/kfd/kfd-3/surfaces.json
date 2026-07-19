@@ -20,7 +20,7 @@
       "policy": {},
       "facts": {
         "path": "docs/image-contract.md",
-        "sha256": "35291fa58b2e44ced74116a52a735aca89a4c80a7ae913647f9f755295468183"
+        "sha256": "30d8282df13df2f36eca2d8cc68b2436939bc44a5af272768cbde0141c9dd85d"
       },
       "declaration": {
         "owner": "product",
@@ -41,7 +41,7 @@
       "policy": {},
       "facts": {
         "path": "docs/release-and-tags.md",
-        "sha256": "0b5a63de0ab021bab93ea0dcfa3ed762122cf9edbe54f50f4439d1a8adb5e286"
+        "sha256": "39bda18feed3a8d9df237233a690d5f53c8d229547409094f6756b8102c09cd8"
       },
       "declaration": {
         "owner": "product",
@@ -83,7 +83,7 @@
       "policy": {},
       "facts": {
         "path": "README.md",
-        "sha256": "66ff769b46a83ca30ef35e06e4e34a69cc75f55b53122f38d3ebcf46252cc567"
+        "sha256": "3c1decf0107c57174251739f771ac02961feb42c812955c9b0bed30efd96a244"
       },
       "declaration": {
         "owner": "product",

@@ -6,17 +6,17 @@
     {
       "id": "readme",
       "path": "README.md",
-      "sha256": "66ff769b46a83ca30ef35e06e4e34a69cc75f55b53122f38d3ebcf46252cc567"
+      "sha256": "3c1decf0107c57174251739f771ac02961feb42c812955c9b0bed30efd96a244"
     },
     {
       "id": "image-contract",
       "path": "docs/image-contract.md",
-      "sha256": "35291fa58b2e44ced74116a52a735aca89a4c80a7ae913647f9f755295468183"
+      "sha256": "30d8282df13df2f36eca2d8cc68b2436939bc44a5af272768cbde0141c9dd85d"
     },
     {
       "id": "release-and-tags",
       "path": "docs/release-and-tags.md",
-      "sha256": "0b5a63de0ab021bab93ea0dcfa3ed762122cf9edbe54f50f4439d1a8adb5e286"
+      "sha256": "39bda18feed3a8d9df237233a690d5f53c8d229547409094f6756b8102c09cd8"
     },
     {
       "id": "image-lock",
@@ -43,7 +43,7 @@
     {
       "id": "kfd-1-contract-world-witness",
       "path": ".buildchain/kfd/kfd-1/build-images-contract-world.witness.json",
-      "sha256": "0d8be1352ee30a3c2c5c94c9e7112a108d79ffc64f1fc69b54abef8f6cf4d157",
+      "sha256": "96382b37e2ef222f827c5e2ef01b9455fe60ba645108abbe8999204deea82334",
       "contract": "kfd-1",
       "status": "passed"
     },
@@ -57,16 +57,16 @@
     {
       "id": "kfd-3-surface-registry",
       "path": ".buildchain/kfd/kfd-3/surfaces.json",
-      "sha256": "b3eeac8cb1f5e15f353cbf40ae25c7b1e43ef4d173dd1c9762836f865cd4cd23",
+      "sha256": "9c4261a0d259474fd4198617d44189ff389c58c0b3f6bfbe57db254fe5b8f15d",
       "contract": "kungfu-buildchain-kfd-3-surface-registry",
       "status": "passed"
     }
   ],
   "hashes": {
-    "kfd1WitnessSha256": "26589729ee2a27b65264b219f92badc1e521564bc696578e9f5c75316a9c3c49",
+    "kfd1WitnessSha256": "e28c9b114880f937e413ae439853e70fa81a28c36099cf57a10cdc11acd81dc6",
     "upstreamAggregateSha256": "855c4f7f9eff6f236133d0c9b6638ad1bfa04e74a9208767b22c9d9c8d454659",
-    "sourceBindingsSha256": "431c74c26e5e60d7744b7aff9ba4954e63826e6013dd8203d6bb9f3c1cdf6128",
-    "machineEvidenceSha256": "ddd1390c6b517a9b0367321511f5d1aead3984c9b7195cd43ffb48407adc6645"
+    "sourceBindingsSha256": "74df741f960c17a1a60e7d917e3e22c46836a419ed9d8b4fe830f3d0cfecfb0b",
+    "machineEvidenceSha256": "b5e3cc5089f4868aa25b3d3208838aac67eeeaa03612af7dc8f6f70dc8ad0854"
   },
   "artifacts": [
     {
