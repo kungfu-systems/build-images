@@ -50,6 +50,7 @@ The first graph is intentionally shallow:
 ```text
 base-linux
   -> kungfu-verify
+    -> kungfu-native-linux-x64
   -> node24-pnpm
     -> latex-pdf-builder
   -> native-linux-x64
@@ -61,6 +62,13 @@ base-linux
 present. They are not consumer release builds.
 
 Consumer repositories own their package-specific build commands.
+
+`kungfu-native-linux-x64` is the maintained exception that also ships a
+repository-owned consumer entrypoint. That entrypoint welds the exact Kungfu
+source revision, `--no-optional` install, libnode platform seed, writable cache
+layout, build-job cap, source-fallback Shifu path, and machine-readable build
+receipt needed to prove the image's source-build contract. It stops before any
+timed host-native workload.
 
 ## First Publish Lock State
 

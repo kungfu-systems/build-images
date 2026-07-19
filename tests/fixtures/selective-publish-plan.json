@@ -32,6 +32,16 @@
       "full_rebuild": false
     },
     {
+      "name": "kungfu-native-source-context-only",
+      "changed_paths": [
+        "images/kungfu-native-linux-x64/bin/build-kungfu-core"
+      ],
+      "selected_images": [
+        "kungfu-native-linux-x64"
+      ],
+      "full_rebuild": false
+    },
+    {
       "name": "node-context-propagates-to-latex",
       "changed_paths": [
         "images/node24-pnpm/tests/smoke.sh"
@@ -60,6 +70,7 @@
       "selected_images": [
         "base-linux",
         "kungfu-verify",
+        "kungfu-native-linux-x64",
         "node24-pnpm",
         "latex-pdf-builder",
         "native-linux-x64"
@@ -76,6 +87,7 @@
         "base-linux",
         "clickhouse-server",
         "kungfu-verify",
+        "kungfu-native-linux-x64",
         "node24-pnpm",
         "latex-pdf-builder",
         "native-linux-x64"
@@ -92,6 +104,7 @@
         "base-linux",
         "clickhouse-server",
         "kungfu-verify",
+        "kungfu-native-linux-x64",
         "node24-pnpm",
         "latex-pdf-builder",
         "native-linux-x64"
@@ -108,6 +121,7 @@
         "base-linux",
         "clickhouse-server",
         "kungfu-verify",
+        "kungfu-native-linux-x64",
         "node24-pnpm",
         "latex-pdf-builder",
         "native-linux-x64"
@@ -124,6 +138,7 @@
         "base-linux",
         "clickhouse-server",
         "kungfu-verify",
+        "kungfu-native-linux-x64",
         "node24-pnpm",
         "latex-pdf-builder",
         "native-linux-x64"
@@ -140,6 +155,7 @@
         "base-linux",
         "clickhouse-server",
         "kungfu-verify",
+        "kungfu-native-linux-x64",
         "node24-pnpm",
         "latex-pdf-builder",
         "native-linux-x64"
@@ -154,6 +170,7 @@
         "base-linux",
         "clickhouse-server",
         "kungfu-verify",
+        "kungfu-native-linux-x64",
         "node24-pnpm",
         "latex-pdf-builder",
         "native-linux-x64"

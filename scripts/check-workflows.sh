@@ -27,13 +27,12 @@ if ! grep -Fq "if: \${{ startsWith(steps.target_ref.outputs.target_ref, 'alpha/'
   echo "Buildchain promotion action refs must be selected from the resolved target channel" >&2
   exit 1
 fi
-# shellcheck disable=SC2016
-if ! grep -Fq "release-passport-impact-json: \${{ contains(steps.target_ref.outputs.target_ref, '/v1.2') && '.buildchain/release-impact.json' || '' }}" "$promotion_workflow"; then
-  echo "Buildchain promotion must supply the v1.2 production release passport impact ledger" >&2
+if [ "$(grep -Fc 'release-passport-impact-json: ".buildchain/release-impact.json"' "$promotion_workflow")" -ne 2 ]; then
+  echo "Buildchain promotion must supply the release passport impact ledger on both channels" >&2
   exit 1
 fi
 # shellcheck disable=SC2016
-if ! grep -Fq "publish-required-artifacts-json: \${{ contains(steps.target_ref.outputs.target_ref, '/v1.2') && steps.required_artifacts.outputs.json || '' }}" "$promotion_workflow"; then
+if [ "$(grep -Fc 'publish-required-artifacts-json: ${{ steps.required_artifacts.outputs.json }}' "$promotion_workflow")" -ne 2 ]; then
   echo "Buildchain promotion must require the exact manifest-declared OCI family" >&2
   exit 1
 fi
