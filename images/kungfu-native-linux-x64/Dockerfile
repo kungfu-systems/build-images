@@ -70,7 +70,6 @@ ENV CONAN_HOME=/home/kungfu/.cache/conan2
 ENV CARGO_HOME=/home/kungfu/.cache/cargo
 ENV RUSTUP_HOME=/opt/rustup
 ENV RUSTUP_TOOLCHAIN=1.96.0
-ENV KF_LIBWASM_CARGO_REGISTRY=sparse+https://index.crates.io/
 ENV KUNGFU_BUILD_JOBS=12
 
 USER kungfu

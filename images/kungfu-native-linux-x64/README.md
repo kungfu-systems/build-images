@@ -44,6 +44,10 @@ KUNGFU_CONAN_REMOTE_URL
 KF_LIBWASM_CARGO_REGISTRY
 ```
 
+`KF_LIBWASM_CARGO_REGISTRY` is empty by default so Cargo uses crates.io
+directly. Set it only to a distinct sparse mirror such as
+`sparse+https://rsproxy.cn/index/`; configuring crates.io itself as its own
+replacement is invalid.
 `COREPACK_NPM_REGISTRY` must not end in `/`. Registry values containing embedded
 credentials, query parameters, or fragments are rejected so they cannot leak
 into the evidence receipt.

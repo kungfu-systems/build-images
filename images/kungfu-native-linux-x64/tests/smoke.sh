@@ -15,6 +15,7 @@ test "$(rustc --version | awk '{print $2}')" = "1.96.0"
 test "$(cargo --version | awk '{print $2}')" = "1.96.0"
 test "$COREPACK_NPM_REGISTRY" = "https://registry.npmjs.org"
 test "$PNPM_STORE_DIR" = "/home/kungfu/.cache/pnpm/store"
+test -z "${KF_LIBWASM_CARGO_REGISTRY:-}"
 test "$KUNGFU_BUILD_JOBS" = "12"
 bash -n /opt/kungfu-native-source-build/bin/build-kungfu-core
 echo "authority=build-reproducibility-only"
