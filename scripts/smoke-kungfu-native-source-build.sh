@@ -101,7 +101,7 @@ docker run --rm \
   -e NODEJS_ORG_MIRROR="${NODEJS_ORG_MIRROR:-}" \
   -e UV_PYTHON_INSTALL_MIRROR="${UV_PYTHON_INSTALL_MIRROR:-}" \
   -e KUNGFU_CONAN_REMOTE_URL="${KUNGFU_CONAN_REMOTE_URL:-}" \
-  -e KF_LIBWASM_CARGO_REGISTRY="${KF_LIBWASM_CARGO_REGISTRY:-sparse+https://index.crates.io/}" \
+  -e KF_LIBWASM_CARGO_REGISTRY="${KF_LIBWASM_CARGO_REGISTRY:-}" \
   -e GIT_OPTIONAL_LOCKS=0 \
   -v "$source_dir:/work" \
   -v "$home_dir:/home/kungfu" \
