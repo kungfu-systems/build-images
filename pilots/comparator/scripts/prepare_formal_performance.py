@@ -86,6 +86,14 @@ def require_empty(path: pathlib.Path) -> None:
     path.mkdir(parents=True, exist_ok=True)
 
 
+def canonical_repo_digest(image: str) -> str:
+    reference, digest = image.rsplit("@", 1)
+    last_colon = reference.rfind(":")
+    if last_colon > reference.rfind("/"):
+        reference = reference[:last_colon]
+    return f"{reference}@{digest}"
+
+
 def inspect_image(image: str) -> dict[str, Any]:
     result = run(["docker", "image", "inspect", image])
     try:
@@ -96,7 +104,7 @@ def inspect_image(image: str) -> dict[str, Any]:
         raise PreparationError("docker image inspect did not return one image")
     value = values[0]
     repo_digests = value.get("RepoDigests", [])
-    if image not in repo_digests:
+    if canonical_repo_digest(image) not in repo_digests:
         raise PreparationError(f"local image does not retain exact digest: {image}")
     return {
         "identity": image,
