@@ -18,7 +18,7 @@ on:
       target-ref:
         description: "Buildchain channel branch to promote"
         required: true
-        default: "alpha/v1/v1.2"
+        default: "alpha/v1/v1.3"
       dry-run:
         description: "Only print planned tag updates"
         required: true
@@ -97,7 +97,6 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Resolve exact required image artifacts
-        if: ${{ contains(steps.target_ref.outputs.target_ref, '/v1.2') }}
         id: required_artifacts
         run: python3 scripts/required-publish-artifacts.py --github-output "$GITHUB_OUTPUT"
 
@@ -131,10 +130,10 @@ jobs:
           required-status-check: "check"
           allow-repository: "kungfu-systems/build-images"
           publish-transaction: "true"
-          publish-required-artifacts-json: ${{ contains(steps.target_ref.outputs.target_ref, '/v1.2') && steps.required_artifacts.outputs.json || '' }}
+          publish-required-artifacts-json: ${{ steps.required_artifacts.outputs.json }}
           release-passport: "true"
           release-passport-product-name: "Kungfu Build Images"
-          release-passport-impact-json: ${{ contains(steps.target_ref.outputs.target_ref, '/v1.2') && '.buildchain/release-impact.json' || '' }}
+          release-passport-impact-json: ".buildchain/release-impact.json"
           release-passport-kfd-1-witness-jsons: ${{ contains(steps.target_ref.outputs.target_ref, '/v1.1') && '.buildchain/kfd-1/build-images-contract-world.witness.json' || '.buildchain/kfd/kfd-1/build-images-contract-world.witness.json' }}
           release-passport-kfd-2-claim-jsons: ${{ contains(steps.target_ref.outputs.target_ref, '/v1.1') && '.buildchain/kfd-2/public-release-trust.claim.json' || '.buildchain/kfd/kfd-2/release-claims.json' }}
           release-passport-kfd-3-prebuild-witness-jsons: ${{ contains(steps.target_ref.outputs.target_ref, '/v1.1') && '.buildchain/kfd-3/collaboration-interface.prebuild.json' || '.buildchain/kfd/kfd-3/collaboration-interface.prebuild.json' }}
@@ -161,10 +160,10 @@ jobs:
           required-status-check: "check"
           allow-repository: "kungfu-systems/build-images"
           publish-transaction: "true"
-          publish-required-artifacts-json: ${{ contains(steps.target_ref.outputs.target_ref, '/v1.2') && steps.required_artifacts.outputs.json || '' }}
+          publish-required-artifacts-json: ${{ steps.required_artifacts.outputs.json }}
           release-passport: "true"
           release-passport-product-name: "Kungfu Build Images"
-          release-passport-impact-json: ${{ contains(steps.target_ref.outputs.target_ref, '/v1.2') && '.buildchain/release-impact.json' || '' }}
+          release-passport-impact-json: ".buildchain/release-impact.json"
           release-passport-kfd-1-witness-jsons: ${{ contains(steps.target_ref.outputs.target_ref, '/v1.1') && '.buildchain/kfd-1/build-images-contract-world.witness.json' || '.buildchain/kfd/kfd-1/build-images-contract-world.witness.json' }}
           release-passport-kfd-2-claim-jsons: ${{ contains(steps.target_ref.outputs.target_ref, '/v1.1') && '.buildchain/kfd-2/public-release-trust.claim.json' || '.buildchain/kfd/kfd-2/release-claims.json' }}
           release-passport-kfd-3-prebuild-witness-jsons: ${{ contains(steps.target_ref.outputs.target_ref, '/v1.1') && '.buildchain/kfd-3/collaboration-interface.prebuild.json' || '.buildchain/kfd/kfd-3/collaboration-interface.prebuild.json' }}
