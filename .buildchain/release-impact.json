@@ -2,15 +2,22 @@
   "schemaVersion": 1,
   "contract": "kungfu-buildchain-impact",
   "release": {
-    "version": "1.2.4-alpha.30",
-    "line": "v1.2"
+    "version": "1.3.0-alpha.0",
+    "line": "v1.3"
   },
   "versionImpact": {
-    "final": "patch",
+    "final": "minor",
     "source": "build-images-surface-review",
-    "rationale": "The release preserves existing image names and consumer contracts while completing Buildchain routing, package-manager, font-scaling, and release-evidence behavior."
+    "rationale": "The release adds the kungfu-native-linux-x64 image and its exact-digest fresh-consumer source-build contract without changing existing image identities."
   },
   "surfaceImpacts": [
+    {
+      "id": "kungfu-native-linux-source-build",
+      "impact": "minor",
+      "class": "container-runtime",
+      "rationale": "The image family gains a dedicated linux/amd64 Kungfu source-build environment with pinned GCC 14, Node 22 bootstrap, Python/uv, Conan, and Rust 1.96 tooling plus a build-only evidence contract.",
+      "source": "images/kungfu-native-linux-x64"
+    },
     {
       "id": "buildchain-dual-channel-consumer",
       "impact": "patch",
@@ -47,9 +54,9 @@
       "source": "pilots/comparator"
     }
   ],
-  "classification": "patch",
+  "classification": "minor",
   "breaking": false,
   "security": false,
   "migrationRequired": false,
-  "summary": "Build images v1.2 includes standard Buildchain release governance, maintained image runtime fixes, and an opt-in comparator qualification surface with exact-digest cold-host preparation and observed-fact-derived receipts."
+  "summary": "Build images v1.3 adds an exact-digest Kungfu native source-build image and fresh-consumer receipt while keeping host-native performance qualification outside Docker."
 }

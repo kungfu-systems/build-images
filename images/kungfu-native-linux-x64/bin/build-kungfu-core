@@ -1,0 +1,169 @@
+#!/bin/bash
+set -euo pipefail
+
+expected_source="${KUNGFU_SOURCE_SHA:-d6fb3879c8f495b6b4e4a1a619ce78358291a6e1}"
+libnode_package="@kungfu-tech/libnode-linux-x64@22.22.3-kf.3-alpha.16"
+evidence_dir="${KUNGFU_BUILD_EVIDENCE_DIR:-/evidence}"
+jobs="${KUNGFU_BUILD_JOBS:-12}"
+pnpm_store_dir="${PNPM_STORE_DIR:?PNPM_STORE_DIR is required}"
+node_gyp_dir="${npm_config_devdir:?npm_config_devdir is required}"
+corepack_home="${COREPACK_HOME:?COREPACK_HOME is required}"
+fnm_dir="${FNM_DIR:?FNM_DIR is required}"
+uv_cache_dir="${UV_CACHE_DIR:?UV_CACHE_DIR is required}"
+uv_python_dir="${UV_PYTHON_INSTALL_DIR:?UV_PYTHON_INSTALL_DIR is required}"
+conan_home="${CONAN_HOME:?CONAN_HOME is required}"
+cargo_home="${CARGO_HOME:?CARGO_HOME is required}"
+
+case "$jobs" in
+  *[!0-9]*|"") echo "KUNGFU_BUILD_JOBS must be a positive integer" >&2; exit 2 ;;
+esac
+if [ "$jobs" -lt 1 ]; then
+  echo "KUNGFU_BUILD_JOBS must be a positive integer" >&2
+  exit 2
+fi
+if [[ "${COREPACK_NPM_REGISTRY:-}" == */ ]]; then
+  echo "COREPACK_NPM_REGISTRY must not end in /" >&2
+  exit 2
+fi
+
+cd /work
+test "$(git rev-parse HEAD)" = "$expected_source"
+test -z "$(git status --porcelain)"
+test -z "$(git clean -ndx)"
+mkdir -p \
+  "$evidence_dir" \
+  "$pnpm_store_dir" \
+  "$node_gyp_dir" \
+  "$corepack_home" \
+  "$fnm_dir" \
+  "$uv_cache_dir" \
+  "$uv_python_dir" \
+  "$conan_home" \
+  "$cargo_home"
+printf 'tools.build:jobs=%s\n' "$jobs" > "$conan_home/global.conf"
+
+if [ -n "${NODEJS_ORG_MIRROR:-}" ]; then
+  export FNM_NODE_DIST_MIRROR="$NODEJS_ORG_MIRROR"
+  export NVM_NODEJS_ORG_MIRROR="$NODEJS_ORG_MIRROR"
+  export npm_config_disturl="$NODEJS_ORG_MIRROR"
+fi
+fnm install 22.22.3
+eval "$(fnm env --shell bash)"
+fnm use 22.22.3
+test "$(node --version)" = "v22.22.3"
+corepack enable pnpm
+test "$(pnpm --version)" = "11.7.0"
+
+export SHIFU_NATIVE=0
+export KUNGFU_BUILDCHAIN_SOURCE_BUILD=1
+export NODE_PATH=/work/.buildchain/libnode-platform/linux-x64/node_modules
+export npm_config_registry="${NPM_CONFIG_REGISTRY:-${COREPACK_NPM_REGISTRY}}"
+
+./shifu install \
+  --frozen-lockfile \
+  --no-optional \
+  --store-dir="$pnpm_store_dir"
+test ! -e /work/.pnpm-store
+
+npm install \
+  --no-save \
+  --package-lock=false \
+  --ignore-scripts \
+  --prefer-online \
+  --prefix /work/.buildchain/libnode-platform/linux-x64 \
+  "$libnode_package"
+node -e "require.resolve('@kungfu-tech/libnode-linux-x64/package.json')"
+
+if [ -n "${KUNGFU_CONAN_REMOTE_URL:-}" ]; then
+  (
+    cd framework/core
+    uv run --frozen conan remote update conancenter --url "$KUNGFU_CONAN_REMOTE_URL"
+  )
+fi
+
+build_log="$evidence_dir/build.log"
+set +e
+./shifu build:core 2>&1 | tee "$build_log"
+build_status="${PIPESTATUS[0]}"
+set -e
+if [ "$build_status" -ne 0 ]; then
+  exit "$build_status"
+fi
+
+fixture=/work/framework/core/build/Release/kungfu_durability_slo_fixture
+test -x "$fixture"
+build_identity="$(find /work/framework/core/build /work/framework/core/dist \
+  -name kungfu-core-build-identity.json -type f -print -quit)"
+test -n "$build_identity"
+
+python3 - "$evidence_dir/consumer-build.json" "$build_log" "$build_identity" "$fixture" <<'PY'
+import hashlib
+import json
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+output, log_path, identity_path, fixture_path = map(Path, sys.argv[1:])
+
+def sha256(path):
+    return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+
+def command(*args):
+    return subprocess.check_output(args, text=True).strip().splitlines()[0]
+
+cache_inputs = {
+    key: os.environ.get(key, "")
+    for key in (
+        "COREPACK_NPM_REGISTRY",
+        "NPM_CONFIG_REGISTRY",
+        "NODEJS_ORG_MIRROR",
+        "UV_PYTHON_INSTALL_MIRROR",
+        "KUNGFU_CONAN_REMOTE_URL",
+        "KF_LIBWASM_CARGO_REGISTRY",
+        "PNPM_STORE_DIR",
+        "npm_config_devdir",
+        "UV_CACHE_DIR",
+        "UV_PYTHON_INSTALL_DIR",
+        "CONAN_HOME",
+        "CARGO_HOME",
+    )
+}
+payload = {
+    "schema": "kungfu-native-source-build-consumer/v1",
+    "source_sha": command("git", "-C", "/work", "rev-parse", "HEAD"),
+    "shifu_path": "source-fallback",
+    "build_jobs": int(os.environ["KUNGFU_BUILD_JOBS"]),
+    "tool_versions": {
+        "gcc": command("gcc-14", "--version"),
+        "gxx": command("g++-14", "--version"),
+        "cmake": command("cmake", "--version"),
+        "ninja": command("ninja", "--version"),
+        "ccache": command("ccache", "--version"),
+        "clang": command("clang", "--version"),
+        "pkg_config": command("pkg-config", "--version"),
+        "fnm": command("fnm", "--version"),
+        "uv": command("uv", "--version"),
+        "node": command("node", "--version"),
+        "pnpm": command("pnpm", "--version"),
+        "rustc": command("rustc", "--version"),
+        "cargo": command("cargo", "--version"),
+        "python": command("python3", "--version"),
+        "uv_python": command("uv", "run", "--frozen", "python", "--version"),
+    },
+    "cache_inputs": cache_inputs,
+    "libnode_package": "@kungfu-tech/libnode-linux-x64@22.22.3-kf.3-alpha.16",
+    "build_log_sha256": sha256(log_path),
+    "build_identity_path": str(identity_path.relative_to("/work")),
+    "build_identity_sha256": sha256(identity_path),
+    "fixture_path": str(fixture_path.relative_to("/work")),
+    "fixture_sha256": sha256(fixture_path),
+    "authority": "build-reproducibility-only",
+    "next_step": "Run performance workloads directly on the named host filesystem.",
+}
+output.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
+PY
+
+test "$(git rev-parse HEAD)" = "$expected_source"
+test -z "$(git status --porcelain)"
+echo "Kungfu source build complete; timed workloads were not run in Docker."

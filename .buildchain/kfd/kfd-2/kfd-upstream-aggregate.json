@@ -21,7 +21,7 @@
       "roleValid": true,
       "package": {
         "name": "@kungfu-tech/buildchain",
-        "version": "2.14.2-alpha.1"
+        "version": "2.14.3-alpha.6"
       },
       "repository": "https://github.com/kungfu-systems/buildchain",
       "kfd": {
@@ -37,7 +37,7 @@
         {
           "path": "dist/site/kfd-claims.json",
           "kind": "package",
-          "sha256": "sha256:0afe46800ef1234c4c51db285d3a4fb263b243226a5a2949530f9d9e7a590385",
+          "sha256": "sha256:179956ece663dd0181eae3fa17a21a91d8d103d33e2f9a134c79653ab9711d73",
           "contract": "kungfu-buildchain-kfd-claim-registry",
           "role": "",
           "directory": false
@@ -153,6 +153,11 @@
     "standards": {
       "kfd-1": [
         {
+          "name": "candidateRegistry",
+          "schemaId": "https://kfd.libkungfu.dev/schemas/kfd-candidate-registry.schema.json",
+          "schemaPath": "schemas/kfd-candidate-registry.schema.json"
+        },
+        {
           "name": "contractWorld",
           "schemaId": "https://kfd.libkungfu.dev/schemas/kfd-1/contract-world.schema.json",
           "schemaPath": "schemas/kfd-1/contract-world.schema.json"
@@ -161,6 +166,21 @@
           "name": "metadata",
           "schemaId": "https://kfd.libkungfu.dev/schemas/kfd-standards.schema.json",
           "schemaPath": "schemas/kfd-standards.schema.json"
+        },
+        {
+          "name": "publicationUrlSemantics",
+          "schemaId": "https://kfd.libkungfu.dev/schemas/kfd-1/publication-url-semantics.schema.json",
+          "schemaPath": "schemas/kfd-1/publication-url-semantics.schema.json"
+        },
+        {
+          "name": "verificationBundle",
+          "schemaId": "https://kfd.libkungfu.dev/schemas/kfd-verification-bundle.schema.json",
+          "schemaPath": "schemas/kfd-verification-bundle.schema.json"
+        },
+        {
+          "name": "verificationReport",
+          "schemaId": "https://kfd.libkungfu.dev/schemas/kfd-verification-report.schema.json",
+          "schemaPath": "schemas/kfd-verification-report.schema.json"
         },
         {
           "name": "witness",
@@ -227,6 +247,40 @@
           "name": "observerPerspective",
           "schemaId": "https://kfd.libkungfu.dev/schemas/kfd-4/observer-perspective.schema.json",
           "schemaPath": "schemas/kfd-4/observer-perspective.schema.json"
+        },
+        {
+          "name": "perspectiveReplay",
+          "schemaId": "https://kfd.libkungfu.dev/schemas/kfd-4/perspective-replay.schema.json",
+          "schemaPath": "schemas/kfd-4/perspective-replay.schema.json"
+        }
+      ],
+      "kfd-5": [
+        {
+          "name": "liveCaseRegistry",
+          "schemaId": "https://kfd.libkungfu.dev/schemas/kfd-live-case-registry.schema.json",
+          "schemaPath": "schemas/kfd-live-case-registry.schema.json"
+        },
+        {
+          "name": "metadata",
+          "schemaId": "https://kfd.libkungfu.dev/schemas/kfd-standards.schema.json",
+          "schemaPath": "schemas/kfd-standards.schema.json"
+        },
+        {
+          "name": "primitiveDiscovery",
+          "schemaId": "https://kfd.libkungfu.dev/schemas/kfd-5/primitive-discovery.schema.json",
+          "schemaPath": "schemas/kfd-5/primitive-discovery.schema.json"
+        }
+      ],
+      "kfd-6": [
+        {
+          "name": "autonomousDiscoveryLoop",
+          "schemaId": "https://kfd.libkungfu.dev/schemas/kfd-6/autonomous-discovery-loop.schema.json",
+          "schemaPath": "schemas/kfd-6/autonomous-discovery-loop.schema.json"
+        },
+        {
+          "name": "metadata",
+          "schemaId": "https://kfd.libkungfu.dev/schemas/kfd-standards.schema.json",
+          "schemaPath": "schemas/kfd-standards.schema.json"
         }
       ]
     },
@@ -289,7 +343,7 @@
       "kfd"
     ],
     "packageVersions": {
-      "buildchain": "2.14.2-alpha.1",
+      "buildchain": "2.14.3-alpha.6",
       "kfd": "1.0.0-alpha.21"
     },
     "status": "collected"
