@@ -1,0 +1,76 @@
+{
+  "plan_schema": "urn:kungfu-systems:build-images:formal-performance-plan:v1",
+  "schema_version": 1,
+  "evidence_class": "symmetric-formal-performance",
+  "seed": 20260719,
+  "inputs": {
+    "postgresql": {
+      "kind": "oci",
+      "identity": "postgres:18.4-bookworm@sha256:d9c83446333daec3f0588cc709adb80c26090b7f9f0f7ec8d43c243385d79818"
+    },
+    "clickhouse": {
+      "kind": "oci",
+      "identity": "ghcr.io/kungfu-systems/build-images/clickhouse-server@sha256:964dfcdf7f33ed509f50757061456618e1a13d99340e86c678130f9bd235cdc8"
+    },
+    "aeron": {
+      "kind": "oci",
+      "identity": "ghcr.io/kungfu-systems/build-images/aeron-native-kit@sha256:684be4100866a3908020d1f368fe1100225a1101a65e9a0ee6d4da6a94963c76"
+    },
+    "kungfu": {
+      "kind": "source-and-package",
+      "source_sha": "d6fb3879c8f495b6b4e4a1a619ce78358291a6e1",
+      "package_name": "kungfu-episodes-cli-linux-x64.tar.gz",
+      "package_sha256": "8bb1a8933ed053e17eabe09795340d90ff143043a35b719d5e6b951377dc3e4f"
+    }
+  },
+  "full_stack": {
+    "candidates": ["postgresql", "clickhouse", "kungfu"],
+    "jobs": [
+      "J1-multi-session-progress-triage",
+      "J2-cross-repo-delivery-trust",
+      "J3-interrupted-go-recovery-handoff"
+    ],
+    "tiers": [
+      "normal",
+      "concurrent",
+      "crash-recovery",
+      "whole-root-restore",
+      "historical-query",
+      "schema-evolution",
+      "new-agent-takeover"
+    ],
+    "warmup_rounds": 1,
+    "scored_rounds": 5,
+    "limits": {
+      "subject": { "cpu_micros": 2000000, "memory_bytes": 2147483648 },
+      "runner": { "cpu_micros": 1000000, "memory_bytes": 1073741824 }
+    },
+    "fresh_project": true,
+    "offline_during_timer": true,
+    "selective_retry_allowed": false
+  },
+  "matched_lane": {
+    "candidates": ["aeron", "kungfu"],
+    "topology": "single-producer-single-consumer-single-host",
+    "modes": ["visible", "durable_group", "durable_sync"],
+    "payload_bytes": [64, 1024],
+    "warmup_rounds": 1,
+    "scored_rounds": 5,
+    "latency_messages": 10000,
+    "throughput_messages": 100000,
+    "soak_seconds": 60,
+    "recovery_messages": 10000,
+    "durable_group": {
+      "max_messages_per_flush": 100,
+      "max_flush_interval_ms": 10
+    },
+    "aeron_complete_product_score": false
+  },
+  "authority": {
+    "measurement_authority_requested": true,
+    "winner_authority": false,
+    "blinded_m3_m4_self_grading": false,
+    "active_operator_self_timing": false,
+    "aeron_complete_product_verdict": false
+  }
+}

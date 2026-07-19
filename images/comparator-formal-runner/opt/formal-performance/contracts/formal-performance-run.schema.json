@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:kungfu-systems:build-images:formal-performance-run:v1",
+  "title": "Symmetric formal performance raw sample",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "run_schema",
+    "schema_version",
+    "evidence_class",
+    "schedule_index",
+    "lane",
+    "phase",
+    "round",
+    "candidate",
+    "variant",
+    "attempt",
+    "input_identity",
+    "timing",
+    "resources",
+    "correctness",
+    "cleanup",
+    "artifacts",
+    "authority"
+  ],
+  "properties": {
+    "run_schema": {
+      "const": "urn:kungfu-systems:build-images:formal-performance-run:v1"
+    },
+    "schema_version": { "const": 1 },
+    "evidence_class": { "const": "symmetric-formal-performance" },
+    "schedule_index": { "type": "integer", "minimum": 0 },
+    "lane": { "enum": ["full-stack", "kungfu-aeron"] },
+    "phase": { "enum": ["warmup", "scored"] },
+    "round": { "type": "integer", "minimum": 0, "maximum": 5 },
+    "candidate": { "type": "string" },
+    "variant": { "type": "object" },
+    "attempt": { "const": 1 },
+    "input_identity": { "type": "object" },
+    "timing": { "type": "object" },
+    "resources": { "type": "object" },
+    "correctness": { "type": "object" },
+    "cleanup": { "type": "object" },
+    "artifacts": { "type": "array" },
+    "authority": { "type": "object" }
+  }
+}

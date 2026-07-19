@@ -50,6 +50,7 @@ The first graph is intentionally shallow:
 ```text
 base-linux
   -> kungfu-verify
+    -> comparator-formal-runner
     -> kungfu-native-linux-x64
   -> node24-pnpm
     -> latex-pdf-builder
@@ -69,6 +70,15 @@ source revision, `--no-optional` install, libnode platform seed, writable cache
 layout, build-job cap, source-fallback Shifu path, and machine-readable build
 receipt needed to prove the image's source-build contract. It stops before any
 timed host-native workload.
+
+`comparator-formal-runner` is a distribution envelope, not the measured
+container. Consumers extract `/opt/formal-performance` from an exact image
+digest and run the host CLI without a Docker socket mount. Its v1 contract
+freezes the 20260719 balanced schedule, common resource ceilings, cgroup-v2
+counter units, offline fresh-project timer, Kungfu/Aeron matched lane, and
+fail-closed offline verifier. It can report descriptive medians, tails, and
+ratios but must keep `winner_authority=false`, must not self-grade blinded M3/M4
+reviews, and must not give Aeron a complete-product verdict.
 
 ## First Publish Lock State
 

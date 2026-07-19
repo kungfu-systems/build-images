@@ -4,6 +4,38 @@ This directory provides disposable, version-locked environments for qualifying
 the user-visible functional and recovery paths used by the Kungfu comparator
 program. It does **not** produce performance evidence.
 
+## Formal Performance Evidence
+
+The separate `comparator-formal-runner` image distributes the frozen
+`symmetric-formal-performance` plan, run/bundle schemas, and offline verifier.
+It does not change the authority of any earlier qualification bundle.
+
+The measured CLI is extracted from an exact image digest and executed on the
+Linux host. The image is never run with a Docker socket mount, host networking,
+privilege, or host-tuning permissions. The frozen full-stack lane uses one
+warmup plus five scored rounds, a seed-20260719 balanced product order, fresh
+project roots, subject `2 CPU / 2 GiB`, runner `1 CPU / 1 GiB`, and cgroup-v2
+CPU/memory/I/O evidence. Image transfer and the Kungfu source build remain
+unscored preparation.
+
+The separate Kungfu/Aeron lane treats Aeron only as an IPC/Archive technical
+baseline. Machine output can report unrounded throughput retention,
+latency/CPU/RSS/recovery amplification, and durable/visible tax, but it keeps
+`winner_authority=false`, does not issue an Aeron complete-product verdict, and
+does not self-grade active-operator or blinded M3/M4 attachments.
+Crash replay and whole-root restore durations remain separate raw counters;
+the latter is required only for the preregistered recovery workload, while
+recovery amplification uses their exact sum.
+
+The production provider is fixed inside the published image. It cannot be
+replaced on the `run` command line. A fresh consumer first runs
+`scripts/prepare_formal_performance.py --execute` to stage exact images, extract
+the exact runner kit, build the frozen Kungfu source plus its external matched
+driver, and build the checksum-bound CLI runtime image. The preparation receipt
+passes those exact paths and image IDs to the runner; no transfer or source
+build enters a sample timer. See
+`images/comparator-formal-runner/README.md` for the complete command.
+
 ## Profiles
 
 | Profile | Lock | Current state | Pilot coverage |

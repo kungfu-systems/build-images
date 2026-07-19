@@ -13,8 +13,8 @@ services:
     security_opt:
       - no-new-privileges:true
     networks: [pilot]
-    mem_limit: 256m
-    cpus: 0.50
+    mem_limit: 1g
+    cpus: 1.00
 
   aeron:
     image: ghcr.io/kungfu-systems/build-images/aeron-native-kit@sha256:684be4100866a3908020d1f368fe1100225a1101a65e9a0ee6d4da6a94963c76
@@ -43,8 +43,8 @@ services:
     volumes:
       - aeron-data:/var/lib/aeron
     networks: [pilot]
-    mem_limit: 1g
-    cpus: 1.00
+    mem_limit: 2g
+    cpus: 2.00
 
   clickhouse:
     image: ghcr.io/kungfu-systems/build-images/clickhouse-server@sha256:964dfcdf7f33ed509f50757061456618e1a13d99340e86c678130f9bd235cdc8
@@ -86,8 +86,8 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql
     networks: [pilot]
-    mem_limit: 1g
-    cpus: 1.00
+    mem_limit: 2g
+    cpus: 2.00
 
   kungfu:
     image: ${KUNGFU_CLI_IMAGE:-kungfu-package-input-required}
