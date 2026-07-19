@@ -7,7 +7,7 @@
   },
   "contractWorld": {
     "schemaId": "https://kfd.libkungfu.dev/schemas/kfd-1/contract-world.schema.json",
-    "digest": "sha256:0258dfa7e9275270aad02b1ed7cf5cf6cad06b37a4bbaa9794e12da88d80e240"
+    "digest": "sha256:a36d4a3505042d676e5f37e16c21a72b7a54d93dbd626af4702e220bbfa97e4f"
   },
   "canonicalPolicy": {
     "path": "docs/release-and-tags.md",
@@ -53,9 +53,9 @@
     {
       "name": "image-lock",
       "sourcePath": "images.lock.json",
-      "sourceSha256": "f4a1ee9a2957d76edcffa4535da77d0d25fcfa73785a6794c2001813eb9e074e",
+      "sourceSha256": "b640149b76b72495b358ab6f9c821162753d0b8a6d6348cb7d16023abaabfd11",
       "artifactPath": "images.lock.json",
-      "expectedSha256": "f4a1ee9a2957d76edcffa4535da77d0d25fcfa73785a6794c2001813eb9e074e",
+      "expectedSha256": "b640149b76b72495b358ab6f9c821162753d0b8a6d6348cb7d16023abaabfd11",
       "byteForByte": true
     },
     {
