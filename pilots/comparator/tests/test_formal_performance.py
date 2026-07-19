@@ -21,6 +21,7 @@ PLAN = (
     ROOT
     / "images/comparator-formal-runner/opt/formal-performance/contracts/formal-performance-v1.json"
 )
+PREPARATION = ROOT / "pilots/comparator/scripts/prepare_formal_performance.py"
 LOADER = importlib.machinery.SourceFileLoader("formal_performance", str(RUNNER))
 SPEC = importlib.util.spec_from_loader("formal_performance", LOADER)
 if SPEC is None:
@@ -37,6 +38,16 @@ if PROVIDER_SPEC is None:
     raise RuntimeError("cannot load formal-performance provider")
 PROVIDER_MODULE = importlib.util.module_from_spec(PROVIDER_SPEC)
 PROVIDER_LOADER.exec_module(PROVIDER_MODULE)
+PREPARATION_LOADER = importlib.machinery.SourceFileLoader(
+    "prepare_formal_performance", str(PREPARATION)
+)
+PREPARATION_SPEC = importlib.util.spec_from_loader(
+    "prepare_formal_performance", PREPARATION_LOADER
+)
+if PREPARATION_SPEC is None:
+    raise RuntimeError("cannot load formal-performance preparation")
+PREPARATION_MODULE = importlib.util.module_from_spec(PREPARATION_SPEC)
+PREPARATION_LOADER.exec_module(PREPARATION_MODULE)
 RUNNER_IMAGE = (
     "ghcr.io/kungfu-systems/build-images/comparator-formal-runner@sha256:"
     + "a" * 64
@@ -66,6 +77,22 @@ class FormalPerformanceTest(unittest.TestCase):
                 {position: positions.count(position) for position in range(3)},
                 {0: 35, 1: 35, 2: 35},
             )
+
+    def test_exact_image_is_normalized_to_docker_repo_digest(self) -> None:
+        digest = "sha256:" + "a" * 64
+        cases = {
+            f"postgres:18.4-bookworm@{digest}": f"postgres@{digest}",
+            (
+                f"registry.example:5000/team/image:release@{digest}"
+            ): f"registry.example:5000/team/image@{digest}",
+            f"ghcr.io/team/image@{digest}": f"ghcr.io/team/image@{digest}",
+        }
+        for image, expected in cases.items():
+            with self.subTest(image=image):
+                self.assertEqual(
+                    PREPARATION_MODULE.canonical_repo_digest(image),
+                    expected,
+                )
 
     def test_bundle_and_offline_aggregate_verification(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
