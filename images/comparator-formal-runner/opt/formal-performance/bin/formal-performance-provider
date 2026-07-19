@@ -279,8 +279,8 @@ class CgroupSampler:
         self.project = project
         self.expected_subject = expected_subject
         self.samples: list[dict[str, Any]] = []
-        self.first: dict[str, dict[str, int]] = {}
-        self.last: dict[str, dict[str, int]] = {}
+        self.first: dict[tuple[str, str, int, str], dict[str, int]] = {}
+        self.last: dict[tuple[str, str, int, str], dict[str, int]] = {}
         self.peak_rss_bytes = 0
         self.services: dict[str, dict[str, int]] = {}
 
@@ -307,8 +307,25 @@ class CgroupSampler:
                 # may disappear between Docker inspection and counter reads.
                 continue
             identity = str(root)
-            self.first.setdefault(identity, record)
-            self.last[identity] = record
+            container_id = container.get("Id", "")
+            started_at = state.get("StartedAt", "")
+            if (
+                not isinstance(container_id, str)
+                or not container_id
+                or not isinstance(started_at, str)
+                or not started_at
+            ):
+                raise ProviderError("container lifecycle identity is incomplete")
+            lifecycle = (container_id, started_at, pid, identity)
+            previous = self.last.get(lifecycle)
+            if previous is not None:
+                for key in ("cpu_usage_ns", "read_bytes", "write_bytes"):
+                    if record[key] < previous[key]:
+                        raise ProviderError(
+                            f"cgroup lifecycle counter moved backwards: {key}"
+                        )
+            self.first.setdefault(lifecycle, record)
+            self.last[lifecycle] = record
             total_memory += record["rss_bytes"]
             labels = container.get("Config", {}).get("Labels", {}) or {}
             service = labels.get("com.docker.compose.service", "")
@@ -318,7 +335,15 @@ class CgroupSampler:
                     "cpu_micros": int(host.get("NanoCpus", 0)) // 1000,
                     "memory_bytes": int(host.get("Memory", 0)),
                 }
-            current.append({"cgroup": identity, **record})
+            current.append(
+                {
+                    "cgroup": identity,
+                    "container_id": container_id,
+                    "started_at": started_at,
+                    "pid": pid,
+                    **record,
+                }
+            )
         if current:
             self.peak_rss_bytes = max(self.peak_rss_bytes, total_memory)
             self.samples.append(
@@ -402,7 +427,12 @@ def measured_process(
             time.sleep(0.02)
     except BaseException:
         if process.poll() is None:
-            os.killpg(process.pid, signal.SIGKILL)
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                # The adapter may exit between poll() and killpg(). Its process
+                # group is already gone, so preserve the original sample error.
+                pass
         stdout, stderr = process.communicate()
         persist_process_diagnostics(diagnostic_dir, stdout, stderr, sampler)
         raise
