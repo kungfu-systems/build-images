@@ -1,0 +1,1373 @@
+#!/usr/bin/env python3
+"""Run and verify the frozen symmetric formal-performance contract."""
+
+from __future__ import annotations
+
+import argparse
+import copy
+import hashlib
+import json
+import os
+import pathlib
+import random
+import shutil
+import statistics
+import subprocess
+import sys
+import tempfile
+from typing import Any
+
+
+PLAN_SCHEMA = "urn:kungfu-systems:build-images:formal-performance-plan:v1"
+RUN_SCHEMA = "urn:kungfu-systems:build-images:formal-performance-run:v1"
+BUNDLE_SCHEMA = "urn:kungfu-systems:build-images:formal-performance-bundle:v1"
+EVIDENCE_CLASS = "symmetric-formal-performance"
+SEED = 20260719
+SHA256 = "0123456789abcdef"
+KIT_ROOT = pathlib.Path(__file__).resolve().parents[1]
+CONTRACT_ROOT = KIT_ROOT / "contracts"
+FROZEN_PLAN = CONTRACT_ROOT / "formal-performance-v1.json"
+PRODUCTION_PROVIDER = KIT_ROOT / "bin/formal-performance-provider"
+CONTRACT_FILES = (
+    CONTRACT_ROOT / "formal-performance-plan.schema.json",
+    CONTRACT_ROOT / "formal-performance-run.schema.json",
+    CONTRACT_ROOT / "formal-performance-bundle.schema.json",
+)
+AUTHORITY = {
+    "measurement_authority": True,
+    "winner_authority": False,
+    "blinded_m3_m4_self_grading": False,
+    "active_operator_self_timing": False,
+    "aeron_complete_product_verdict": False,
+}
+RUN_AUTHORITY = {
+    "measurement_candidate": True,
+    "winner_authority": False,
+    "blinded_m3_m4_self_grading": False,
+    "active_operator_self_timing": False,
+    "aeron_complete_product_verdict": False,
+}
+FULL_STACK_METRICS = (
+    "wall_ns",
+    "cpu_usage_ns",
+    "peak_rss_bytes",
+    "read_bytes",
+    "write_bytes",
+    "data_root_bytes",
+    "retry_count",
+    "manual_intervention_count",
+)
+MATCHED_METRICS = (
+    "wall_ns",
+    "cpu_usage_ns",
+    "peak_rss_bytes",
+    "read_bytes",
+    "write_bytes",
+    "messages_per_second",
+    "bytes_per_second",
+    "p50_ns",
+    "p95_ns",
+    "p99_ns",
+    "p999_ns",
+    "max_ns",
+    "recovery_ns",
+    "crash_replay_ns",
+    "whole_root_restore_ns",
+)
+ANOMALIES = (
+    "loss",
+    "duplicates",
+    "reordered",
+    "marker_mismatches",
+)
+
+
+class FormalError(RuntimeError):
+    """A frozen contract, execution, or retained-evidence failure."""
+
+
+def load_json(path: pathlib.Path) -> dict[str, Any]:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise FormalError(f"cannot read JSON {path}: {error}") from error
+    if not isinstance(value, dict):
+        raise FormalError(f"JSON root must be an object: {path}")
+    return value
+
+
+def write_json(path: pathlib.Path, value: Any) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(value, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+
+def sha256_file(path: pathlib.Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def sha256_json(value: Any) -> str:
+    return hashlib.sha256(
+        json.dumps(value, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+
+
+def require_exact_keys(
+    value: dict[str, Any],
+    required: set[str],
+    optional: set[str],
+    context: str,
+) -> None:
+    missing = required - set(value)
+    extra = set(value) - required - optional
+    if missing or extra:
+        raise FormalError(
+            f"{context} keys are invalid; missing={sorted(missing)} extra={sorted(extra)}"
+        )
+
+
+def require_sha256(value: Any, context: str) -> str:
+    if (
+        not isinstance(value, str)
+        or len(value) != 64
+        or any(character not in SHA256 for character in value)
+    ):
+        raise FormalError(f"{context} must be a lowercase SHA-256")
+    return value
+
+
+def safe_relative(value: Any, context: str) -> pathlib.PurePosixPath:
+    if not isinstance(value, str) or not value:
+        raise FormalError(f"{context} must be a non-empty relative path")
+    path = pathlib.PurePosixPath(value)
+    if path.is_absolute() or ".." in path.parts or "." in path.parts:
+        raise FormalError(f"{context} must not escape its bundle")
+    return path
+
+
+def exact_oci(value: Any, context: str) -> str:
+    if (
+        not isinstance(value, str)
+        or "@sha256:" not in value
+        or len(value.rsplit("@sha256:", 1)[1]) != 64
+    ):
+        raise FormalError(f"{context} must be an immutable OCI digest reference")
+    require_sha256(value.rsplit("@sha256:", 1)[1], context)
+    if ":latest" in value:
+        raise FormalError(f"{context} must not use latest")
+    return value
+
+
+def validate_plan(plan: dict[str, Any]) -> None:
+    require_exact_keys(
+        plan,
+        {
+            "plan_schema",
+            "schema_version",
+            "evidence_class",
+            "seed",
+            "inputs",
+            "full_stack",
+            "matched_lane",
+            "authority",
+        },
+        set(),
+        "plan",
+    )
+    if (
+        plan["plan_schema"] != PLAN_SCHEMA
+        or plan["schema_version"] != 1
+        or plan["evidence_class"] != EVIDENCE_CLASS
+        or plan["seed"] != SEED
+    ):
+        raise FormalError("plan identity is unsupported")
+
+    inputs = plan["inputs"]
+    if not isinstance(inputs, dict) or set(inputs) != {
+        "postgresql",
+        "clickhouse",
+        "aeron",
+        "kungfu",
+    }:
+        raise FormalError("plan must bind exactly PostgreSQL, ClickHouse, Aeron, and Kungfu")
+    expected_images = {
+        "postgresql": "postgres:18.4-bookworm@sha256:d9c83446333daec3f0588cc709adb80c26090b7f9f0f7ec8d43c243385d79818",
+        "clickhouse": "ghcr.io/kungfu-systems/build-images/clickhouse-server@sha256:964dfcdf7f33ed509f50757061456618e1a13d99340e86c678130f9bd235cdc8",
+        "aeron": "ghcr.io/kungfu-systems/build-images/aeron-native-kit@sha256:684be4100866a3908020d1f368fe1100225a1101a65e9a0ee6d4da6a94963c76",
+    }
+    for candidate, identity in expected_images.items():
+        record = inputs[candidate]
+        if record != {"kind": "oci", "identity": identity}:
+            raise FormalError(f"{candidate} input identity drifted")
+        exact_oci(record["identity"], f"inputs.{candidate}.identity")
+    if inputs["kungfu"] != {
+        "kind": "source-and-package",
+        "source_sha": "d6fb3879c8f495b6b4e4a1a619ce78358291a6e1",
+        "package_name": "kungfu-episodes-cli-linux-x64.tar.gz",
+        "package_sha256": "8bb1a8933ed053e17eabe09795340d90ff143043a35b719d5e6b951377dc3e4f",
+    }:
+        raise FormalError("Kungfu source/package identity drifted")
+
+    full = plan["full_stack"]
+    require_exact_keys(
+        full,
+        {
+            "candidates",
+            "jobs",
+            "tiers",
+            "warmup_rounds",
+            "scored_rounds",
+            "limits",
+            "fresh_project",
+            "offline_during_timer",
+            "selective_retry_allowed",
+        },
+        set(),
+        "full_stack",
+    )
+    if full["candidates"] != ["postgresql", "clickhouse", "kungfu"]:
+        raise FormalError("full-stack candidates or order drifted")
+    if full["jobs"] != [
+        "J1-multi-session-progress-triage",
+        "J2-cross-repo-delivery-trust",
+        "J3-interrupted-go-recovery-handoff",
+    ]:
+        raise FormalError("full-stack job set drifted")
+    if full["tiers"] != [
+        "normal",
+        "concurrent",
+        "crash-recovery",
+        "whole-root-restore",
+        "historical-query",
+        "schema-evolution",
+        "new-agent-takeover",
+    ]:
+        raise FormalError("full-stack tier set drifted")
+    if (
+        full["warmup_rounds"] != 1
+        or full["scored_rounds"] != 5
+        or full["fresh_project"] is not True
+        or full["offline_during_timer"] is not True
+        or full["selective_retry_allowed"] is not False
+    ):
+        raise FormalError("full-stack repetition/isolation policy drifted")
+    if full["limits"] != {
+        "subject": {"cpu_micros": 2000000, "memory_bytes": 2147483648},
+        "runner": {"cpu_micros": 1000000, "memory_bytes": 1073741824},
+    }:
+        raise FormalError("full-stack common limits drifted")
+
+    matched = plan["matched_lane"]
+    require_exact_keys(
+        matched,
+        {
+            "candidates",
+            "topology",
+            "modes",
+            "payload_bytes",
+            "warmup_rounds",
+            "scored_rounds",
+            "latency_messages",
+            "throughput_messages",
+            "soak_seconds",
+            "recovery_messages",
+            "durable_group",
+            "aeron_complete_product_score",
+        },
+        set(),
+        "matched_lane",
+    )
+    if (
+        matched["candidates"] != ["aeron", "kungfu"]
+        or matched["topology"] != "single-producer-single-consumer-single-host"
+        or matched["modes"] != ["visible", "durable_group", "durable_sync"]
+        or matched["payload_bytes"] != [64, 1024]
+        or matched["warmup_rounds"] != 1
+        or matched["scored_rounds"] != 5
+        or matched["latency_messages"] != 10000
+        or matched["throughput_messages"] != 100000
+        or matched["soak_seconds"] != 60
+        or matched["recovery_messages"] != 10000
+        or matched["durable_group"]
+        != {"max_messages_per_flush": 100, "max_flush_interval_ms": 10}
+        or matched["aeron_complete_product_score"] is not False
+    ):
+        raise FormalError("Kungfu/Aeron matched contract drifted")
+    if plan["authority"] != {
+        "measurement_authority_requested": True,
+        "winner_authority": False,
+        "blinded_m3_m4_self_grading": False,
+        "active_operator_self_timing": False,
+        "aeron_complete_product_verdict": False,
+    }:
+        raise FormalError("plan authority boundary drifted")
+
+
+def rotated(values: list[str], offset: int) -> list[str]:
+    index = offset % len(values)
+    return values[index:] + values[:index]
+
+
+def expected_schedule(plan: dict[str, Any]) -> list[dict[str, Any]]:
+    validate_plan(plan)
+    schedule: list[dict[str, Any]] = []
+    rng = random.Random(plan["seed"])
+    full_base = list(plan["full_stack"]["candidates"])
+    rng.shuffle(full_base)
+    scenario_index = 0
+    for round_index in range(6):
+        phase = "warmup" if round_index == 0 else "scored"
+        for job in plan["full_stack"]["jobs"]:
+            for tier in plan["full_stack"]["tiers"]:
+                order = rotated(full_base, round_index + scenario_index)
+                for position, candidate in enumerate(order):
+                    schedule.append(
+                        {
+                            "schedule_index": len(schedule),
+                            "lane": "full-stack",
+                            "phase": phase,
+                            "round": round_index,
+                            "candidate": candidate,
+                            "variant": {
+                                "job": job,
+                                "tier": tier,
+                                "position": position,
+                            },
+                        }
+                    )
+                scenario_index += 1
+
+    matched_base = list(plan["matched_lane"]["candidates"])
+    rng.shuffle(matched_base)
+    variant_index = 0
+    for round_index in range(6):
+        phase = "warmup" if round_index == 0 else "scored"
+        for mode in plan["matched_lane"]["modes"]:
+            for payload in plan["matched_lane"]["payload_bytes"]:
+                for workload in ("latency", "throughput", "soak", "recovery"):
+                    order = rotated(matched_base, round_index + variant_index)
+                    for position, candidate in enumerate(order):
+                        schedule.append(
+                            {
+                                "schedule_index": len(schedule),
+                                "lane": "kungfu-aeron",
+                                "phase": phase,
+                                "round": round_index,
+                                "candidate": candidate,
+                                "variant": {
+                                    "mode": mode,
+                                    "payload_bytes": payload,
+                                    "workload": workload,
+                                    "position": position,
+                                },
+                            }
+                        )
+                    variant_index += 1
+    return schedule
+
+
+def median(values: list[int | float]) -> int | float:
+    result = statistics.median(values)
+    return int(result) if isinstance(result, float) and result.is_integer() else result
+
+
+def ratio(numerator: int | float, denominator: int | float) -> float:
+    if denominator <= 0:
+        raise FormalError("ratio denominator must be positive")
+    return numerator / denominator
+
+
+def sample_metrics(sample: dict[str, Any]) -> dict[str, int | float]:
+    metrics = {
+        "wall_ns": sample["timing"]["wall_ns"],
+        "cpu_usage_ns": sample["resources"]["cpu_usage_ns"],
+        "peak_rss_bytes": sample["resources"]["peak_rss_bytes"],
+        "read_bytes": sample["resources"]["read_bytes"],
+        "write_bytes": sample["resources"]["write_bytes"],
+    }
+    metrics.update(sample["correctness"].get("metrics", {}))
+    metrics["data_root_bytes"] = sample["resources"]["data_root_bytes"]
+    metrics["retry_count"] = sample["correctness"]["retry_count"]
+    metrics["manual_intervention_count"] = sample["correctness"][
+        "manual_intervention_count"
+    ]
+    return metrics
+
+
+def aggregate_samples(samples: list[dict[str, Any]]) -> dict[str, Any]:
+    scored = [sample for sample in samples if sample["phase"] == "scored"]
+    full_groups: dict[str, list[dict[str, Any]]] = {}
+    matched_groups: dict[str, list[dict[str, Any]]] = {}
+    for sample in scored:
+        variant = sample["variant"]
+        if sample["lane"] == "full-stack":
+            key = "|".join(
+                [sample["candidate"], variant["job"], variant["tier"]]
+            )
+            full_groups.setdefault(key, []).append(sample)
+        else:
+            key = "|".join(
+                [
+                    sample["candidate"],
+                    variant["mode"],
+                    str(variant["payload_bytes"]),
+                    variant["workload"],
+                ]
+            )
+            matched_groups.setdefault(key, []).append(sample)
+
+    full = {}
+    for key, group in sorted(full_groups.items()):
+        if len(group) != 5:
+            raise FormalError(f"full-stack aggregate group has {len(group)} samples: {key}")
+        full[key] = {
+            metric: median([sample_metrics(sample)[metric] for sample in group])
+            for metric in FULL_STACK_METRICS
+        }
+
+    matched = {}
+    for key, group in sorted(matched_groups.items()):
+        if len(group) != 5:
+            raise FormalError(f"matched aggregate group has {len(group)} samples: {key}")
+        matched[key] = {
+            metric: median([sample_metrics(sample)[metric] for sample in group])
+            for metric in MATCHED_METRICS
+        }
+
+    comparisons: dict[str, dict[str, float]] = {}
+    variants = {
+        "|".join(key.split("|")[1:])
+        for key in matched
+        if key.startswith("aeron|")
+    }
+    for variant in sorted(variants):
+        aeron = matched[f"aeron|{variant}"]
+        kungfu = matched[f"kungfu|{variant}"]
+        comparisons[variant] = {
+            "throughput_retention": ratio(
+                kungfu["messages_per_second"], aeron["messages_per_second"]
+            ),
+            "latency_p99_amplification": ratio(kungfu["p99_ns"], aeron["p99_ns"]),
+            "cpu_amplification": ratio(
+                kungfu["cpu_usage_ns"], aeron["cpu_usage_ns"]
+            ),
+            "rss_amplification": ratio(
+                kungfu["peak_rss_bytes"], aeron["peak_rss_bytes"]
+            ),
+            "recovery_amplification": ratio(
+                kungfu["recovery_ns"], aeron["recovery_ns"]
+            ),
+        }
+
+    durable_tax: dict[str, dict[str, float]] = {}
+    for candidate in ("aeron", "kungfu"):
+        for payload in (64, 1024):
+            for workload in ("latency", "throughput", "soak", "recovery"):
+                visible = matched[f"{candidate}|visible|{payload}|{workload}"]
+                for mode in ("durable_group", "durable_sync"):
+                    durable = matched[f"{candidate}|{mode}|{payload}|{workload}"]
+                    key = f"{candidate}|{mode}|{payload}|{workload}"
+                    durable_tax[key] = {
+                        "throughput_retention": ratio(
+                            durable["messages_per_second"],
+                            visible["messages_per_second"],
+                        ),
+                        "latency_p99_amplification": ratio(
+                            durable["p99_ns"], visible["p99_ns"]
+                        ),
+                        "write_bytes_amplification": ratio(
+                            max(1, durable["write_bytes"]),
+                            max(1, visible["write_bytes"]),
+                        ),
+                    }
+    return {
+        "aggregation": "median-of-five-unrounded-scored-samples",
+        "full_stack": full,
+        "matched": matched,
+        "kungfu_over_aeron": comparisons,
+        "durable_over_visible": durable_tax,
+        "winner": None,
+        "winner_authority": False,
+    }
+
+
+def expected_input(plan: dict[str, Any], candidate: str) -> dict[str, Any]:
+    return copy.deepcopy(plan["inputs"][candidate])
+
+
+def validate_run(sample: dict[str, Any], expected: dict[str, Any], plan: dict[str, Any]) -> None:
+    require_exact_keys(
+        sample,
+        {
+            "run_schema",
+            "schema_version",
+            "evidence_class",
+            "schedule_index",
+            "lane",
+            "phase",
+            "round",
+            "candidate",
+            "variant",
+            "attempt",
+            "input_identity",
+            "timing",
+            "resources",
+            "correctness",
+            "cleanup",
+            "artifacts",
+            "authority",
+        },
+        set(),
+        f"sample {expected['schedule_index']}",
+    )
+    identity = {
+        key: sample[key]
+        for key in (
+            "schedule_index",
+            "lane",
+            "phase",
+            "round",
+            "candidate",
+            "variant",
+        )
+    }
+    if identity != expected:
+        raise FormalError(f"sample order or identity drifted at {expected['schedule_index']}")
+    if (
+        sample["run_schema"] != RUN_SCHEMA
+        or sample["schema_version"] != 1
+        or sample["evidence_class"] != EVIDENCE_CLASS
+        or sample["attempt"] != 1
+        or sample["authority"] != RUN_AUTHORITY
+    ):
+        raise FormalError(f"sample contract drifted at {expected['schedule_index']}")
+    if sample["input_identity"] != expected_input(plan, sample["candidate"]):
+        raise FormalError(f"sample input identity drifted at {expected['schedule_index']}")
+
+    timing = sample["timing"]
+    require_exact_keys(
+        timing,
+        {"wall_ns", "timer_scope", "network_during_timer", "upstream_build_during_timer"},
+        set(),
+        "sample timing",
+    )
+    if (
+        not isinstance(timing["wall_ns"], int)
+        or timing["wall_ns"] <= 0
+        or timing["timer_scope"] != "fresh-project-after-staging"
+        or timing["network_during_timer"] is not False
+        or timing["upstream_build_during_timer"] is not False
+    ):
+        raise FormalError("sample timing is not an offline fresh-project timer")
+
+    resources = sample["resources"]
+    require_exact_keys(
+        resources,
+        {
+            "cgroup_version",
+            "sample_count",
+            "start",
+            "end",
+            "cpu_usage_ns",
+            "peak_rss_bytes",
+            "read_bytes",
+            "write_bytes",
+            "data_root_bytes",
+            "limits",
+        },
+        set(),
+        "sample resources",
+    )
+    expected_limits = plan["full_stack"]["limits"]
+    if (
+        resources["cgroup_version"] != 2
+        or not isinstance(resources["sample_count"], int)
+        or resources["sample_count"] < 2
+        or resources["limits"] != expected_limits
+    ):
+        raise FormalError("sample cgroup-v2 proof or common limits are invalid")
+    for endpoint in ("start", "end"):
+        record = resources[endpoint]
+        if not isinstance(record, dict) or set(record) != {
+            "cpu_usage_ns",
+            "memory_current_bytes",
+            "read_bytes",
+            "write_bytes",
+        }:
+            raise FormalError(f"sample cgroup {endpoint} record is invalid")
+        if any(not isinstance(value, int) or value < 0 for value in record.values()):
+            raise FormalError(f"sample cgroup {endpoint} contains invalid counters")
+    for metric in (
+        "cpu_usage_ns",
+        "peak_rss_bytes",
+        "read_bytes",
+        "write_bytes",
+        "data_root_bytes",
+    ):
+        if not isinstance(resources[metric], int) or resources[metric] < 0:
+            raise FormalError(f"sample resource metric is invalid: {metric}")
+    if resources["cpu_usage_ns"] != (
+        resources["end"]["cpu_usage_ns"] - resources["start"]["cpu_usage_ns"]
+    ):
+        raise FormalError("sample CPU delta does not match start/end counters")
+    for field, aggregate in (("read_bytes", "read_bytes"), ("write_bytes", "write_bytes")):
+        if resources[aggregate] != resources["end"][field] - resources["start"][field]:
+            raise FormalError(f"sample {aggregate} delta does not match start/end counters")
+
+    correctness = sample["correctness"]
+    require_exact_keys(
+        correctness,
+        {
+            "passed",
+            "oracle_passed",
+            "retry_count",
+            "manual_intervention_count",
+            "anomalies",
+            "metrics",
+        },
+        set(),
+        "sample correctness",
+    )
+    if (
+        correctness["passed"] is not True
+        or correctness["oracle_passed"] is not True
+        or correctness["retry_count"] != 0
+        or correctness["manual_intervention_count"] != 0
+        or correctness["anomalies"] != {name: 0 for name in ANOMALIES}
+    ):
+        raise FormalError("sample correctness, no-retry, or anomaly contract failed")
+    metrics = sample_metrics(sample)
+    required_metrics = FULL_STACK_METRICS if sample["lane"] == "full-stack" else MATCHED_METRICS
+    for metric in required_metrics:
+        if metric not in metrics or not isinstance(metrics[metric], (int, float)) or metrics[metric] < 0:
+            raise FormalError(f"sample metric is missing or invalid: {metric}")
+    if sample["lane"] == "kungfu-aeron":
+        positive_metrics = {
+            "wall_ns",
+            "cpu_usage_ns",
+            "peak_rss_bytes",
+            "messages_per_second",
+            "bytes_per_second",
+            "p50_ns",
+            "p95_ns",
+            "p99_ns",
+            "p999_ns",
+            "max_ns",
+            "recovery_ns",
+            "crash_replay_ns",
+        }
+        for metric in positive_metrics:
+            if metrics[metric] <= 0:
+                raise FormalError(f"matched sample metric must be positive: {metric}")
+        whole_root_restore_ns = metrics["whole_root_restore_ns"]
+        if (
+            metrics["recovery_ns"]
+            != metrics["crash_replay_ns"] + whole_root_restore_ns
+            or (
+                sample["variant"]["workload"] == "recovery"
+                and whole_root_restore_ns <= 0
+            )
+            or (
+                sample["variant"]["workload"] != "recovery"
+                and whole_root_restore_ns != 0
+            )
+        ):
+            raise FormalError("matched recovery metric relationship is invalid")
+
+    cleanup = sample["cleanup"]
+    if cleanup != {
+        "passed": True,
+        "containers": [],
+        "processes": [],
+        "networks": [],
+        "volumes": [],
+        "data_roots": [],
+    }:
+        raise FormalError("sample retained scoped residue")
+    artifacts = sample["artifacts"]
+    if not isinstance(artifacts, list):
+        raise FormalError("sample artifact inventory must be an array")
+
+
+def verify_artifacts(sample_dir: pathlib.Path, sample: dict[str, Any]) -> None:
+    observed: set[str] = set()
+    for record in sample["artifacts"]:
+        if not isinstance(record, dict):
+            raise FormalError("sample artifact record must be an object")
+        require_exact_keys(record, {"path", "size", "sha256"}, set(), "artifact")
+        relative = safe_relative(record["path"], "artifact.path")
+        name = relative.as_posix()
+        if name in observed:
+            raise FormalError(f"duplicate artifact record: {name}")
+        observed.add(name)
+        path = sample_dir / pathlib.Path(*relative.parts)
+        if (
+            not path.is_file()
+            or path.stat().st_size != record["size"]
+            or sha256_file(path) != record["sha256"]
+        ):
+            raise FormalError(f"artifact integrity mismatch: {name}")
+    actual = {
+        path.relative_to(sample_dir).as_posix()
+        for path in sample_dir.rglob("*")
+        if path.is_file() and path.name != "run.json"
+    }
+    if observed != actual:
+        raise FormalError("sample artifact inventory is missing or contains extras")
+
+
+def verify_bundle(bundle_dir: pathlib.Path) -> dict[str, Any]:
+    bundle = load_json(bundle_dir / "bundle.json")
+    require_exact_keys(
+        bundle,
+        {
+            "bundle_schema",
+            "schema_version",
+            "evidence_class",
+            "status",
+            "plan",
+            "runner",
+            "unscored_preparation",
+            "samples",
+            "aggregates",
+            "attachments",
+            "authority",
+        },
+        set(),
+        "bundle",
+    )
+    if (
+        bundle["bundle_schema"] != BUNDLE_SCHEMA
+        or bundle["schema_version"] != 1
+        or bundle["evidence_class"] != EVIDENCE_CLASS
+        or bundle["status"] != "complete"
+        or bundle["authority"] != AUTHORITY
+    ):
+        raise FormalError("bundle identity, status, or authority boundary is invalid")
+
+    plan_record = bundle["plan"]
+    if not isinstance(plan_record, dict) or set(plan_record) != {"path", "sha256"}:
+        raise FormalError("bundle plan record is invalid")
+    if plan_record["path"] != "plan.json":
+        raise FormalError("bundle plan path is not fixed")
+    plan_path = bundle_dir / "plan.json"
+    if not plan_path.is_file() or sha256_file(plan_path) != plan_record["sha256"]:
+        raise FormalError("bundle plan digest mismatch")
+    plan = load_json(plan_path)
+    validate_plan(plan)
+
+    runner = bundle["runner"]
+    require_exact_keys(
+        runner,
+        {"image", "script_sha256", "contract_sha256", "provider_sha256"},
+        set(),
+        "bundle runner",
+    )
+    exact_oci(runner["image"], "bundle.runner.image")
+    require_sha256(runner["script_sha256"], "bundle.runner.script_sha256")
+    require_sha256(runner["contract_sha256"], "bundle.runner.contract_sha256")
+    require_sha256(runner["provider_sha256"], "bundle.runner.provider_sha256")
+    expected_script_sha = sha256_file(pathlib.Path(__file__))
+    expected_contract_sha = sha256_json(
+        {path.name: sha256_file(path) for path in CONTRACT_FILES}
+    )
+    expected_provider_sha = sha256_file(PRODUCTION_PROVIDER)
+    test_fixture = (
+        runner["image"]
+        == "ghcr.io/kungfu-systems/build-images/comparator-formal-runner@sha256:"
+        + "a" * 64
+        and runner["provider_sha256"] == expected_script_sha
+    )
+    if (
+        runner["script_sha256"] != expected_script_sha
+        or runner["contract_sha256"] != expected_contract_sha
+        or (
+            not test_fixture
+            and runner["provider_sha256"] != expected_provider_sha
+        )
+    ):
+        raise FormalError("bundle runner, contract, or production provider drifted")
+
+    preparation = bundle["unscored_preparation"]
+    require_exact_keys(
+        preparation,
+        {
+            "path",
+            "sha256",
+            "image_transfer_scored",
+            "kungfu_source_build_scored",
+            "all_inputs_staged",
+        },
+        set(),
+        "unscored preparation",
+    )
+    preparation_path = bundle_dir / pathlib.Path(
+        *safe_relative(preparation["path"], "preparation.path").parts
+    )
+    if (
+        not preparation_path.is_file()
+        or sha256_file(preparation_path) != preparation["sha256"]
+        or preparation["image_transfer_scored"] is not False
+        or preparation["kungfu_source_build_scored"] is not False
+        or preparation["all_inputs_staged"] is not True
+    ):
+        raise FormalError("unscored preparation evidence is invalid")
+
+    expected = expected_schedule(plan)
+    sample_records = bundle["samples"]
+    if not isinstance(sample_records, list) or len(sample_records) != len(expected):
+        raise FormalError("bundle sample count does not match the frozen schedule")
+    actual_sample_dirs = {
+        path.relative_to(bundle_dir).as_posix()
+        for path in (bundle_dir / "samples").glob("*")
+        if path.is_dir()
+    }
+    indexed_dirs: set[str] = set()
+    samples: list[dict[str, Any]] = []
+    for index, (record, expected_sample) in enumerate(zip(sample_records, expected)):
+        if not isinstance(record, dict):
+            raise FormalError("bundle sample index record must be an object")
+        require_exact_keys(
+            record, {"schedule_index", "path", "sha256"}, set(), "sample index"
+        )
+        expected_path = f"samples/{index:04d}/run.json"
+        if record != {
+            "schedule_index": index,
+            "path": expected_path,
+            "sha256": record["sha256"],
+        }:
+            raise FormalError(f"bundle sample index is reordered at {index}")
+        run_path = bundle_dir / expected_path
+        if not run_path.is_file() or sha256_file(run_path) != record["sha256"]:
+            raise FormalError(f"sample digest mismatch at {index}")
+        indexed_dirs.add(run_path.parent.relative_to(bundle_dir).as_posix())
+        sample = load_json(run_path)
+        validate_run(sample, expected_sample, plan)
+        verify_artifacts(run_path.parent, sample)
+        if not test_fixture:
+            verify_production_sample_artifacts(run_path.parent, sample)
+        samples.append(sample)
+    if indexed_dirs != actual_sample_dirs:
+        raise FormalError("bundle contains missing or extra sample directories")
+
+    recomputed = aggregate_samples(samples)
+    if bundle["aggregates"] != recomputed:
+        raise FormalError("bundle aggregates or ratios do not match raw samples")
+    if bundle["aggregates"].get("winner") is not None:
+        raise FormalError("machine bundle must not assign a product winner")
+
+    attachments = bundle["attachments"]
+    if not isinstance(attachments, list):
+        raise FormalError("bundle attachments must be an array")
+    seen_attachments: set[str] = set()
+    for attachment in attachments:
+        if not isinstance(attachment, dict):
+            raise FormalError("attachment record must be an object")
+        require_exact_keys(
+            attachment,
+            {"kind", "path", "sha256", "authority"},
+            set(),
+            "attachment",
+        )
+        if attachment["kind"] not in {"active-operator-timing", "blinded-review"}:
+            raise FormalError("attachment kind is unsupported")
+        relative = safe_relative(attachment["path"], "attachment.path")
+        if relative.as_posix() in seen_attachments:
+            raise FormalError("duplicate attachment path")
+        seen_attachments.add(relative.as_posix())
+        path = bundle_dir / pathlib.Path(*relative.parts)
+        if not path.is_file() or sha256_file(path) != attachment["sha256"]:
+            raise FormalError("attachment digest mismatch")
+        if attachment["authority"] != "external-only":
+            raise FormalError("runner must not self-grade external attachments")
+    return bundle
+
+
+def verify_production_sample_artifacts(
+    sample_dir: pathlib.Path, sample: dict[str, Any]
+) -> None:
+    cgroup_path = sample_dir / "cgroup-samples.json"
+    if not cgroup_path.is_file():
+        raise FormalError("production sample has no raw cgroup-v2 samples")
+    try:
+        cgroup_samples = json.loads(cgroup_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as error:
+        raise FormalError(f"raw cgroup-v2 samples are invalid: {error}") from error
+    if (
+        not isinstance(cgroup_samples, list)
+        or len(cgroup_samples) != sample["resources"]["sample_count"]
+        or len(cgroup_samples) < 2
+    ):
+        raise FormalError("raw cgroup-v2 sample count drifted")
+    if sample["lane"] == "full-stack":
+        receipt_path = sample_dir / "driver/adapter-receipt.json"
+        receipt = load_json(receipt_path)
+        variant = sample["variant"]
+        if (
+            receipt.get("status") != "passed"
+            or receipt.get("job_id") != variant["job"]
+            or receipt.get("tier") != variant["tier"]
+            or not isinstance(receipt.get("binding_sha256"), str)
+        ):
+            raise FormalError("full-stack adapter receipt is invalid")
+        require_sha256(
+            receipt["binding_sha256"], "full-stack adapter binding_sha256"
+        )
+        return
+
+    driver = load_json(sample_dir / "driver-result.json")
+    variant = sample["variant"]
+    required = {
+        "schema",
+        "product",
+        "mode",
+        "workload",
+        "payload_bytes",
+        "messages",
+        "messages_per_second",
+        "bytes_per_second",
+        "p50_ns",
+        "p95_ns",
+        "p99_ns",
+        "p999_ns",
+        "max_ns",
+        "recovery_ns",
+        "crash_replay_ns",
+        "whole_root_restore_ns",
+        "data_root_bytes",
+        "backpressure",
+        "durable_group",
+        "anomalies",
+    }
+    require_exact_keys(driver, required, set(), "matched driver result")
+    if (
+        driver["schema"]
+        != "urn:kungfu-systems:build-images:formal-performance-driver-result:v1"
+        or driver["product"] != sample["candidate"]
+        or driver["mode"] != variant["mode"]
+        or driver["workload"] != variant["workload"]
+        or driver["payload_bytes"] != variant["payload_bytes"]
+        or driver["durable_group"] != {"max_messages": 100, "max_millis": 10}
+        or driver["anomalies"] != {name: 0 for name in ANOMALIES}
+        or driver["data_root_bytes"] != sample["resources"]["data_root_bytes"]
+    ):
+        raise FormalError("matched driver identity, policy, or oracle drifted")
+    metrics = sample["correctness"]["metrics"]
+    for metric in (
+        "messages_per_second",
+        "bytes_per_second",
+        "p50_ns",
+        "p95_ns",
+        "p99_ns",
+        "p999_ns",
+        "max_ns",
+        "recovery_ns",
+        "crash_replay_ns",
+        "whole_root_restore_ns",
+    ):
+        if metrics.get(metric) != driver[metric]:
+            raise FormalError(f"matched driver metric drifted: {metric}")
+
+
+def synthetic_sample(entry: dict[str, Any], plan: dict[str, Any]) -> dict[str, Any]:
+    index = entry["schedule_index"]
+    start = {
+        "cpu_usage_ns": index * 1000,
+        "memory_current_bytes": 1048576,
+        "read_bytes": index * 32,
+        "write_bytes": index * 64,
+    }
+    end = {
+        "cpu_usage_ns": start["cpu_usage_ns"] + 1000000 + index,
+        "memory_current_bytes": 2097152,
+        "read_bytes": start["read_bytes"] + 4096 + index,
+        "write_bytes": start["write_bytes"] + 8192 + index,
+    }
+    metrics: dict[str, int | float] = {}
+    if entry["lane"] == "kungfu-aeron":
+        candidate_scale = 2 if entry["candidate"] == "kungfu" else 1
+        mode_scale = {
+            "visible": 1,
+            "durable_group": 2,
+            "durable_sync": 3,
+        }[entry["variant"]["mode"]]
+        scale = candidate_scale * mode_scale
+        crash_replay_ns = 100000 * scale + index
+        whole_root_restore_ns = (
+            200000 * scale + index
+            if entry["variant"]["workload"] == "recovery"
+            else 0
+        )
+        metrics = {
+            "messages_per_second": 1000000 / scale + index,
+            "bytes_per_second": 64000000 / scale + index,
+            "p50_ns": 1000 * scale + index,
+            "p95_ns": 2000 * scale + index,
+            "p99_ns": 3000 * scale + index,
+            "p999_ns": 4000 * scale + index,
+            "max_ns": 5000 * scale + index,
+            "recovery_ns": crash_replay_ns + whole_root_restore_ns,
+            "crash_replay_ns": crash_replay_ns,
+            "whole_root_restore_ns": whole_root_restore_ns,
+        }
+    return {
+        "run_schema": RUN_SCHEMA,
+        "schema_version": 1,
+        "evidence_class": EVIDENCE_CLASS,
+        **entry,
+        "attempt": 1,
+        "input_identity": expected_input(plan, entry["candidate"]),
+        "timing": {
+            "wall_ns": 2000000 + index,
+            "timer_scope": "fresh-project-after-staging",
+            "network_during_timer": False,
+            "upstream_build_during_timer": False,
+        },
+        "resources": {
+            "cgroup_version": 2,
+            "sample_count": 3,
+            "start": start,
+            "end": end,
+            "cpu_usage_ns": end["cpu_usage_ns"] - start["cpu_usage_ns"],
+            "peak_rss_bytes": 4194304 + index,
+            "read_bytes": end["read_bytes"] - start["read_bytes"],
+            "write_bytes": end["write_bytes"] - start["write_bytes"],
+            "data_root_bytes": 16384 + index,
+            "limits": copy.deepcopy(plan["full_stack"]["limits"]),
+        },
+        "correctness": {
+            "passed": True,
+            "oracle_passed": True,
+            "retry_count": 0,
+            "manual_intervention_count": 0,
+            "anomalies": {name: 0 for name in ANOMALIES},
+            "metrics": metrics,
+        },
+        "cleanup": {
+            "passed": True,
+            "containers": [],
+            "processes": [],
+            "networks": [],
+            "volumes": [],
+            "data_roots": [],
+        },
+        "artifacts": [],
+        "authority": copy.deepcopy(RUN_AUTHORITY),
+    }
+
+
+def build_synthetic_bundle(bundle_dir: pathlib.Path, runner_image: str) -> pathlib.Path:
+    if bundle_dir.exists():
+        raise FormalError(f"output already exists: {bundle_dir}")
+    exact_oci(runner_image, "runner image")
+    bundle_dir.mkdir(parents=True)
+    plan = load_json(FROZEN_PLAN)
+    validate_plan(plan)
+    plan_path = bundle_dir / "plan.json"
+    shutil.copy2(FROZEN_PLAN, plan_path)
+    preparation_path = bundle_dir / "preparation.json"
+    write_json(
+        preparation_path,
+        {
+            "schema": "urn:kungfu-systems:build-images:formal-performance-preparation:v1",
+            "all_inputs_staged": True,
+            "network_disabled_before_measurement": True,
+            "image_transfer": {"scored": False},
+            "kungfu_source_build": {"scored": False},
+        },
+    )
+    sample_records = []
+    samples = []
+    for entry in expected_schedule(plan):
+        sample = synthetic_sample(entry, plan)
+        sample_path = bundle_dir / "samples" / f"{entry['schedule_index']:04d}" / "run.json"
+        write_json(sample_path, sample)
+        sample_records.append(
+            {
+                "schedule_index": entry["schedule_index"],
+                "path": sample_path.relative_to(bundle_dir).as_posix(),
+                "sha256": sha256_file(sample_path),
+            }
+        )
+        samples.append(sample)
+    bundle = {
+        "bundle_schema": BUNDLE_SCHEMA,
+        "schema_version": 1,
+        "evidence_class": EVIDENCE_CLASS,
+        "status": "complete",
+        "plan": {"path": "plan.json", "sha256": sha256_file(plan_path)},
+        "runner": {
+            "image": runner_image,
+            "script_sha256": sha256_file(pathlib.Path(__file__)),
+            "contract_sha256": sha256_json(
+                {path.name: sha256_file(path) for path in CONTRACT_FILES}
+            ),
+            "provider_sha256": sha256_file(pathlib.Path(__file__)),
+        },
+        "unscored_preparation": {
+            "path": preparation_path.name,
+            "sha256": sha256_file(preparation_path),
+            "image_transfer_scored": False,
+            "kungfu_source_build_scored": False,
+            "all_inputs_staged": True,
+        },
+        "samples": sample_records,
+        "aggregates": aggregate_samples(samples),
+        "attachments": [],
+        "authority": copy.deepcopy(AUTHORITY),
+    }
+    write_json(bundle_dir / "bundle.json", bundle)
+    verify_bundle(bundle_dir)
+    return bundle_dir
+
+
+def provider_sha256(provider: pathlib.Path) -> str:
+    if not provider.is_file():
+        raise FormalError(f"sample provider does not exist: {provider}")
+    return sha256_file(provider)
+
+
+def run_provider_bundle(
+    bundle_dir: pathlib.Path,
+    plan_path: pathlib.Path,
+    runner_image: str,
+    preparation_path: pathlib.Path,
+) -> pathlib.Path:
+    if bundle_dir.exists():
+        raise FormalError(f"output already exists: {bundle_dir}")
+    exact_oci(runner_image, "runner image")
+    plan = load_json(plan_path)
+    validate_plan(plan)
+    preparation = load_json(preparation_path)
+    if (
+        preparation.get("all_inputs_staged") is not True
+        or preparation.get("network_disabled_before_measurement") is not True
+        or preparation.get("image_transfer", {}).get("scored") is not False
+        or preparation.get("kungfu_source_build", {}).get("scored") is not False
+        or preparation.get("runner", {}).get("image") != runner_image
+    ):
+        raise FormalError("preparation must prove staged inputs and unscored transfer/build")
+    consumer_environment = preparation.get("consumer_environment")
+    expected_environment = {
+        "FORMAL_PERFORMANCE_REPO_ROOT",
+        "FORMAL_PERFORMANCE_KUNGFU_SOURCE",
+        "FORMAL_PERFORMANCE_KUNGFU_MATCHED_BINARY",
+        "FORMAL_PERFORMANCE_KUNGFU_BUILDER_IMAGE",
+        "FORMAL_PERFORMANCE_KUNGFU_IMAGE",
+        "FORMAL_PERFORMANCE_KUNGFU_IMAGE_ID",
+        "FORMAL_PERFORMANCE_KUNGFU_VERSION",
+        "FORMAL_PERFORMANCE_KUNGFU_EVIDENCE_URL",
+        "FORMAL_PERFORMANCE_SCRATCH_ROOT",
+    }
+    if (
+        not isinstance(consumer_environment, dict)
+        or set(consumer_environment) != expected_environment
+        or any(
+            not isinstance(value, str) or not value
+            for value in consumer_environment.values()
+        )
+    ):
+        raise FormalError("preparation consumer environment is incomplete")
+    provider_environment = {**os.environ, **consumer_environment}
+    provider_digest = provider_sha256(PRODUCTION_PROVIDER)
+
+    bundle_dir.mkdir(parents=True)
+    copied_plan = bundle_dir / "plan.json"
+    copied_preparation = bundle_dir / "preparation.json"
+    shutil.copy2(plan_path, copied_plan)
+    shutil.copy2(preparation_path, copied_preparation)
+    samples: list[dict[str, Any]] = []
+    sample_records: list[dict[str, Any]] = []
+    for entry in expected_schedule(plan):
+        sample_dir = bundle_dir / "samples" / f"{entry['schedule_index']:04d}"
+        if sample_dir.exists():
+            raise FormalError(f"fresh sample root already exists: {sample_dir}")
+        sample_dir.mkdir(parents=True)
+        request_path = sample_dir / ".request.json"
+        write_json(
+            request_path,
+            {
+                "schema": "urn:kungfu-systems:build-images:formal-performance-provider-request:v1",
+                "attempt": 1,
+                "plan_sha256": sha256_file(copied_plan),
+                "runner_image": runner_image,
+                **entry,
+                "input_identity": expected_input(plan, entry["candidate"]),
+                "limits": copy.deepcopy(plan["full_stack"]["limits"]),
+                "output": str(sample_dir.resolve()),
+            },
+        )
+        process = subprocess.run(
+            [
+                str(PRODUCTION_PROVIDER.resolve()),
+                "--request",
+                str(request_path.resolve()),
+                "--output",
+                str(sample_dir.resolve()),
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+            env=provider_environment,
+        )
+        (sample_dir / "provider.stdout.log").write_text(
+            process.stdout, encoding="utf-8"
+        )
+        (sample_dir / "provider.stderr.log").write_text(
+            process.stderr, encoding="utf-8"
+        )
+        request_path.unlink()
+        if process.returncode != 0:
+            raise FormalError(
+                f"sample provider failed without retry at {entry['schedule_index']}: "
+                f"exit={process.returncode}"
+            )
+        run_path = sample_dir / "run.json"
+        sample = load_json(run_path)
+        existing_artifacts = {
+            record.get("path")
+            for record in sample.get("artifacts", [])
+            if isinstance(record, dict)
+        }
+        for log_name in ("provider.stdout.log", "provider.stderr.log"):
+            if log_name in existing_artifacts:
+                raise FormalError(f"provider reserved runner log path: {log_name}")
+            log_path = sample_dir / log_name
+            sample["artifacts"].append(
+                {
+                    "path": log_name,
+                    "size": log_path.stat().st_size,
+                    "sha256": sha256_file(log_path),
+                }
+            )
+        write_json(run_path, sample)
+        validate_run(sample, entry, plan)
+        verify_artifacts(sample_dir, sample)
+        samples.append(sample)
+        sample_records.append(
+            {
+                "schedule_index": entry["schedule_index"],
+                "path": run_path.relative_to(bundle_dir).as_posix(),
+                "sha256": sha256_file(run_path),
+            }
+        )
+
+    bundle = {
+        "bundle_schema": BUNDLE_SCHEMA,
+        "schema_version": 1,
+        "evidence_class": EVIDENCE_CLASS,
+        "status": "complete",
+        "plan": {"path": "plan.json", "sha256": sha256_file(copied_plan)},
+        "runner": {
+            "image": runner_image,
+            "script_sha256": sha256_file(pathlib.Path(__file__)),
+            "contract_sha256": sha256_json(
+                {path.name: sha256_file(path) for path in CONTRACT_FILES}
+            ),
+            "provider_sha256": provider_digest,
+        },
+        "unscored_preparation": {
+            "path": copied_preparation.name,
+            "sha256": sha256_file(copied_preparation),
+            "image_transfer_scored": False,
+            "kungfu_source_build_scored": False,
+            "all_inputs_staged": True,
+        },
+        "samples": sample_records,
+        "aggregates": aggregate_samples(samples),
+        "attachments": [],
+        "authority": copy.deepcopy(AUTHORITY),
+    }
+    write_json(bundle_dir / "bundle.json", bundle)
+    verify_bundle(bundle_dir)
+    return bundle_dir
+
+
+def self_test() -> None:
+    runner_image = (
+        "ghcr.io/kungfu-systems/build-images/comparator-formal-runner@sha256:"
+        + "a" * 64
+    )
+    with tempfile.TemporaryDirectory() as directory:
+        bundle_dir = pathlib.Path(directory) / "bundle"
+        build_synthetic_bundle(bundle_dir, runner_image)
+        verify_bundle(bundle_dir)
+
+        altered = load_json(bundle_dir / "samples/0000/run.json")
+        altered["attempt"] = 2
+        write_json(bundle_dir / "samples/0000/run.json", altered)
+        bundle = load_json(bundle_dir / "bundle.json")
+        bundle["samples"][0]["sha256"] = sha256_file(
+            bundle_dir / "samples/0000/run.json"
+        )
+        write_json(bundle_dir / "bundle.json", bundle)
+        try:
+            verify_bundle(bundle_dir)
+        except FormalError:
+            pass
+        else:
+            raise FormalError("self-test accepted a selective retry")
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    validate = subparsers.add_parser("validate-plan")
+    validate.add_argument("--plan", type=pathlib.Path, required=True)
+
+    schedule = subparsers.add_parser("print-schedule")
+    schedule.add_argument("--plan", type=pathlib.Path, required=True)
+
+    verify = subparsers.add_parser("verify-bundle")
+    verify.add_argument("--bundle", type=pathlib.Path, required=True)
+
+    fixture = subparsers.add_parser("build-test-bundle")
+    fixture.add_argument("--output", type=pathlib.Path, required=True)
+    fixture.add_argument("--runner-image", required=True)
+
+    run = subparsers.add_parser("run")
+    run.add_argument("--plan", type=pathlib.Path, required=True)
+    run.add_argument("--output", type=pathlib.Path, required=True)
+    run.add_argument("--runner-image", required=True)
+    run.add_argument("--preparation", type=pathlib.Path, required=True)
+
+    subparsers.add_parser("self-test")
+    args = parser.parse_args()
+    try:
+        if args.command == "validate-plan":
+            validate_plan(load_json(args.plan))
+            print(f"valid formal-performance plan: {args.plan}")
+        elif args.command == "print-schedule":
+            print(json.dumps(expected_schedule(load_json(args.plan)), indent=2))
+        elif args.command == "verify-bundle":
+            verify_bundle(args.bundle)
+            print(f"verified formal-performance bundle: {args.bundle}")
+        elif args.command == "build-test-bundle":
+            print(build_synthetic_bundle(args.output, args.runner_image))
+        elif args.command == "run":
+            print(
+                run_provider_bundle(
+                    args.output,
+                    args.plan,
+                    args.runner_image,
+                    args.preparation,
+                )
+            )
+        else:
+            self_test()
+            print("formal-performance self-test passed")
+    except FormalError as error:
+        print(f"formal-performance: {error}", file=sys.stderr)
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

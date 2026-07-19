@@ -58,8 +58,8 @@
         "id": "Kungfu Build Images",
         "standard": "KFD-3",
         "standardKey": "kfd-3",
-        "preBuildWitnessSha256": "f7a7f4666b1d21e935a00a58b9ffe78274834316536bdefb6f723b391e2c09b6",
-        "artifactWitnessSha256": "b9596342a462b09bb76345b033a104b4c37ca3fb49b03324a47a923aa1d8573f",
+        "preBuildWitnessSha256": "f286bd6911cd9f6d104c11f885f5a76b7abf05829a08ac4138c1ee7e1d69116c",
+        "artifactWitnessSha256": "5d12c55157c754c0b7006f80f090615f437399dbab098ffe6d8bd6c52113d3b5",
         "prebuildWitness": {
           "schemaVersion": 1,
           "contract": "kungfu-buildchain-kfd-3-collaboration-interface-prebuild-witness",
@@ -71,20 +71,20 @@
             "cwd": "",
             "sourceSha": "",
             "registryPath": ".buildchain/kfd/kfd-3/surfaces.json",
-            "registryDigest": "sha256:16cba65a6e0dab5b79b57f9c026ef06e9f00fc5cdda3e6dcd75b993c3185e063"
+            "registryDigest": "sha256:2016f336627b8689d7e183e1b8dc86e9b956f04fba9fa692311eb9cea663f17d"
           },
           "registry": {
             "id": "Kungfu Build Images",
             "version": "",
             "path": ".buildchain/kfd/kfd-3/surfaces.json",
-            "sha256": "9c4261a0d259474fd4198617d44189ff389c58c0b3f6bfbe57db254fe5b8f15d",
-            "digest": "sha256:9c4261a0d259474fd4198617d44189ff389c58c0b3f6bfbe57db254fe5b8f15d"
+            "sha256": "1194d7e30cdf75005e2fe88c10faefafdf31e1fc4015090f77c347786070be96",
+            "digest": "sha256:1194d7e30cdf75005e2fe88c10faefafdf31e1fc4015090f77c347786070be96"
           },
           "participantProfiles": [],
           "expectedArtifactVerification": {
             "command": ""
           },
-          "collaborationInterfaceDigest": "sha256:adcf11a8b44fdf82c6bc74c8ba01296e003328c976f3f809f9c28dfdd7a62286",
+          "collaborationInterfaceDigest": "sha256:b1bf513e6a17a6a740c24d201bc6aff7a94089c0d693d52d6fccfda490a715c1",
           "auditBoundary": {
             "mode": "closed-world",
             "scope": "KFD-3 registered product public surfaces detected by Buildchain",
@@ -184,10 +184,10 @@
             "id": "Kungfu Build Images",
             "version": "",
             "path": ".buildchain/kfd/kfd-3/surfaces.json",
-            "sha256": "9c4261a0d259474fd4198617d44189ff389c58c0b3f6bfbe57db254fe5b8f15d",
-            "digest": "sha256:9c4261a0d259474fd4198617d44189ff389c58c0b3f6bfbe57db254fe5b8f15d"
+            "sha256": "1194d7e30cdf75005e2fe88c10faefafdf31e1fc4015090f77c347786070be96",
+            "digest": "sha256:1194d7e30cdf75005e2fe88c10faefafdf31e1fc4015090f77c347786070be96"
           },
-          "collaborationInterfaceDigest": "sha256:adcf11a8b44fdf82c6bc74c8ba01296e003328c976f3f809f9c28dfdd7a62286",
+          "collaborationInterfaceDigest": "sha256:b1bf513e6a17a6a740c24d201bc6aff7a94089c0d693d52d6fccfda490a715c1",
           "exposedSurfaces": [
             {
               "id": "doc:docs/image-contract.md",
@@ -366,21 +366,21 @@
             "id": "Kungfu Build Images",
             "version": "",
             "path": ".buildchain/kfd/kfd-3/surfaces.json",
-            "sha256": "9c4261a0d259474fd4198617d44189ff389c58c0b3f6bfbe57db254fe5b8f15d",
-            "digest": "sha256:9c4261a0d259474fd4198617d44189ff389c58c0b3f6bfbe57db254fe5b8f15d"
+            "sha256": "1194d7e30cdf75005e2fe88c10faefafdf31e1fc4015090f77c347786070be96",
+            "digest": "sha256:1194d7e30cdf75005e2fe88c10faefafdf31e1fc4015090f77c347786070be96"
           },
-          "collaborationInterfaceDigest": "sha256:adcf11a8b44fdf82c6bc74c8ba01296e003328c976f3f809f9c28dfdd7a62286"
+          "collaborationInterfaceDigest": "sha256:b1bf513e6a17a6a740c24d201bc6aff7a94089c0d693d52d6fccfda490a715c1"
         },
         "witnessEvidence": {
           "prebuild": {
             "path": "",
             "sha256": "",
-            "canonicalSha256": "f7a7f4666b1d21e935a00a58b9ffe78274834316536bdefb6f723b391e2c09b6"
+            "canonicalSha256": "f286bd6911cd9f6d104c11f885f5a76b7abf05829a08ac4138c1ee7e1d69116c"
           },
           "artifact": {
             "path": "",
             "sha256": "",
-            "canonicalSha256": "b9596342a462b09bb76345b033a104b4c37ca3fb49b03324a47a923aa1d8573f"
+            "canonicalSha256": "5d12c55157c754c0b7006f80f090615f437399dbab098ffe6d8bd6c52113d3b5"
           },
           "artifactVerifyCommandSha256": ""
         },

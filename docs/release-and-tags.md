@@ -50,6 +50,7 @@ Exact repository tags map to exact image tags:
 repo:  v1.0.0-alpha.0
 image: ghcr.io/kungfu-systems/build-images/base-linux:v1.0.0-alpha.0
 image: ghcr.io/kungfu-systems/build-images/kungfu-verify:v1.0.0-alpha.0
+image: ghcr.io/kungfu-systems/build-images/comparator-formal-runner:v1.3.0
 image: ghcr.io/kungfu-systems/build-images/kungfu-native-linux-x64:v1.3.0-alpha.0
 image: ghcr.io/kungfu-systems/build-images/node24-pnpm:v1.0.0-alpha.0
 image: ghcr.io/kungfu-systems/build-images/latex-pdf-builder:v1.2.0-alpha.0
@@ -231,6 +232,7 @@ here, newest first. Patches are intentionally absent.
 
 | Date | Action | Line | Faces | Class | Rationale | PR |
 |---|---|---|---|---|---|---|
+| 2026-07-19 | extend | v1.3 | image-family, image-contracts | additive minor | Add `comparator-formal-runner` as the exact-digest distribution and offline-verification contract for symmetric full-stack and Kungfu/Aeron performance evidence. | #248 |
 | 2026-07-19 | open | v1.3 | image-family, image-contracts | additive minor | Add `kungfu-native-linux-x64` as the exact-digest Kungfu source-build environment with a fresh-consumer evidence contract. | #239 |
 | 2026-07-09 | open | v1.2 | image-family, image-contracts | additive minor | Add `latex-pdf-builder` as a pnpm-driven publication PDF builder image rooted in the existing Kungfu image family. | #38 |
 | 2026-07-02 | register | — | image-contracts, image-family, tag-scheme, digest-summary-schema | additive | Initial register established on adopting KFD-1 | — |

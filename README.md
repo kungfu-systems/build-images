@@ -12,6 +12,7 @@ trusted workflows by exact tag or immutable digest.
 ```text
 base-linux
   -> kungfu-verify
+    -> comparator-formal-runner
     -> kungfu-native-linux-x64
   -> node24-pnpm
     -> latex-pdf-builder
@@ -21,6 +22,9 @@ base-linux
 - `base-linux` defines the common Linux build baseline.
 - `kungfu-verify` fixes the lightweight Kungfu CI entry tools used by
   `kungfu-code sync`, verify jobs, and publish preparation jobs.
+- `comparator-formal-runner` distributes the frozen symmetric performance
+  schedule, schemas, and offline verifier without putting a Docker socket or
+  host tuning controls inside the image.
 - `kungfu-native-linux-x64` adds the pinned GCC 14, Node 22, Python, Conan, and
   Rust toolchains required to build Kungfu native source reproducibly.
 - `node24-pnpm` adds Node.js 24 and pnpm for GitHub Action and JavaScript build
@@ -67,6 +71,7 @@ repository tags, for example:
 ```text
 ghcr.io/kungfu-systems/build-images/base-linux:v1.0.0
 ghcr.io/kungfu-systems/build-images/kungfu-verify:v1.0.0
+ghcr.io/kungfu-systems/build-images/comparator-formal-runner:v1.3.0
 ghcr.io/kungfu-systems/build-images/kungfu-native-linux-x64:v1.3.0-alpha.0
 ghcr.io/kungfu-systems/build-images/node24-pnpm:v1.0.0
 ghcr.io/kungfu-systems/build-images/latex-pdf-builder:v1.2.0-alpha.0
@@ -96,4 +101,6 @@ See `docs/runner-boundary.md`.
 Disposable, immutable-input Aeron, ClickHouse, PostgreSQL, and fail-closed
 Kungfu comparator environments live in [`pilots/comparator`](pilots/comparator/README.md).
 They provide unscored functional and recovery-path evidence only; Docker is not
-the authority for the native performance comparison.
+the authority for the native performance comparison. The separately versioned
+`comparator-formal-runner` evidence class keeps raw symmetric measurements
+machine-verifiable while forcing `winner_authority=false`.
