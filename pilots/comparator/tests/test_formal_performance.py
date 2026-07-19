@@ -9,6 +9,7 @@ import json
 import pathlib
 import tempfile
 import unittest
+from unittest import mock
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[3]
@@ -229,6 +230,112 @@ class FormalPerformanceTest(unittest.TestCase):
         sample["resources"]["end"]["read_bytes"] = 4096
         sample["resources"]["read_bytes"] = 0
         FORMAL.validate_run(sample, entry, self.plan)
+
+    def test_sampler_skips_a_cgroup_removed_during_container_restart(self) -> None:
+        sampler = PROVIDER_MODULE.CgroupSampler("fp0007-pg", "postgres")
+        container = {
+            "State": {"Pid": 1234, "Running": True},
+            "Config": {
+                "Labels": {"com.docker.compose.service": "postgres"}
+            },
+            "HostConfig": {"NanoCpus": 2_000_000_000, "Memory": 2_147_483_648},
+        }
+        with (
+            mock.patch.object(PROVIDER_MODULE, "docker_ids", return_value=["abc"]),
+            mock.patch.object(
+                PROVIDER_MODULE, "inspect_containers", return_value=[container]
+            ),
+            mock.patch.object(
+                PROVIDER_MODULE,
+                "cgroup_path",
+                side_effect=FileNotFoundError("removed"),
+            ),
+        ):
+            sampler.sample()
+        self.assertEqual(sampler.samples, [])
+
+    def test_cleanup_falls_back_to_project_labeled_resources(self) -> None:
+        compose_down = mock.Mock(returncode=1, stdout="", stderr="busy")
+        residue = {
+            "containers": ["container-id"],
+            "networks": ["network-id"],
+            "volumes": ["volume-id"],
+        }
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            mock.patch.object(
+                PROVIDER_MODULE, "run_text", return_value=compose_down
+            ),
+            mock.patch.object(
+                PROVIDER_MODULE,
+                "project_residue",
+                side_effect=[residue, {"containers": [], "networks": [], "volumes": []}],
+            ),
+            mock.patch.object(
+                PROVIDER_MODULE, "remove_project_resources"
+            ) as remove,
+        ):
+            evidence = pathlib.Path(directory) / "cleanup.json"
+            result = PROVIDER_MODULE.cleanup_project(
+                ROOT, "fp0007-pg", "postgres", {}, evidence_path=evidence
+            )
+            remove.assert_called_once_with(residue)
+            self.assertEqual(
+                result, {"containers": [], "networks": [], "volumes": []}
+            )
+            cleanup = json.loads(evidence.read_text(encoding="utf-8"))
+            self.assertTrue(cleanup["fallback_applied"])
+            self.assertEqual(cleanup["compose_down"]["returncode"], 1)
+
+    def test_sampling_failure_terminates_and_reaps_adapter_process(self) -> None:
+        process = mock.Mock(pid=4321)
+        process.poll.side_effect = [None, None]
+        process.communicate.return_value = ("partial stdout", "partial stderr")
+        sampler = mock.Mock(samples=[])
+        sampler.sample.side_effect = PROVIDER_MODULE.ProviderError(
+            "cgroup disappeared"
+        )
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            mock.patch.object(
+                PROVIDER_MODULE.subprocess, "Popen", return_value=process
+            ),
+            mock.patch.object(
+                PROVIDER_MODULE, "CgroupSampler", return_value=sampler
+            ),
+            mock.patch.object(PROVIDER_MODULE.os, "killpg") as killpg,
+        ):
+            diagnostic_dir = pathlib.Path(directory)
+            with self.assertRaisesRegex(
+                PROVIDER_MODULE.ProviderError, "cgroup disappeared"
+            ):
+                PROVIDER_MODULE.measured_process(
+                    ["adapter"],
+                    project="fp0007-pg",
+                    subject_service="postgres",
+                    limits={
+                        "subject": {
+                            "cpu_micros": 2_000_000,
+                            "memory_bytes": 2_147_483_648,
+                        },
+                        "runner": {
+                            "cpu_micros": 1_000_000,
+                            "memory_bytes": 1_073_741_824,
+                        },
+                    },
+                    cwd=ROOT,
+                    env={},
+                    timeout_seconds=60,
+                    diagnostic_dir=diagnostic_dir,
+                )
+            killpg.assert_called_once_with(4321, PROVIDER_MODULE.signal.SIGKILL)
+            process.communicate.assert_called_once_with()
+            self.assertEqual(
+                (diagnostic_dir / "driver.stderr.log").read_text(
+                    encoding="utf-8"
+                ),
+                "partial stderr",
+            )
 
 
 if __name__ == "__main__":

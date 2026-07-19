@@ -243,7 +243,13 @@ def rss_bytes(root: pathlib.Path) -> int:
 def inspect_containers(ids: list[str]) -> list[dict[str, Any]]:
     if not ids:
         return []
-    result = run_text(["docker", "inspect", *ids])
+    result = run_text(["docker", "inspect", *ids], check=False)
+    if result.returncode != 0:
+        live_ids = set(docker_ids_from_running_project(ids))
+        retained_ids = [container_id for container_id in ids if container_id in live_ids]
+        if not retained_ids:
+            return []
+        result = run_text(["docker", "inspect", *retained_ids])
     try:
         value = json.loads(result.stdout)
     except json.JSONDecodeError as error:
@@ -251,6 +257,21 @@ def inspect_containers(ids: list[str]) -> list[dict[str, Any]]:
     if not isinstance(value, list):
         raise ProviderError("docker inspect result is not an array")
     return value
+
+
+def docker_ids_from_running_project(ids: list[str]) -> list[str]:
+    if not ids:
+        return []
+    result = run_text(["docker", "ps", "-q", "--no-trunc"])
+    running_ids = set(result.stdout.splitlines())
+    return [
+        container_id
+        for container_id in ids
+        if any(
+            running_id == container_id or running_id.startswith(container_id)
+            for running_id in running_ids
+        )
+    ]
 
 
 class CgroupSampler:
@@ -271,15 +292,20 @@ class CgroupSampler:
             pid = state.get("Pid", 0)
             if not isinstance(pid, int) or pid <= 0 or state.get("Running") is not True:
                 continue
-            root = cgroup_path(pid)
-            read_bytes, write_bytes = io_bytes(root)
-            record = {
-                "cpu_usage_ns": cpu_usage_ns(root),
-                "memory_current_bytes": scalar(root / "memory.current"),
-                "rss_bytes": rss_bytes(root),
-                "read_bytes": read_bytes,
-                "write_bytes": write_bytes,
-            }
+            try:
+                root = cgroup_path(pid)
+                read_bytes, write_bytes = io_bytes(root)
+                record = {
+                    "cpu_usage_ns": cpu_usage_ns(root),
+                    "memory_current_bytes": scalar(root / "memory.current"),
+                    "rss_bytes": rss_bytes(root),
+                    "read_bytes": read_bytes,
+                    "write_bytes": write_bytes,
+                }
+            except FileNotFoundError:
+                # Crash/restore tiers intentionally replace containers. A cgroup
+                # may disappear between Docker inspection and counter reads.
+                continue
             identity = str(root)
             self.first.setdefault(identity, record)
             self.last[identity] = record
@@ -354,6 +380,7 @@ def measured_process(
     cwd: pathlib.Path,
     env: dict[str, str],
     timeout_seconds: int,
+    diagnostic_dir: pathlib.Path,
 ) -> tuple[subprocess.CompletedProcess[str], int, CgroupSampler]:
     started = time.monotonic_ns()
     process = subprocess.Popen(
@@ -367,15 +394,23 @@ def measured_process(
     )
     sampler = CgroupSampler(project, subject_service)
     deadline = time.monotonic() + timeout_seconds
-    while process.poll() is None:
-        if time.monotonic() > deadline:
+    try:
+        while process.poll() is None:
+            if time.monotonic() > deadline:
+                raise ProviderError(f"sample timed out after {timeout_seconds}s")
+            sampler.sample()
+            time.sleep(0.02)
+    except BaseException:
+        if process.poll() is None:
             os.killpg(process.pid, signal.SIGKILL)
-            process.wait()
-            raise ProviderError(f"sample timed out after {timeout_seconds}s")
-        sampler.sample()
-        time.sleep(0.02)
+        stdout, stderr = process.communicate()
+        persist_process_diagnostics(diagnostic_dir, stdout, stderr, sampler)
+        raise
     stdout, stderr = process.communicate()
-    sampler.sample()
+    try:
+        sampler.sample()
+    finally:
+        persist_process_diagnostics(diagnostic_dir, stdout, stderr, sampler)
     result = subprocess.CompletedProcess(command, process.returncode, stdout, stderr)
     if result.returncode != 0:
         raise ProviderError(
@@ -385,6 +420,18 @@ def measured_process(
     if resources["cpu_usage_ns"] <= 0 or resources["peak_rss_bytes"] <= 0:
         raise ProviderError("sample cgroup counters contain no measured work")
     return result, time.monotonic_ns() - started, sampler
+
+
+def persist_process_diagnostics(
+    diagnostic_dir: pathlib.Path,
+    stdout: str,
+    stderr: str,
+    sampler: CgroupSampler,
+) -> None:
+    diagnostic_dir.mkdir(parents=True, exist_ok=True)
+    (diagnostic_dir / "driver.stdout.log").write_text(stdout, encoding="utf-8")
+    (diagnostic_dir / "driver.stderr.log").write_text(stderr, encoding="utf-8")
+    write_json(diagnostic_dir / "cgroup-samples.json", sampler.samples)
 
 
 def compose_command(
@@ -412,13 +459,16 @@ def cleanup_project(
     env: dict[str, str],
     *,
     override: pathlib.Path | None = None,
+    evidence_path: pathlib.Path | None = None,
 ) -> dict[str, list[str]]:
-    run_text(
+    compose_down = run_text(
         compose_command(
             repo_root,
             project,
             profile,
             "down",
+            "--timeout",
+            "5",
             "--volumes",
             "--remove-orphans",
             override=override,
@@ -428,47 +478,38 @@ def cleanup_project(
         check=False,
         timeout=180,
     )
-    residue = {
-        "containers": docker_ids(project, all_containers=True),
-        "networks": [
-            line
-            for line in run_text(
-                [
-                    "docker",
-                    "network",
-                    "ls",
-                    "-q",
-                    "--filter",
-                    f"label=com.docker.compose.project={project}",
-                ]
-            ).stdout.splitlines()
-            if line
-        ],
-        "volumes": [
-            line
-            for line in run_text(
-                [
-                    "docker",
-                    "volume",
-                    "ls",
-                    "-q",
-                    "--filter",
-                    f"label=com.docker.compose.project={project}",
-                ]
-            ).stdout.splitlines()
-            if line
-        ],
-    }
+    residue_before_fallback = project_residue(project)
+    fallback_applied = any(residue_before_fallback.values())
+    if fallback_applied:
+        remove_project_resources(residue_before_fallback)
+    residue = project_residue(project)
+    if evidence_path is not None:
+        write_json(
+            evidence_path,
+            {
+                "schema": "urn:kungfu-systems:build-images:formal-performance-cleanup:v1",
+                "compose_down": {
+                    "returncode": compose_down.returncode,
+                    "stdout": compose_down.stdout,
+                    "stderr": compose_down.stderr,
+                },
+                "fallback_applied": fallback_applied,
+                "residue_before_fallback": residue_before_fallback,
+                "residue_after": residue,
+            },
+        )
     if any(residue.values()):
-        raise ProviderError(f"Compose project retained residue: {residue}")
+        raise ProviderError(
+            "Compose project cleanup failed: "
+            f"down_exit={compose_down.returncode} "
+            f"down_stderr={compose_down.stderr.strip()!r} "
+            f"residue={residue}"
+        )
     return residue
 
 
-def cleanup_direct_project(project: str) -> dict[str, list[str]]:
-    ids = docker_ids(project, all_containers=True)
-    if ids:
-        run_text(["docker", "rm", "-f", *ids], check=False, timeout=180)
-    residue = {
+def project_residue(project: str) -> dict[str, list[str]]:
+    return {
         "containers": docker_ids(project, all_containers=True),
         "networks": [
             line
@@ -499,6 +540,46 @@ def cleanup_direct_project(project: str) -> dict[str, list[str]]:
             if line
         ],
     }
+
+
+def remove_project_resources(residue: dict[str, list[str]]) -> None:
+    if residue["containers"]:
+        run_text(
+            ["docker", "rm", "-f", *residue["containers"]],
+            check=False,
+            timeout=180,
+        )
+    if residue["networks"]:
+        run_text(
+            ["docker", "network", "rm", *residue["networks"]],
+            check=False,
+            timeout=180,
+        )
+    if residue["volumes"]:
+        run_text(
+            ["docker", "volume", "rm", *residue["volumes"]],
+            check=False,
+            timeout=180,
+        )
+
+
+def cleanup_direct_project(
+    project: str, *, evidence_path: pathlib.Path | None = None
+) -> dict[str, list[str]]:
+    residue_before = project_residue(project)
+    remove_project_resources(residue_before)
+    residue = project_residue(project)
+    if evidence_path is not None:
+        write_json(
+            evidence_path,
+            {
+                "schema": "urn:kungfu-systems:build-images:formal-performance-cleanup:v1",
+                "compose_down": None,
+                "fallback_applied": any(residue_before.values()),
+                "residue_before_fallback": residue_before,
+                "residue_after": residue,
+            },
+        )
     if any(residue.values()):
         raise ProviderError(f"direct project retained residue: {residue}")
     return residue
@@ -630,6 +711,7 @@ def full_stack_sample(
         "--output-dir",
         str(work),
     ]
+    primary_error: BaseException | None = None
     try:
         process, wall_ns, sampler = measured_process(
             command,
@@ -639,6 +721,7 @@ def full_stack_sample(
             cwd=repo_root,
             env=env,
             timeout_seconds=1800,
+            diagnostic_dir=output,
         )
         receipt = load_json(work / "adapter-receipt.json")
         if (
@@ -649,13 +732,6 @@ def full_stack_sample(
         ):
             raise ProviderError("full-stack adapter receipt is invalid")
         shutil.copytree(work, output / "driver")
-        (output / "driver.stdout.log").write_text(
-            process.stdout, encoding="utf-8"
-        )
-        (output / "driver.stderr.log").write_text(
-            process.stderr, encoding="utf-8"
-        )
-        write_json(output / "cgroup-samples.json", sampler.samples)
         resources = sampler.result(request["limits"])
         resources["data_root_bytes"] = compose_data_root_bytes(
             repo_root,
@@ -665,9 +741,28 @@ def full_stack_sample(
             env,
         )
         return wall_ns, resources, {}
+    except BaseException as error:
+        primary_error = error
+        if work.is_dir() and not (output / "driver-failure").exists():
+            shutil.copytree(work, output / "driver-failure")
+        raise
     finally:
-        cleanup_project(repo_root, project, profile, env)
-        shutil.rmtree(work, ignore_errors=True)
+        try:
+            cleanup_project(
+                repo_root,
+                project,
+                profile,
+                env,
+                evidence_path=output / "cleanup.json",
+            )
+        except ProviderError as cleanup_error:
+            if primary_error is not None:
+                raise ProviderError(
+                    f"sample failed: {primary_error}; cleanup failed: {cleanup_error}"
+                ) from cleanup_error
+            raise
+        finally:
+            shutil.rmtree(work, ignore_errors=True)
 
 
 def matched_arguments(request: dict[str, Any]) -> tuple[int, int]:
@@ -783,6 +878,7 @@ def matched_sample(
     if data_root.exists():
         raise ProviderError(f"fresh matched data root already exists: {data_root}")
     data_root.mkdir(parents=True)
+    primary_error: BaseException | None = None
     try:
         if candidate == "aeron":
             if not AERON_DRIVER_JAR.is_file():
@@ -921,12 +1017,10 @@ def matched_sample(
             cwd=repo_root,
             env=env,
             timeout_seconds=matched_timeout_seconds(request),
+            diagnostic_dir=output,
         )
         driver_result = parse_driver_result(process.stdout, request)
         write_json(output / "driver-result.json", driver_result)
-        (output / "driver.stdout.log").write_text(process.stdout, encoding="utf-8")
-        (output / "driver.stderr.log").write_text(process.stderr, encoding="utf-8")
-        write_json(output / "cgroup-samples.json", sampler.samples)
         resources = sampler.result(request["limits"])
         resources["data_root_bytes"] = int(driver_result["data_root_bytes"])
         metrics = {
@@ -945,15 +1039,33 @@ def matched_sample(
             )
         }
         return wall_ns, resources, metrics
+    except BaseException as error:
+        primary_error = error
+        raise
     finally:
-        if candidate == "aeron":
-            cleanup_project(
-                repo_root, project, "aeron", env, override=override
-            )
-        else:
-            cleanup_direct_project(project)
-        if data_root.exists():
-            shutil.rmtree(data_root)
+        try:
+            if candidate == "aeron":
+                cleanup_project(
+                    repo_root,
+                    project,
+                    "aeron",
+                    env,
+                    override=override,
+                    evidence_path=output / "cleanup.json",
+                )
+            else:
+                cleanup_direct_project(
+                    project, evidence_path=output / "cleanup.json"
+                )
+        except ProviderError as cleanup_error:
+            if primary_error is not None:
+                raise ProviderError(
+                    f"sample failed: {primary_error}; cleanup failed: {cleanup_error}"
+                ) from cleanup_error
+            raise
+        finally:
+            if data_root.exists():
+                shutil.rmtree(data_root)
 
 
 def main() -> int:
