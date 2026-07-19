@@ -19,8 +19,8 @@
         "key": "kfd-3",
         "id": "KFD-3",
         "label": "KFD-3",
-        "title": "Cooperation must start from trusted value: compliance must not be coerced",
-        "revision": 1,
+        "title": "Cooperation must start from trusted value",
+        "revision": 3,
         "status": "active"
       },
       "schemas": {
@@ -37,13 +37,13 @@
         "metadata": {
           "id": "https://kfd.libkungfu.dev/schemas/kfd-standards.schema.json",
           "path": "schemas/kfd-standards.schema.json",
-          "version": "1"
+          "version": "2"
         },
         "hasCollaborationSchemas": true
       },
       "package": {
         "name": "@kungfu-tech/kfd",
-        "version": "1.0.0-alpha.21",
+        "version": "1.0.0-alpha.29",
         "repository": "git+https://github.com/kungfu-systems/kfd.git"
       }
     },
@@ -58,8 +58,8 @@
         "id": "Kungfu Build Images",
         "standard": "KFD-3",
         "standardKey": "kfd-3",
-        "preBuildWitnessSha256": "ffeb3537e8e0f41f62b3bb8862590340f65cb351a27964b15963034976fb5f48",
-        "artifactWitnessSha256": "d0a81a340e478bf42f6ca8ba798e6137074750381790852bf7051072cd081fb3",
+        "preBuildWitnessSha256": "f7a7f4666b1d21e935a00a58b9ffe78274834316536bdefb6f723b391e2c09b6",
+        "artifactWitnessSha256": "b9596342a462b09bb76345b033a104b4c37ca3fb49b03324a47a923aa1d8573f",
         "prebuildWitness": {
           "schemaVersion": 1,
           "contract": "kungfu-buildchain-kfd-3-collaboration-interface-prebuild-witness",
@@ -153,7 +153,7 @@
           "metadata": {
             "kfdPackage": {
               "name": "@kungfu-tech/kfd",
-              "version": "1.0.0-alpha.21",
+              "version": "1.0.0-alpha.29",
               "repository": "git+https://github.com/kungfu-systems/kfd.git"
             },
             "schemaIds": {
@@ -244,7 +244,7 @@
           "metadata": {
             "kfdPackage": {
               "name": "@kungfu-tech/kfd",
-              "version": "1.0.0-alpha.21",
+              "version": "1.0.0-alpha.29",
               "repository": "git+https://github.com/kungfu-systems/kfd.git"
             },
             "schemaIds": {
@@ -375,12 +375,12 @@
           "prebuild": {
             "path": "",
             "sha256": "",
-            "canonicalSha256": "ffeb3537e8e0f41f62b3bb8862590340f65cb351a27964b15963034976fb5f48"
+            "canonicalSha256": "f7a7f4666b1d21e935a00a58b9ffe78274834316536bdefb6f723b391e2c09b6"
           },
           "artifact": {
             "path": "",
             "sha256": "",
-            "canonicalSha256": "d0a81a340e478bf42f6ca8ba798e6137074750381790852bf7051072cd081fb3"
+            "canonicalSha256": "b9596342a462b09bb76345b033a104b4c37ca3fb49b03324a47a923aa1d8573f"
           },
           "artifactVerifyCommandSha256": ""
         },
