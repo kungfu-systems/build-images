@@ -254,6 +254,86 @@ class FormalPerformanceTest(unittest.TestCase):
             sampler.sample()
         self.assertEqual(sampler.samples, [])
 
+    def test_sampler_accounts_for_reused_cgroup_path_by_lifecycle(self) -> None:
+        sampler = PROVIDER_MODULE.CgroupSampler("fp0007-pg", "postgres")
+        first_lifecycle = {
+            "Id": "a" * 64,
+            "State": {
+                "Pid": 1234,
+                "Running": True,
+                "StartedAt": "2026-07-19T10:00:00.000000000Z",
+            },
+            "Config": {
+                "Labels": {"com.docker.compose.service": "postgres"}
+            },
+            "HostConfig": {
+                "NanoCpus": 2_000_000_000,
+                "Memory": 2_147_483_648,
+            },
+        }
+        second_lifecycle = {
+            **first_lifecycle,
+            "State": {
+                "Pid": 5678,
+                "Running": True,
+                "StartedAt": "2026-07-19T10:00:01.000000000Z",
+            },
+        }
+        root = pathlib.Path("/sys/fs/cgroup/reused-container.scope")
+        with (
+            mock.patch.object(
+                PROVIDER_MODULE, "docker_ids", return_value=["container"]
+            ),
+            mock.patch.object(
+                PROVIDER_MODULE,
+                "inspect_containers",
+                side_effect=[
+                    [first_lifecycle],
+                    [first_lifecycle],
+                    [second_lifecycle],
+                    [second_lifecycle],
+                ],
+            ),
+            mock.patch.object(PROVIDER_MODULE, "cgroup_path", return_value=root),
+            mock.patch.object(
+                PROVIDER_MODULE,
+                "io_bytes",
+                side_effect=[(100, 200), (150, 260), (5, 10), (20, 40)],
+            ),
+            mock.patch.object(
+                PROVIDER_MODULE,
+                "cpu_usage_ns",
+                side_effect=[1000, 1800, 100, 500],
+            ),
+            mock.patch.object(
+                PROVIDER_MODULE, "scalar", return_value=1024
+            ),
+            mock.patch.object(
+                PROVIDER_MODULE, "rss_bytes", return_value=512
+            ),
+        ):
+            for _ in range(4):
+                sampler.sample()
+        result = sampler.result(
+            {
+                "subject": {
+                    "cpu_micros": 2_000_000,
+                    "memory_bytes": 2_147_483_648,
+                },
+                "runner": {
+                    "cpu_micros": 1_000_000,
+                    "memory_bytes": 1_073_741_824,
+                },
+            }
+        )
+        self.assertEqual(result["cpu_usage_ns"], 1200)
+        self.assertEqual(result["read_bytes"], 65)
+        self.assertEqual(result["write_bytes"], 90)
+        self.assertEqual(
+            [sample["cgroups"][0]["pid"] for sample in sampler.samples],
+            [1234, 1234, 5678, 5678],
+        )
+
     def test_cleanup_falls_back_to_project_labeled_resources(self) -> None:
         compose_down = mock.Mock(returncode=1, stdout="", stderr="busy")
         residue = {
@@ -336,6 +416,53 @@ class FormalPerformanceTest(unittest.TestCase):
                 ),
                 "partial stderr",
             )
+
+    def test_process_exit_race_preserves_sampling_failure(self) -> None:
+        process = mock.Mock(pid=4321)
+        process.poll.side_effect = [None, None]
+        process.communicate.return_value = ("partial stdout", "partial stderr")
+        sampler = mock.Mock(samples=[])
+        sampler.sample.side_effect = PROVIDER_MODULE.ProviderError(
+            "cgroup sampling failed"
+        )
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            mock.patch.object(
+                PROVIDER_MODULE.subprocess, "Popen", return_value=process
+            ),
+            mock.patch.object(
+                PROVIDER_MODULE, "CgroupSampler", return_value=sampler
+            ),
+            mock.patch.object(
+                PROVIDER_MODULE.os,
+                "killpg",
+                side_effect=ProcessLookupError("process group exited"),
+            ) as killpg,
+        ):
+            with self.assertRaisesRegex(
+                PROVIDER_MODULE.ProviderError, "cgroup sampling failed"
+            ):
+                PROVIDER_MODULE.measured_process(
+                    ["adapter"],
+                    project="fp0007-pg",
+                    subject_service="postgres",
+                    limits={
+                        "subject": {
+                            "cpu_micros": 2_000_000,
+                            "memory_bytes": 2_147_483_648,
+                        },
+                        "runner": {
+                            "cpu_micros": 1_000_000,
+                            "memory_bytes": 1_073_741_824,
+                        },
+                    },
+                    cwd=ROOT,
+                    env={},
+                    timeout_seconds=60,
+                    diagnostic_dir=pathlib.Path(directory),
+                )
+            killpg.assert_called_once_with(4321, PROVIDER_MODULE.signal.SIGKILL)
+            process.communicate.assert_called_once_with()
 
 
 if __name__ == "__main__":
