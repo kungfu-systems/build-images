@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import errno
 import hashlib
 import importlib.util
 import json
@@ -302,10 +303,12 @@ class CgroupSampler:
                     "read_bytes": read_bytes,
                     "write_bytes": write_bytes,
                 }
-            except FileNotFoundError:
+            except OSError as error:
                 # Crash/restore tiers intentionally replace containers. A cgroup
                 # may disappear between Docker inspection and counter reads.
-                continue
+                if isinstance(error, FileNotFoundError) or error.errno == errno.ENODEV:
+                    continue
+                raise
             identity = str(root)
             container_id = container.get("Id", "")
             started_at = state.get("StartedAt", "")
