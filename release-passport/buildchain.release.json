@@ -59,7 +59,7 @@
     "promotionChannelTreeSha": "",
     "publishToolingSha": "52247a3959861a7772416c9b23a5a2a74da8b670",
     "releaseStateRef": "refs/heads/buildchain/release-state/1-3-0-alpha-5",
-    "releaseStateSha": "",
+    "releaseStateSha": "7ade16ea07a113a986ce30b87c5cf16e1bbc7732",
     "package": {
       "name": "@kungfu-tech/buildchain",
       "version": "1.3.0-alpha.5"
