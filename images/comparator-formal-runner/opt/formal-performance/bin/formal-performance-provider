@@ -308,8 +308,11 @@ class CgroupSampler:
                 }
             except OSError as error:
                 # Crash/restore tiers intentionally replace containers. A cgroup
-                # may disappear between Docker inspection and counter reads.
-                if isinstance(error, FileNotFoundError) or error.errno == errno.ENODEV:
+                # or process may disappear between inspection and counter reads.
+                if (
+                    isinstance(error, FileNotFoundError)
+                    or error.errno in {errno.ENODEV, errno.ESRCH}
+                ):
                     continue
                 raise
             identity = str(root)

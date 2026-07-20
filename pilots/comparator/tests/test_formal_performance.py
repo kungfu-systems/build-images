@@ -321,6 +321,29 @@ class FormalPerformanceTest(unittest.TestCase):
             sampler.sample()
         self.assertEqual(sampler.samples, [])
 
+    def test_sampler_skips_esrch_when_container_process_exits(self) -> None:
+        sampler = PROVIDER_MODULE.CgroupSampler("fp0007-pg", "postgres")
+        container = {
+            "State": {"Pid": 1234, "Running": True},
+            "Config": {
+                "Labels": {"com.docker.compose.service": "postgres"}
+            },
+            "HostConfig": {"NanoCpus": 2_000_000_000, "Memory": 2_147_483_648},
+        }
+        with (
+            mock.patch.object(PROVIDER_MODULE, "docker_ids", return_value=["abc"]),
+            mock.patch.object(
+                PROVIDER_MODULE, "inspect_containers", return_value=[container]
+            ),
+            mock.patch.object(
+                PROVIDER_MODULE,
+                "cgroup_path",
+                side_effect=ProcessLookupError(errno.ESRCH, "No such process"),
+            ),
+        ):
+            sampler.sample()
+        self.assertEqual(sampler.samples, [])
+
     def test_sampler_rejects_unexpected_cgroup_io_errors(self) -> None:
         sampler = PROVIDER_MODULE.CgroupSampler("fp0007-pg", "postgres")
         container = {
