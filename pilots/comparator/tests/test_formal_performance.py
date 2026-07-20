@@ -186,28 +186,32 @@ class FormalPerformanceTest(unittest.TestCase):
             ):
                 FORMAL.verify_bundle(bundle)
 
-    def test_matched_timeout_covers_durable_sync_throughput(self) -> None:
-        request = {
-            "candidate": "kungfu",
-            "variant": {
-                "mode": "durable_sync",
-                "workload": "throughput",
-            },
-        }
-        self.assertEqual(
-            PROVIDER_MODULE.matched_timeout_seconds(request),
-            1800,
-        )
-        request["variant"]["workload"] = "recovery"
-        self.assertEqual(
-            PROVIDER_MODULE.matched_timeout_seconds(request),
-            1800,
-        )
-        request["variant"]["mode"] = "visible"
-        self.assertEqual(
-            PROVIDER_MODULE.matched_timeout_seconds(request),
-            600,
-        )
+    def test_matched_timeout_is_symmetric_for_durable_sync_workloads(
+        self,
+    ) -> None:
+        for candidate in ("kungfu", "aeron"):
+            with self.subTest(candidate=candidate):
+                request = {
+                    "candidate": candidate,
+                    "variant": {
+                        "mode": "durable_sync",
+                        "workload": "throughput",
+                    },
+                }
+                self.assertEqual(
+                    PROVIDER_MODULE.matched_timeout_seconds(request),
+                    1800,
+                )
+                request["variant"]["workload"] = "recovery"
+                self.assertEqual(
+                    PROVIDER_MODULE.matched_timeout_seconds(request),
+                    1800,
+                )
+                request["variant"]["mode"] = "visible"
+                self.assertEqual(
+                    PROVIDER_MODULE.matched_timeout_seconds(request),
+                    600,
+                )
 
     def test_matched_soak_rate_is_frozen_and_symmetric(self) -> None:
         self.assertEqual(

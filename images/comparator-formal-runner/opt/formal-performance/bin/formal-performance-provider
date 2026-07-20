@@ -820,8 +820,7 @@ def matched_arguments(request: dict[str, Any]) -> tuple[int, int, int]:
 def matched_timeout_seconds(request: dict[str, Any]) -> int:
     variant = request["variant"]
     if (
-        request["candidate"] == "kungfu"
-        and variant["mode"] == "durable_sync"
+        variant["mode"] == "durable_sync"
         and variant["workload"] in {"throughput", "recovery"}
     ):
         return 1800
