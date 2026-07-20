@@ -146,6 +146,7 @@ def validate_request(request: dict[str, Any], output: pathlib.Path) -> None:
         "variant",
         "input_identity",
         "limits",
+        "soak_messages_per_second",
         "output",
     }
     if set(request) != required:
@@ -166,6 +167,8 @@ def validate_request(request: dict[str, Any], output: pathlib.Path) -> None:
         "runner": {"cpu_micros": 1000000, "memory_bytes": 1073741824},
     }:
         raise ProviderError("provider resource limit contract drifted")
+    if request["soak_messages_per_second"] != 10000:
+        raise ProviderError("provider soak rate contract drifted")
 
 
 def import_adapter(path: pathlib.Path) -> Any:
@@ -798,16 +801,16 @@ def full_stack_sample(
             shutil.rmtree(work, ignore_errors=True)
 
 
-def matched_arguments(request: dict[str, Any]) -> tuple[int, int]:
+def matched_arguments(request: dict[str, Any]) -> tuple[int, int, int]:
     workload = request["variant"]["workload"]
     if workload == "latency":
-        return 10000, 0
+        return 10000, 0, 0
     if workload == "throughput":
-        return 100000, 0
+        return 100000, 0, 0
     if workload == "soak":
-        return 0, 60
+        return 0, 60, request["soak_messages_per_second"]
     if workload == "recovery":
-        return 10000, 0
+        return 10000, 0, 0
     raise ProviderError(f"matched workload is unsupported: {workload}")
 
 
@@ -898,7 +901,7 @@ def matched_sample(
 ) -> tuple[int, dict[str, Any], dict[str, Any]]:
     candidate = request["candidate"]
     variant = request["variant"]
-    records, duration = matched_arguments(request)
+    records, duration, soak_messages_per_second = matched_arguments(request)
     env = dict(os.environ)
     env["COMPARATOR_PROJECT_NAME"] = project
     override: pathlib.Path | None = None
@@ -954,6 +957,8 @@ def matched_sample(
                 str(records),
                 "--duration-seconds",
                 str(duration),
+                "--soak-messages-per-second",
+                str(soak_messages_per_second),
                 "--group-max-messages",
                 "100",
                 "--group-max-millis",
@@ -1040,6 +1045,7 @@ def matched_sample(
                 "100",
                 "10",
                 str(duration),
+                str(soak_messages_per_second),
             ]
             subject_service = "kungfu"
         process, wall_ns, sampler = measured_process(

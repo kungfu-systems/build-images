@@ -179,7 +179,7 @@ durability_profile durable_profile(const std::string &mode) {
 json run(const fs::path &root, const std::string &mode,
          const std::string &workload, uint64_t records, uint64_t payload_bytes,
          uint64_t group_max_messages, uint64_t group_max_millis,
-         uint64_t duration_seconds) {
+         uint64_t duration_seconds, uint64_t soak_messages_per_second) {
   if (fs::exists(root)) {
     throw std::runtime_error("refusing existing run root: " + root.string());
   }
@@ -194,6 +194,10 @@ json run(const fs::path &root, const std::string &mode,
   if ((records == 0) == (duration_seconds == 0)) {
     throw std::invalid_argument(
         "exactly one of records or duration seconds must be nonzero");
+  }
+  if ((workload == "soak" && soak_messages_per_second != 10000) ||
+      (workload != "soak" && soak_messages_per_second != 0)) {
+    throw std::invalid_argument("soak rate contract drifted");
   }
   if (payload_bytes < 64 || (group_max_messages != 100) ||
       (group_max_millis != 10)) {
@@ -260,6 +264,13 @@ json run(const fs::path &root, const std::string &mode,
           }
           pending.clear();
         }
+      }
+      if (soak_messages_per_second > 0) {
+        const auto target =
+            started + std::chrono::nanoseconds(
+                          completed * 1000000000ULL /
+                          soak_messages_per_second);
+        std::this_thread::sleep_until(target);
       }
     }
     if (!pending.empty()) {
@@ -375,14 +386,15 @@ json run(const fs::path &root, const std::string &mode,
 void usage() {
   std::cerr
       << "usage: formal_performance_fixture run ROOT MODE WORKLOAD RECORDS "
-         "PAYLOAD_BYTES GROUP_MAX_MESSAGES GROUP_MAX_MILLIS DURATION_SECONDS\n";
+         "PAYLOAD_BYTES GROUP_MAX_MESSAGES GROUP_MAX_MILLIS DURATION_SECONDS "
+         "SOAK_MESSAGES_PER_SECOND\n";
 }
 
 } // namespace
 
 int main(int argc, char **argv) {
   try {
-    if (argc != 10 || std::string(argv[1]) != "run") {
+    if (argc != 11 || std::string(argv[1]) != "run") {
       usage();
       return 2;
     }
@@ -391,7 +403,8 @@ int main(int argc, char **argv) {
                parse_u64(argv[5], "records"), parse_u64(argv[6], "payload", 64),
                parse_u64(argv[7], "group max messages", 1),
                parse_u64(argv[8], "group max millis", 1),
-               parse_u64(argv[9], "duration seconds"))
+               parse_u64(argv[9], "duration seconds"),
+               parse_u64(argv[10], "soak messages per second"))
                .dump()
         << std::endl;
     return 0;

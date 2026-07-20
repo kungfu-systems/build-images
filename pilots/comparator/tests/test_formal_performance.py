@@ -24,6 +24,14 @@ PLAN = (
     / "images/comparator-formal-runner/opt/formal-performance/contracts/formal-performance-v1.json"
 )
 PREPARATION = ROOT / "pilots/comparator/scripts/prepare_formal_performance.py"
+KUNGFU_DRIVER = (
+    ROOT
+    / "images/comparator-formal-runner/opt/formal-performance/drivers/kungfu/formal_performance_fixture.cpp"
+)
+AERON_DRIVER = (
+    ROOT
+    / "images/comparator-formal-runner/opt/formal-performance/drivers/aeron/src/io/kungfu/aeron/FormalPerformanceHarness.java"
+)
 LOADER = importlib.machinery.SourceFileLoader("formal_performance", str(RUNNER))
 SPEC = importlib.util.spec_from_loader("formal_performance", LOADER)
 if SPEC is None:
@@ -199,6 +207,36 @@ class FormalPerformanceTest(unittest.TestCase):
         self.assertEqual(
             PROVIDER_MODULE.matched_timeout_seconds(request),
             600,
+        )
+
+    def test_matched_soak_rate_is_frozen_and_symmetric(self) -> None:
+        self.assertEqual(
+            self.plan["matched_lane"]["soak_messages_per_second"],
+            10000,
+        )
+        drifted = json.loads(json.dumps(self.plan))
+        drifted["matched_lane"]["soak_messages_per_second"] = 10001
+        with self.assertRaisesRegex(
+            FORMAL.FormalError, "Kungfu/Aeron matched contract drifted"
+        ):
+            FORMAL.validate_plan(drifted)
+
+        request = {
+            "candidate": "kungfu",
+            "variant": {"workload": "soak"},
+            "soak_messages_per_second": 10000,
+        }
+        self.assertEqual(
+            PROVIDER_MODULE.matched_arguments(request),
+            (0, 60, 10000),
+        )
+        self.assertIn(
+            "std::this_thread::sleep_until(target);",
+            KUNGFU_DRIVER.read_text(encoding="utf-8"),
+        )
+        self.assertIn(
+            "LockSupport.parkNanos(remainingNs);",
+            AERON_DRIVER.read_text(encoding="utf-8"),
         )
 
     def test_recovery_metrics_must_reconcile(self) -> None:
