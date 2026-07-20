@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import errno
 import importlib.machinery
 import importlib.util
 import json
@@ -253,6 +254,63 @@ class FormalPerformanceTest(unittest.TestCase):
         ):
             sampler.sample()
         self.assertEqual(sampler.samples, [])
+
+    def test_sampler_skips_cgroup_enodev_during_container_restart(self) -> None:
+        sampler = PROVIDER_MODULE.CgroupSampler("fp0007-pg", "postgres")
+        container = {
+            "State": {"Pid": 1234, "Running": True},
+            "Config": {
+                "Labels": {"com.docker.compose.service": "postgres"}
+            },
+            "HostConfig": {"NanoCpus": 2_000_000_000, "Memory": 2_147_483_648},
+        }
+        with (
+            mock.patch.object(PROVIDER_MODULE, "docker_ids", return_value=["abc"]),
+            mock.patch.object(
+                PROVIDER_MODULE, "inspect_containers", return_value=[container]
+            ),
+            mock.patch.object(
+                PROVIDER_MODULE,
+                "cgroup_path",
+                return_value=pathlib.Path("/sys/fs/cgroup/restarting.scope"),
+            ),
+            mock.patch.object(
+                PROVIDER_MODULE,
+                "io_bytes",
+                side_effect=OSError(errno.ENODEV, "No such device"),
+            ),
+        ):
+            sampler.sample()
+        self.assertEqual(sampler.samples, [])
+
+    def test_sampler_rejects_unexpected_cgroup_io_errors(self) -> None:
+        sampler = PROVIDER_MODULE.CgroupSampler("fp0007-pg", "postgres")
+        container = {
+            "State": {"Pid": 1234, "Running": True},
+            "Config": {
+                "Labels": {"com.docker.compose.service": "postgres"}
+            },
+            "HostConfig": {"NanoCpus": 2_000_000_000, "Memory": 2_147_483_648},
+        }
+        with (
+            mock.patch.object(PROVIDER_MODULE, "docker_ids", return_value=["abc"]),
+            mock.patch.object(
+                PROVIDER_MODULE, "inspect_containers", return_value=[container]
+            ),
+            mock.patch.object(
+                PROVIDER_MODULE,
+                "cgroup_path",
+                return_value=pathlib.Path("/sys/fs/cgroup/restarting.scope"),
+            ),
+            mock.patch.object(
+                PROVIDER_MODULE,
+                "io_bytes",
+                side_effect=OSError(errno.EIO, "Input/output error"),
+            ),
+        ):
+            with self.assertRaises(OSError) as raised:
+                sampler.sample()
+        self.assertEqual(raised.exception.errno, errno.EIO)
 
     def test_sampler_accounts_for_reused_cgroup_path_by_lifecycle(self) -> None:
         sampler = PROVIDER_MODULE.CgroupSampler("fp0007-pg", "postgres")
