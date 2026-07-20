@@ -59,6 +59,7 @@
     "latency_messages": 10000,
     "throughput_messages": 100000,
     "soak_seconds": 60,
+    "soak_messages_per_second": 10000,
     "recovery_messages": 10000,
     "durable_group": {
       "max_messages_per_flush": 100,
