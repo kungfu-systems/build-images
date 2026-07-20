@@ -21,6 +21,7 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.LockSupport;
 
 public final class FormalPerformanceHarness
 {
@@ -52,6 +53,8 @@ public final class FormalPerformanceHarness
         final int payload = positive(options, "payload");
         final int records = nonNegative(options, "records");
         final int durationSeconds = nonNegative(options, "duration-seconds");
+        final int soakMessagesPerSecond =
+            nonNegative(options, "soak-messages-per-second");
         final int groupMaxMessages = positive(options, "group-max-messages");
         final int groupMaxMillis = positive(options, "group-max-millis");
         if (!mode.equals("visible") && !mode.equals("durable_group") &&
@@ -72,13 +75,18 @@ public final class FormalPerformanceHarness
         {
             fail("exactly one of records or duration-seconds must be nonzero");
         }
+        if ((workload.equals("soak") && soakMessagesPerSecond != 10000) ||
+            (!workload.equals("soak") && soakMessagesPerSecond != 0))
+        {
+            fail("soak rate contract drifted");
+        }
         if (groupMaxMessages != 100 || groupMaxMillis != 10)
         {
             fail("durable_group policy must be 100 messages or 10 ms");
         }
         System.out.println(run(
             root, mode, workload, payload, records, durationSeconds,
-            groupMaxMessages, groupMaxMillis));
+            soakMessagesPerSecond, groupMaxMessages, groupMaxMillis));
     }
 
     private static String run(
@@ -88,6 +96,7 @@ public final class FormalPerformanceHarness
         final int payload,
         final int records,
         final int durationSeconds,
+        final int soakMessagesPerSecond,
         final int groupMaxMessages,
         final int groupMaxMillis) throws Exception
     {
@@ -217,6 +226,17 @@ public final class FormalPerformanceHarness
                                     Math.max(1, receiptNs - pending[index]));
                             }
                             pendingCount = 0;
+                        }
+                    }
+                    if (soakMessagesPerSecond > 0)
+                    {
+                        final long targetNs = startedNs +
+                            sent * TimeUnit.SECONDS.toNanos(1) /
+                                soakMessagesPerSecond;
+                        long remainingNs;
+                        while ((remainingNs = targetNs - System.nanoTime()) > 0)
+                        {
+                            LockSupport.parkNanos(remainingNs);
                         }
                     }
                 }

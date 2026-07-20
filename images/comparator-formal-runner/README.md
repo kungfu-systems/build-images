@@ -51,3 +51,7 @@ Matched samples retain separate `crash_replay_ns` and
 `whole_root_restore_ns` counters. Only the frozen `recovery` workload performs
 the whole-root materialization; `recovery_ns` is always their exact sum and is
 the input to the cross-product recovery amplification.
+The 60-second matched soak is capped symmetrically at 10,000 messages per
+second so both drivers retain a bounded, fully replayable correctness set under
+the common 2 GiB subject limit. Latency and throughput workloads remain
+unthrottled.

@@ -276,6 +276,7 @@ def validate_plan(plan: dict[str, Any]) -> None:
             "latency_messages",
             "throughput_messages",
             "soak_seconds",
+            "soak_messages_per_second",
             "recovery_messages",
             "durable_group",
             "aeron_complete_product_score",
@@ -293,6 +294,7 @@ def validate_plan(plan: dict[str, Any]) -> None:
         or matched["latency_messages"] != 10000
         or matched["throughput_messages"] != 100000
         or matched["soak_seconds"] != 60
+        or matched["soak_messages_per_second"] != 10000
         or matched["recovery_messages"] != 10000
         or matched["durable_group"]
         != {"max_messages_per_flush": 100, "max_flush_interval_ms": 10}
@@ -1200,6 +1202,9 @@ def run_provider_bundle(
                 **entry,
                 "input_identity": expected_input(plan, entry["candidate"]),
                 "limits": copy.deepcopy(plan["full_stack"]["limits"]),
+                "soak_messages_per_second": plan["matched_lane"][
+                    "soak_messages_per_second"
+                ],
                 "output": str(sample_dir.resolve()),
             },
         )
