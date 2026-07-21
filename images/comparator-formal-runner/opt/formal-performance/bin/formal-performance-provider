@@ -821,7 +821,7 @@ def matched_timeout_seconds(request: dict[str, Any]) -> int:
     variant = request["variant"]
     if variant["mode"] == "durable_sync":
         if variant["workload"] == "throughput":
-            return 3600
+            return 5400
         if variant["workload"] == "recovery":
             return 1800
     return 600
