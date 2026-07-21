@@ -547,6 +547,64 @@ def cleanup_project(
     return residue
 
 
+def persist_compose_failure_diagnostics(
+    repo_root: pathlib.Path,
+    project: str,
+    profile: str,
+    env: dict[str, str],
+    diagnostic_dir: pathlib.Path,
+    *,
+    override: pathlib.Path | None = None,
+) -> None:
+    diagnostic_dir.mkdir(parents=True, exist_ok=True)
+    diagnostics: dict[str, Any] = {}
+    commands = {
+        "ps": ("ps", "--all", "--format", "json"),
+        "logs": ("logs", "--no-color", "--timestamps", "--tail", "5000"),
+    }
+    for name, arguments in commands.items():
+        try:
+            result = run_text(
+                compose_command(
+                    repo_root,
+                    project,
+                    profile,
+                    *arguments,
+                    override=override,
+                ),
+                cwd=repo_root,
+                env=env,
+                check=False,
+                timeout=120,
+            )
+        except Exception as error:
+            diagnostics[name] = {
+                "error": f"{type(error).__name__}: {error}",
+            }
+            continue
+
+        stdout_path = diagnostic_dir / f"compose-{name}.stdout.log"
+        stderr_path = diagnostic_dir / f"compose-{name}.stderr.log"
+        stdout_path.write_text(result.stdout, encoding="utf-8")
+        stderr_path.write_text(result.stderr, encoding="utf-8")
+        diagnostics[name] = {
+            "returncode": result.returncode,
+            "stdout": stdout_path.name,
+            "stderr": stderr_path.name,
+        }
+
+    write_json(
+        diagnostic_dir / "compose-diagnostics.json",
+        {
+            "schema": (
+                "urn:kungfu-systems:build-images:"
+                "formal-performance-compose-diagnostics:v1"
+            ),
+            "commands": diagnostics,
+        },
+    )
+
+
 def project_residue(project: str) -> dict[str, list[str]]:
     return {
         "containers": docker_ids(project, all_containers=True),
@@ -1082,6 +1140,22 @@ def matched_sample(
         return wall_ns, resources, metrics
     except BaseException as error:
         primary_error = error
+        if candidate == "aeron":
+            try:
+                persist_compose_failure_diagnostics(
+                    repo_root,
+                    project,
+                    "aeron",
+                    env,
+                    output,
+                    override=override,
+                )
+            except Exception as diagnostic_error:
+                print(
+                    "formal-performance: failed to retain Compose diagnostics: "
+                    f"{diagnostic_error}",
+                    file=sys.stderr,
+                )
         raise
     finally:
         try:

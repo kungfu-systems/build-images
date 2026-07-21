@@ -249,6 +249,19 @@ class FormalPerformanceTest(unittest.TestCase):
             AERON_DRIVER.read_text(encoding="utf-8"),
         )
 
+    def test_aeron_driver_polls_archive_control_during_long_samples(self) -> None:
+        source = AERON_DRIVER.read_text(encoding="utf-8")
+        self.assertIn(
+            "ARCHIVE_CONTROL_POLL_INTERVAL_NS =\n"
+            "        TimeUnit.MILLISECONDS.toNanos(500);",
+            source,
+        )
+        self.assertIn("archive.checkForErrorResponse();", source)
+        self.assertLess(
+            source.index("archive.checkForErrorResponse();"),
+            source.index("if (soakMessagesPerSecond > 0)"),
+        )
+
     def test_recovery_metrics_must_reconcile(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             bundle = pathlib.Path(directory) / "bundle"
@@ -495,6 +508,43 @@ class FormalPerformanceTest(unittest.TestCase):
             cleanup = json.loads(evidence.read_text(encoding="utf-8"))
             self.assertTrue(cleanup["fallback_applied"])
             self.assertEqual(cleanup["compose_down"]["returncode"], 1)
+
+    def test_compose_failure_diagnostics_are_retained_before_cleanup(self) -> None:
+        responses = [
+            mock.Mock(returncode=0, stdout='{"Service":"aeron"}\n', stderr=""),
+            mock.Mock(returncode=0, stdout="archive alive\n", stderr="warning\n"),
+        ]
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            mock.patch.object(
+                PROVIDER_MODULE, "run_text", side_effect=responses
+            ) as run_text,
+        ):
+            diagnostic_dir = pathlib.Path(directory)
+            PROVIDER_MODULE.persist_compose_failure_diagnostics(
+                ROOT,
+                "fp0420-aeron",
+                "aeron",
+                {},
+                diagnostic_dir,
+            )
+
+            evidence = json.loads(
+                (diagnostic_dir / "compose-diagnostics.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+            self.assertEqual(evidence["commands"]["ps"]["returncode"], 0)
+            self.assertEqual(evidence["commands"]["logs"]["returncode"], 0)
+            self.assertEqual(
+                (diagnostic_dir / "compose-logs.stdout.log").read_text(
+                    encoding="utf-8"
+                ),
+                "archive alive\n",
+            )
+            self.assertIn("ps", run_text.call_args_list[0].args[0])
+            self.assertIn("logs", run_text.call_args_list[1].args[0])
+            self.assertIn("5000", run_text.call_args_list[1].args[0])
 
     def test_sampling_failure_terminates_and_reaps_adapter_process(self) -> None:
         process = mock.Mock(pid=4321)

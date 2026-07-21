@@ -35,6 +35,8 @@ public final class FormalPerformanceHarness
     private static final int MARKER_OFFSET = 16;
     private static final byte[] MARKER = "formal-perf-v1!!".getBytes();
     private static final long TIMEOUT_NS = TimeUnit.SECONDS.toNanos(30);
+    private static final long ARCHIVE_CONTROL_POLL_INTERVAL_NS =
+        TimeUnit.MILLISECONDS.toNanos(500);
 
     private FormalPerformanceHarness()
     {
@@ -120,6 +122,8 @@ public final class FormalPerformanceHarness
         final long startedNs = System.nanoTime();
         final long deadlineNs = durationSeconds == 0 ?
             Long.MAX_VALUE : startedNs + TimeUnit.SECONDS.toNanos(durationSeconds);
+        long nextArchiveControlPollNs =
+            startedNs + ARCHIVE_CONTROL_POLL_INTERVAL_NS;
 
         final FragmentHandler handler = (data, offset, length, header) ->
         {
@@ -227,6 +231,13 @@ public final class FormalPerformanceHarness
                             }
                             pendingCount = 0;
                         }
+                    }
+                    final long nowNs = System.nanoTime();
+                    if (nowNs >= nextArchiveControlPollNs)
+                    {
+                        archive.checkForErrorResponse();
+                        nextArchiveControlPollNs =
+                            nowNs + ARCHIVE_CONTROL_POLL_INTERVAL_NS;
                     }
                     if (soakMessagesPerSecond > 0)
                     {
