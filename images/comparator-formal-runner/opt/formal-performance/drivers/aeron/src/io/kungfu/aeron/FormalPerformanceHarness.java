@@ -5,6 +5,8 @@ import io.aeron.ChannelUri;
 import io.aeron.ExclusivePublication;
 import io.aeron.Subscription;
 import io.aeron.archive.client.AeronArchive;
+import io.aeron.archive.client.ControlResponsePoller;
+import io.aeron.archive.codecs.ControlResponseCode;
 import io.aeron.archive.codecs.SourceLocation;
 import io.aeron.archive.status.RecordingPos;
 import io.aeron.logbuffer.FragmentHandler;
@@ -235,7 +237,7 @@ public final class FormalPerformanceHarness
                     final long nowNs = System.nanoTime();
                     if (nowNs >= nextArchiveControlPollNs)
                     {
-                        archive.checkForErrorResponse();
+                        drainArchiveControl(archive);
                         nextArchiveControlPollNs =
                             nowNs + ARCHIVE_CONTROL_POLL_INTERVAL_NS;
                     }
@@ -449,6 +451,20 @@ public final class FormalPerformanceHarness
                 fail("archive recording position timed out");
             }
             Thread.onSpinWait();
+        }
+    }
+
+    private static void drainArchiveControl(final AeronArchive archive)
+    {
+        final ControlResponsePoller poller = archive.controlResponsePoller();
+        while (poller.poll() > 0)
+        {
+            if (poller.isPollComplete() &&
+                poller.controlSessionId() == archive.controlSessionId() &&
+                poller.code() == ControlResponseCode.ERROR)
+            {
+                fail("archive control error: " + poller.errorMessage());
+            }
         }
     }
 

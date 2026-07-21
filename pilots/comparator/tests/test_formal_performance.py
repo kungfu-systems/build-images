@@ -256,9 +256,11 @@ class FormalPerformanceTest(unittest.TestCase):
             "        TimeUnit.MILLISECONDS.toNanos(500);",
             source,
         )
-        self.assertIn("archive.checkForErrorResponse();", source)
+        self.assertIn("drainArchiveControl(archive);", source)
+        self.assertIn("while (poller.poll() > 0)", source)
+        self.assertIn("poller.code() == ControlResponseCode.ERROR", source)
         self.assertLess(
-            source.index("archive.checkForErrorResponse();"),
+            source.index("drainArchiveControl(archive);"),
             source.index("if (soakMessagesPerSecond > 0)"),
         )
 
