@@ -200,7 +200,7 @@ class FormalPerformanceTest(unittest.TestCase):
                 }
                 self.assertEqual(
                     PROVIDER_MODULE.matched_timeout_seconds(request),
-                    3600,
+                    5400,
                 )
                 request["variant"]["workload"] = "recovery"
                 self.assertEqual(
