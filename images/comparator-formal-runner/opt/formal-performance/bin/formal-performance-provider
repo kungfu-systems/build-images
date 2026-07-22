@@ -59,6 +59,7 @@ SHA256 = re.compile(r"^[0-9a-f]{64}$")
 PROJECT = re.compile(r"^[a-z0-9][a-z0-9_-]{0,62}$")
 KIT_ROOT = pathlib.Path(__file__).resolve().parents[1]
 AERON_DRIVER_JAR = KIT_ROOT / "drivers/aeron/formal-performance-aeron.jar"
+CGROUP_SAMPLER_READY_ENV = "FORMAL_PERFORMANCE_CGROUP_SAMPLER_READY_FILE"
 
 
 class ProviderError(RuntimeError):
@@ -405,6 +406,22 @@ class CgroupSampler:
         }
 
 
+def signal_cgroup_sampler_ready(
+    sampler: CgroupSampler,
+    subject_service: str,
+    limits: dict[str, Any],
+    ready_path: pathlib.Path,
+) -> bool:
+    if len(sampler.samples) < 2:
+        return False
+    if sampler.services.get(subject_service) != limits["subject"]:
+        return False
+    if ready_path.exists():
+        raise ProviderError(f"cgroup sampler ready marker already exists: {ready_path}")
+    ready_path.touch()
+    return True
+
+
 def measured_process(
     command: list[str],
     *,
@@ -427,12 +444,22 @@ def measured_process(
         start_new_session=True,
     )
     sampler = CgroupSampler(project, subject_service)
+    ready_value = env.get(CGROUP_SAMPLER_READY_ENV, "")
+    ready_path = pathlib.Path(ready_value) if ready_value else None
+    ready_signaled = False
     deadline = time.monotonic() + timeout_seconds
     try:
         while process.poll() is None:
             if time.monotonic() > deadline:
                 raise ProviderError(f"sample timed out after {timeout_seconds}s")
             sampler.sample()
+            if ready_path is not None and not ready_signaled:
+                ready_signaled = signal_cgroup_sampler_ready(
+                    sampler,
+                    subject_service,
+                    limits,
+                    ready_path,
+                )
             time.sleep(0.02)
     except BaseException:
         if process.poll() is None:
@@ -767,6 +794,10 @@ def full_stack_sample(
     work.mkdir(parents=True)
     env = dict(os.environ)
     env["COMPARATOR_PROJECT_NAME"] = project
+    sampler_ready = output / ".cgroup-sampler-ready"
+    if sampler_ready.exists():
+        raise ProviderError(f"stale cgroup sampler ready marker: {sampler_ready}")
+    env[CGROUP_SAMPLER_READY_ENV] = str(sampler_ready)
     if candidate == "kungfu":
         env.update(
             {
