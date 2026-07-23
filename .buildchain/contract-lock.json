@@ -3,13 +3,13 @@
   "contract": "kungfu-buildchain-contract-lock",
   "buildchain": {
     "ref": "v2",
-    "resolvedSha": "ec48c0b311212c5f3a591e0284da6e85a9fdded5",
+    "resolvedSha": "4612956c052aed8bb8f1d1b2edfd80c79326f654",
     "contract": "kungfu-buildchain-runtime-contract-world",
-    "contractDigest": "sha256:96593e211e995724701c04826ecf885e3a1fa0c49ab38948b5e481d44b3eba6b",
-    "compatibilityDigest": "sha256:af162b86ab4506e9b5f1d3c59b41f3fd57fbad79ff4d749a7f12ff16460517f8",
+    "contractDigest": "sha256:81c0ed79269d4b0c2f94c11cc316069db7b4264814f3170b3877a9f960ac0320",
+    "compatibilityDigest": "sha256:cdf588422ec6b460bd6f631400efa6e361a045e052c8967d6c50fadd7aa4dd90",
     "majorLine": "v2",
     "compatibilityPolicy": "major-compatible",
-    "acceptedAt": "2026-07-16T07:47:29.000Z",
+    "acceptedAt": "2026-07-22T14:14:51.000Z",
     "surfaces": [
       {
         "id": "reusable-build",
@@ -24,7 +24,12 @@
       {
         "id": "release-candidate-promote",
         "kind": "workflow",
-        "breakingDigest": "sha256:6dbae32ce3d7aab3be6957065105af574794581847b7637314dad45f5349c919"
+        "breakingDigest": "sha256:1f476fb9a4854b362c4b24cef89a3c7675d7d63baf3bc828d7b8ae7d2787cead"
+      },
+      {
+        "id": "advanced-release-candidate-promote",
+        "kind": "workflow",
+        "breakingDigest": "sha256:aa30f22e3af0a89841310bdbdc900844dd95a66974db173fa140a71bbd7e82c0"
       },
       {
         "id": "web-surface",
@@ -34,7 +39,7 @@
       {
         "id": "promote-buildchain-ref-action",
         "kind": "action",
-        "breakingDigest": "sha256:a59f0910e6df842e7699139472e5dd69ac2fdd7f7213bf2cb346d1d622556874"
+        "breakingDigest": "sha256:6147c0a8d5c36bfaa6021871574e1fc28192a3f1b8cfdae4d24ef3059ac1ebda"
       },
       {
         "id": "report-buildchain-issue-action",
@@ -124,12 +129,17 @@
       {
         "id": "controller:release-candidate-promotion",
         "kind": "controller",
-        "breakingDigest": "sha256:46238f8fc3c20924decc57ecad142a462fc4739c6bc21409d5cd2457fc1c3cdd"
+        "breakingDigest": "sha256:015d8de793adbd4c539416be7d7512e18cc92097e629b0203fa06d2c183e98bd"
       },
       {
         "id": "controller:release-propagation",
         "kind": "controller",
         "breakingDigest": "sha256:d7a1f15990ce8bd13149474888232c7d4451dd2a49bebf4d4ce1336695da430e"
+      },
+      {
+        "id": "controller:binary-distribution",
+        "kind": "controller",
+        "breakingDigest": "sha256:7c18fdd3df180db9e1f043a2286ef3f02fae60b84e42b76cd50da9cfeb77883d"
       }
     ]
   }

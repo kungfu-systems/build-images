@@ -20,7 +20,7 @@
         "id": "KFD-3",
         "label": "KFD-3",
         "title": "Cooperation must start from trusted value",
-        "revision": 3,
+        "revision": 5,
         "status": "active"
       },
       "schemas": {
@@ -43,7 +43,7 @@
       },
       "package": {
         "name": "@kungfu-tech/kfd",
-        "version": "1.0.0-alpha.29",
+        "version": "1.0.0-alpha.41",
         "repository": "git+https://github.com/kungfu-systems/kfd.git"
       }
     },
@@ -58,8 +58,8 @@
         "id": "Kungfu Build Images",
         "standard": "KFD-3",
         "standardKey": "kfd-3",
-        "preBuildWitnessSha256": "f286bd6911cd9f6d104c11f885f5a76b7abf05829a08ac4138c1ee7e1d69116c",
-        "artifactWitnessSha256": "5d12c55157c754c0b7006f80f090615f437399dbab098ffe6d8bd6c52113d3b5",
+        "preBuildWitnessSha256": "e5dcd1324a4c38c962073e9ea4464dad0a9abcc47031a69f6ffa828cbdf5f237",
+        "artifactWitnessSha256": "cae36fdce2d031c5d26a4897e48dda627be4f53d096721c4c80f741b158011c4",
         "prebuildWitness": {
           "schemaVersion": 1,
           "contract": "kungfu-buildchain-kfd-3-collaboration-interface-prebuild-witness",
@@ -153,7 +153,7 @@
           "metadata": {
             "kfdPackage": {
               "name": "@kungfu-tech/kfd",
-              "version": "1.0.0-alpha.29",
+              "version": "1.0.0-alpha.41",
               "repository": "git+https://github.com/kungfu-systems/kfd.git"
             },
             "schemaIds": {
@@ -244,7 +244,7 @@
           "metadata": {
             "kfdPackage": {
               "name": "@kungfu-tech/kfd",
-              "version": "1.0.0-alpha.29",
+              "version": "1.0.0-alpha.41",
               "repository": "git+https://github.com/kungfu-systems/kfd.git"
             },
             "schemaIds": {
@@ -375,12 +375,12 @@
           "prebuild": {
             "path": "",
             "sha256": "",
-            "canonicalSha256": "f286bd6911cd9f6d104c11f885f5a76b7abf05829a08ac4138c1ee7e1d69116c"
+            "canonicalSha256": "e5dcd1324a4c38c962073e9ea4464dad0a9abcc47031a69f6ffa828cbdf5f237"
           },
           "artifact": {
             "path": "",
             "sha256": "",
-            "canonicalSha256": "5d12c55157c754c0b7006f80f090615f437399dbab098ffe6d8bd6c52113d3b5"
+            "canonicalSha256": "cae36fdce2d031c5d26a4897e48dda627be4f53d096721c4c80f741b158011c4"
           },
           "artifactVerifyCommandSha256": ""
         },
