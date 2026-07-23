@@ -9,32 +9,32 @@ importers:
   .:
     devDependencies:
       '@kungfu-tech/buildchain':
-        specifier: 2.14.3-alpha.8
-        version: 2.14.3-alpha.8
+        specifier: 2.14.17-alpha.1
+        version: 2.14.17-alpha.1
       '@kungfu-tech/buildchain-stable':
-        specifier: npm:@kungfu-tech/buildchain@2.13.0
-        version: '@kungfu-tech/buildchain@2.13.0'
+        specifier: npm:@kungfu-tech/buildchain@2.14.16
+        version: '@kungfu-tech/buildchain@2.14.16'
       '@kungfu-tech/kfd':
         specifier: 1.0.0-alpha.21
         version: 1.0.0-alpha.21
 
 packages:
 
-  '@kungfu-tech/buildchain@2.13.0':
-    resolution: {integrity: sha512-NS672/mnkKMtyq1x/Ok14IAu6rdgLjxlYMEuE887Ia9AthsncBBiOxGnCWZODlPZX/+bvWGFPqYINy0FWMRMWQ==}
+  '@kungfu-tech/buildchain@2.14.16':
+    resolution: {integrity: sha512-bPVmFwb5GykD8dTbWmUD+7Ck6BZIWcGxiPZ2Ll8oIsy19KMOkhsgUodIcefpaDnsSbc7DOzpKaUUgUL95Ql5Dg==}
     engines: {node: '>=22.14.0'}
     hasBin: true
 
-  '@kungfu-tech/buildchain@2.14.3-alpha.8':
-    resolution: {integrity: sha512-8LJt5XXbNk5VPFzoK/8AHIzjxOvdiZnDxGKYiAApLrrONTuPCqfCbhNMk8zymvtdLch0b1FEZ+v6PnmHgfj+iQ==}
+  '@kungfu-tech/buildchain@2.14.17-alpha.1':
+    resolution: {integrity: sha512-7BsaVviu2CsNcZNTd+7o9lMKWGpkvKrumSJrA6Ae7qZhCjQKcbsVh4L3xmVkFze+ghsu+J0eOKq4lsXhY2EeiQ==}
     engines: {node: '>=22.14.0'}
     hasBin: true
 
   '@kungfu-tech/kfd@1.0.0-alpha.21':
     resolution: {integrity: sha512-lsr3aJ93pUaO9gxnGBsrTJkTkvpIHPHp9Rxug7WvdS4Zkte3AdFvyCl1DgwQN+/38FAXf8fBozyGkHxxXaN7Dg==}
 
-  '@kungfu-tech/kfd@1.0.0-alpha.29':
-    resolution: {integrity: sha512-gX1xWL7I2bqRkjbAuLLbkqcGdbRn6Aemdxg2y7zQZHFYPKi0Y7Su55xby++52fafX6A/ZpPZtO+9iQalqHVRxw==}
+  '@kungfu-tech/kfd@1.0.0-alpha.41':
+    resolution: {integrity: sha512-e+iIuvsijDLSFotb3gPKqwn649lLGRX3xEWOwn7xfBeu8L8kvw5RPRznJ4xKVM+NYCrfYCRVmUzpJI58k97C+Q==}
     hasBin: true
 
   smol-toml@1.7.0:
@@ -43,18 +43,18 @@ packages:
 
 snapshots:
 
-  '@kungfu-tech/buildchain@2.13.0':
+  '@kungfu-tech/buildchain@2.14.16':
     dependencies:
-      '@kungfu-tech/kfd': 1.0.0-alpha.21
+      '@kungfu-tech/kfd': 1.0.0-alpha.41
       smol-toml: 1.7.0
 
-  '@kungfu-tech/buildchain@2.14.3-alpha.8':
+  '@kungfu-tech/buildchain@2.14.17-alpha.1':
     dependencies:
-      '@kungfu-tech/kfd': 1.0.0-alpha.29
+      '@kungfu-tech/kfd': 1.0.0-alpha.41
       smol-toml: 1.7.0
 
   '@kungfu-tech/kfd@1.0.0-alpha.21': {}
 
-  '@kungfu-tech/kfd@1.0.0-alpha.29': {}
+  '@kungfu-tech/kfd@1.0.0-alpha.41': {}
 
   smol-toml@1.7.0: {}
