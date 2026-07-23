@@ -5,7 +5,7 @@
     "postgres-phase-a-v1": {
       "version": "1.2.0",
       "artifact": "workload-adapters/postgres_phase_a_v1.py",
-      "sha256": "9e9929c8a3dae78d38c1e62ba48cf77f615a1d56e530ecb47f9db3eb485e6efb",
+      "sha256": "cbb83abb161b114e8fd253e8bafe8701bf76ad3a50e6182f41f0ff62c1088500",
       "entrypoint": "postgres-phase-a-v1",
       "profiles": [
         "postgres"
@@ -65,7 +65,7 @@
     "clickhouse-phase-a-v1": {
       "version": "1.2.0",
       "artifact": "workload-adapters/clickhouse_phase_a_v1.py",
-      "sha256": "3561e64ccec4b31c26209e8f1c4bef633cfea3351c03eb5c6fcd92a99fc59bb6",
+      "sha256": "31f5723ca02d6c36007b6bb862ad9df8ae2abad167cc3e636433174d9ec0713d",
       "entrypoint": "clickhouse-phase-a-v1",
       "profiles": [
         "clickhouse"
@@ -185,7 +185,7 @@
     "kungfu-phase-b-v1": {
       "version": "1.0.0",
       "artifact": "workload-adapters/kungfu_phase_b_v1.py",
-      "sha256": "580115cd2bf4cf188ddd6e2ee454dc2adb2574022e02f8ea14f48ce01f6171a3",
+      "sha256": "126248948e28bde3ce9894201d8f4df7bfed4505af74f14223e7aefce492f25d",
       "entrypoint": "kungfu-phase-b-v1",
       "profiles": [
         "kungfu"
