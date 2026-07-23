@@ -59,6 +59,22 @@ class AdapterError(ValueError):
     """A fixed adapter contract or execution failure."""
 
 
+def wait_for_cgroup_sampler() -> None:
+    value = os.environ.get("FORMAL_PERFORMANCE_CGROUP_SAMPLER_READY_FILE", "")
+    if not value:
+        return
+    ready_path = pathlib.Path(value)
+    if not ready_path.is_absolute():
+        raise AdapterError("cgroup sampler ready marker must be an absolute path")
+    deadline = time.monotonic() + 30
+    while time.monotonic() < deadline:
+        if ready_path.is_file():
+            ready_path.unlink()
+            return
+        time.sleep(0.01)
+    raise AdapterError("cgroup sampler did not retain two baseline samples")
+
+
 def timeout_output(value: str | bytes | None) -> str:
     if value is None:
         return ""
@@ -547,6 +563,7 @@ def run(args: argparse.Namespace) -> pathlib.Path:
 
     project = ComposeProject(args.project, output_dir)
     project.up()
+    wait_for_cgroup_sampler()
     tier_evidence = exercise_tier(
         project, args.job_id, args.tier, fixture["jobs"][args.job_id]["facts"]
     )

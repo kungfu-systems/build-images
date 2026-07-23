@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "contract": "kungfu-buildchain-impact",
   "release": {
-    "version": "1.3.0-alpha.12",
+    "version": "1.3.0-alpha.13",
     "line": "v1.3"
   },
   "versionImpact": {
@@ -29,7 +29,7 @@
       "id": "buildchain-dual-channel-consumer",
       "impact": "patch",
       "class": "release-governance",
-      "rationale": "The existing v1.2 image family now uses the standard Buildchain v2.12 alpha and stable router with separate locked contracts and unchanged image identifiers.",
+      "rationale": "The image family uses the standard Buildchain v2.14 alpha and stable router with separate channel contract locks and unchanged image identifiers.",
       "source": ".github/workflows/verify.yml"
     },
     {

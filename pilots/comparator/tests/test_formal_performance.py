@@ -32,6 +32,11 @@ AERON_DRIVER = (
     ROOT
     / "images/comparator-formal-runner/opt/formal-performance/drivers/aeron/src/io/kungfu/aeron/FormalPerformanceHarness.java"
 )
+FULL_STACK_ADAPTERS = (
+    ROOT / "pilots/comparator/workload-adapters/postgres_phase_a_v1.py",
+    ROOT / "pilots/comparator/workload-adapters/clickhouse_phase_a_v1.py",
+    ROOT / "pilots/comparator/workload-adapters/kungfu_phase_b_v1.py",
+)
 LOADER = importlib.machinery.SourceFileLoader("formal_performance", str(RUNNER))
 SPEC = importlib.util.spec_from_loader("formal_performance", LOADER)
 if SPEC is None:
@@ -477,6 +482,111 @@ class FormalPerformanceTest(unittest.TestCase):
             [sample["cgroups"][0]["pid"] for sample in sampler.samples],
             [1234, 1234, 5678, 5678],
         )
+
+    def test_cgroup_sampler_ready_requires_two_subject_samples(self) -> None:
+        limits = {
+            "subject": {
+                "cpu_micros": 2_000_000,
+                "memory_bytes": 2_147_483_648,
+            },
+            "runner": {
+                "cpu_micros": 1_000_000,
+                "memory_bytes": 1_073_741_824,
+            },
+        }
+        sampler = mock.Mock(
+            samples=[{"monotonic_ns": 1, "cgroups": [{}]}],
+            services={"postgres": limits["subject"]},
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            ready_path = pathlib.Path(directory) / "ready"
+            self.assertFalse(
+                PROVIDER_MODULE.signal_cgroup_sampler_ready(
+                    sampler, "postgres", limits, ready_path
+                )
+            )
+            self.assertFalse(ready_path.exists())
+            sampler.samples.append({"monotonic_ns": 2, "cgroups": [{}]})
+            self.assertTrue(
+                PROVIDER_MODULE.signal_cgroup_sampler_ready(
+                    sampler, "postgres", limits, ready_path
+                )
+            )
+            self.assertTrue(ready_path.is_file())
+
+    def test_full_stack_adapters_wait_after_compose_up(self) -> None:
+        for adapter in FULL_STACK_ADAPTERS:
+            with self.subTest(adapter=adapter.name):
+                source = adapter.read_text(encoding="utf-8")
+                run_offset = source.index("def run(")
+                up_offset = source.index("    project.up()", run_offset)
+                ready_offset = source.index(
+                    "    wait_for_cgroup_sampler()", up_offset
+                )
+                self.assertLess(up_offset, ready_offset)
+
+    def test_measured_process_signals_after_two_raw_samples(self) -> None:
+        limits = {
+            "subject": {
+                "cpu_micros": 2_000_000,
+                "memory_bytes": 2_147_483_648,
+            },
+            "runner": {
+                "cpu_micros": 1_000_000,
+                "memory_bytes": 1_073_741_824,
+            },
+        }
+        process = mock.Mock(pid=4321, returncode=0)
+        process.poll.side_effect = [None, None, 0]
+        sampler = mock.Mock(samples=[], services={})
+
+        def retain_sample() -> None:
+            sampler.samples.append(
+                {"monotonic_ns": len(sampler.samples) + 1, "cgroups": [{}]}
+            )
+            sampler.services["postgres"] = limits["subject"]
+
+        sampler.sample.side_effect = retain_sample
+        sampler.result.return_value = {
+            "cpu_usage_ns": 1,
+            "peak_rss_bytes": 1,
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            diagnostic_dir = pathlib.Path(directory)
+            ready_path = diagnostic_dir / ".cgroup-sampler-ready"
+
+            def consume_ready() -> tuple[str, str]:
+                self.assertTrue(ready_path.is_file())
+                ready_path.unlink()
+                return "driver output", ""
+
+            process.communicate.side_effect = consume_ready
+            with (
+                mock.patch.object(
+                    PROVIDER_MODULE.subprocess, "Popen", return_value=process
+                ),
+                mock.patch.object(
+                    PROVIDER_MODULE, "CgroupSampler", return_value=sampler
+                ),
+                mock.patch.object(PROVIDER_MODULE.time, "sleep"),
+            ):
+                result, _, observed_sampler = PROVIDER_MODULE.measured_process(
+                    ["adapter"],
+                    project="fp0007-pg",
+                    subject_service="postgres",
+                    limits=limits,
+                    cwd=ROOT,
+                    env={
+                        PROVIDER_MODULE.CGROUP_SAMPLER_READY_ENV: str(ready_path)
+                    },
+                    timeout_seconds=60,
+                    diagnostic_dir=diagnostic_dir,
+                )
+
+        self.assertEqual(result.returncode, 0)
+        self.assertIs(observed_sampler, sampler)
+        self.assertEqual(sampler.sample.call_count, 3)
+        process.communicate.assert_called_once_with()
 
     def test_cleanup_falls_back_to_project_labeled_resources(self) -> None:
         compose_down = mock.Mock(returncode=1, stdout="", stderr="busy")

@@ -23,7 +23,7 @@
   },
   "adapter_registry": {
     "path": "workload-adapters/registry.json",
-    "sha256": "a58d945abcd9498e8a03663e1882d23a2b4291b394487c13aeaf716b1c607167"
+    "sha256": "f4833af562d80f29847b4ae0ed021b4356d81883d0141f498d73d02971a30f4d"
   },
   "workload_adapter": {
     "id": "aeron-phase-a-v1",
