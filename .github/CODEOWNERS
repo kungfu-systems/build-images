@@ -1,0 +1,10 @@
+# GitHub review and governance authority.
+* @kungfu-origin
+
+# Last-match rules make ownership and publication control surfaces explicit.
+/.github/CODEOWNERS @kungfu-origin
+/.github/workflows/ @kungfu-origin
+/buildchain.toml @kungfu-origin
+/scripts/buildchain-toolkit.sh @kungfu-origin
+/scripts/publish-image-family.sh @kungfu-origin
+/docs/release-and-tags.md @kungfu-origin
