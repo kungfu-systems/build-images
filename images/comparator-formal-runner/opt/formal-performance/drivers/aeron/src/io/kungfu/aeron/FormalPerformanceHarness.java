@@ -16,10 +16,15 @@ import org.agrona.collections.MutableLong;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.agrona.concurrent.status.CountersReader;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.file.FileVisitResult;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -406,20 +411,36 @@ public final class FormalPerformanceHarness
 
     private static long treeBytes(final Path root) throws Exception
     {
-        try (var paths = Files.walk(root))
+        if (!Files.isDirectory(root))
         {
-            return paths.filter(Files::isRegularFile).mapToLong(path ->
-            {
-                try
-                {
-                    return Files.size(path);
-                }
-                catch (final Exception error)
-                {
-                    throw new IllegalStateException(error);
-                }
-            }).sum();
+            throw new NoSuchFileException(root.toString());
         }
+        final long[] total = { 0 };
+        Files.walkFileTree(root, new SimpleFileVisitor<Path>()
+        {
+            @Override
+            public FileVisitResult visitFile(
+                final Path path, final BasicFileAttributes attributes)
+            {
+                if (attributes.isRegularFile())
+                {
+                    total[0] += attributes.size();
+                }
+                return FileVisitResult.CONTINUE;
+            }
+
+            @Override
+            public FileVisitResult visitFileFailed(
+                final Path path, final IOException error) throws IOException
+            {
+                if (error instanceof NoSuchFileException)
+                {
+                    return FileVisitResult.CONTINUE;
+                }
+                throw error;
+            }
+        });
+        return total[0];
     }
 
     private static int awaitRecordingCounter(
