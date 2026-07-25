@@ -41,7 +41,7 @@
       "policy": {},
       "facts": {
         "path": "docs/release-and-tags.md",
-        "sha256": "a01fc8045925fd6ed6c5c4b031ad98a252c37ef5653e322a6b860bd6d7003153"
+        "sha256": "8212c59a2eee5b53b024fe4331d3730b1ceff58fc7c06dda22651dc642caa918"
       },
       "declaration": {
         "owner": "product",
