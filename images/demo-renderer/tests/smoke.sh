@@ -13,7 +13,7 @@ render() {
     --transcript "$fixture_root/transcript.txt" \
     --projection "$fixture_root/projection.json" \
     --output "$output" \
-    --renderer-image "local-smoke@sha256:fixture"
+    --renderer-image "local-smoke@sha256:0000000000000000000000000000000000000000000000000000000000000000"
 }
 
 render "$scratch/first"

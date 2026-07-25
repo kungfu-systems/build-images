@@ -10,6 +10,7 @@ import { chromium } from 'playwright';
 
 const VERSION = '1.0.0';
 const MEDIA = ['demo.mp4', 'demo.webm', 'demo.gif', 'poster.png'];
+const UTF8 = new TextDecoder('utf-8', { fatal: true });
 
 function fail(message) {
   process.stderr.write(`demo-renderer: ${message}\n`);
@@ -71,7 +72,7 @@ function readRegularFile(filePath, label) {
 
 function parseJson(bytes, label) {
   try {
-    return JSON.parse(bytes.toString('utf8'));
+    return JSON.parse(UTF8.decode(bytes));
   } catch {
     fail(`${label} must be valid UTF-8 JSON`);
   }
@@ -264,7 +265,12 @@ async function render(options) {
   const transcriptBytes = readRegularFile(options.transcriptPath, 'transcript');
   const projectionBytes = readRegularFile(options.projectionPath, 'projection');
   if (transcriptBytes.includes(0)) fail('transcript must be UTF-8 text without NUL bytes');
-  const transcript = transcriptBytes.toString('utf8').replace(/\r\n/g, '\n');
+  let transcript;
+  try {
+    transcript = UTF8.decode(transcriptBytes).replace(/\r\n/g, '\n');
+  } catch {
+    fail('transcript must be valid UTF-8 text');
+  }
   if (!transcript.trim()) fail('transcript must not be empty');
   const transcriptLines = transcript.endsWith('\n')
     ? transcript.slice(0, -1).split('\n')
@@ -377,7 +383,7 @@ pre{font:14px/1.52 "DejaVu Sans Mono",monospace;white-space:pre-wrap;word-break:
     renderer: {
       contractVersion: VERSION,
       image: options.rendererImage,
-      architecture: `${process.platform}/${process.arch}`,
+      architecture: `${process.platform}/${process.arch === 'x64' ? 'amd64' : process.arch}`,
       playwright: JSON.parse(
         fs.readFileSync('/opt/kungfu/demo-renderer/node_modules/playwright/package.json', 'utf8'),
       ).version,
