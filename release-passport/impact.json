@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "contract": "kungfu-buildchain-impact",
+  "release": {
+    "tag": "v1.3.0-alpha.15",
+    "line": "v1.3",
+    "version": "1.3.0-alpha.15"
+  },
+  "versionImpact": {
+    "final": "minor",
+    "source": "build-images-surface-review",
+    "rationale": "The release adds the kungfu-native-linux-x64 source builder and comparator-formal-runner evidence distribution contracts without changing existing image identities."
+  },
+  "surfaceImpacts": [
+    {
+      "id": "comparator-formal-performance-runner",
+      "impact": "minor",
+      "class": "container-runtime",
+      "rationale": "The image family gains an exact-digest host-extracted runner with a frozen balanced schedule, formal-performance schemas, symmetric cgroup-v2 resource contracts, and a fail-closed offline verifier that cannot assign a product winner.",
+      "source": "images/comparator-formal-runner"
+    },
+    {
+      "id": "kungfu-native-linux-source-build",
+      "impact": "minor",
+      "class": "container-runtime",
+      "rationale": "The image family gains a dedicated linux/amd64 Kungfu source-build environment with pinned GCC 14, Node 22 bootstrap, Python/uv, Conan, and Rust 1.96 tooling plus a build-only evidence contract.",
+      "source": "images/kungfu-native-linux-x64"
+    },
+    {
+      "id": "buildchain-dual-channel-consumer",
+      "impact": "patch",
+      "class": "release-governance",
+      "rationale": "The image family uses the standard Buildchain v2.14 alpha and stable router with separate channel contract locks and unchanged image identifiers.",
+      "source": ".github/workflows/verify.yml"
+    },
+    {
+      "id": "node24-pnpm-runtime",
+      "impact": "patch",
+      "class": "container-runtime",
+      "rationale": "The existing Node 24 image exposes the repository-declared pnpm toolchain through Corepack without removing or renaming an existing runtime surface.",
+      "source": "images/node24-pnpm"
+    },
+    {
+      "id": "latex-pdf-builder-font-scaling",
+      "impact": "patch",
+      "class": "container-runtime",
+      "rationale": "The existing LaTeX image adds scalable CM-Super fonts so microtype font expansion works with the default Computer Modern family while preserving existing TeX entrypoints.",
+      "source": "images/latex-pdf-builder"
+    },
+    {
+      "id": "release-passport-impact-ledger",
+      "impact": "patch",
+      "class": "release-governance",
+      "rationale": "Stable publication now supplies the required surface impact ledger to the Buildchain release passport without changing the published OCI family contract.",
+      "source": ".buildchain/release-impact.json"
+    },
+    {
+      "id": "comparator-containerized-user-outcome-qualification",
+      "impact": "patch",
+      "class": "qualification-governance",
+      "rationale": "The comparator pilot prepares exact-digest images in a retained unscored phase with bounded transient retries, prevents pulls during all 63 formal PostgreSQL steps, derives J1/J2/J3 receipts from retained observed facts, and preserves semantic verification, project-scoped cleanup, adapter mappings, and published image identifiers.",
+      "source": "pilots/comparator"
+    }
+  ],
+  "classification": "minor",
+  "breaking": false,
+  "security": false,
+  "migrationRequired": false,
+  "summary": "Build images v1.3 adds exact-digest Kungfu source-build and formal comparator runner contracts while keeping measured host execution and winner authority outside Docker."
+}
