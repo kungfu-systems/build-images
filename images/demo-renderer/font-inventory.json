@@ -1,0 +1,11 @@
+{
+  "schema": "build-images.demo-renderer-font-inventory/v1",
+  "fonts": [
+    {
+      "family": "DejaVu Sans Mono",
+      "package": "fonts-dejavu-core",
+      "license": "Bitstream Vera and DejaVu permissive font licenses",
+      "licensePath": "/opt/kungfu/demo-renderer/licenses/DejaVu-fonts.copyright"
+    }
+  ]
+}

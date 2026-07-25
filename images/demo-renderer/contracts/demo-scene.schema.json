@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kungfu.tech/schemas/build-images/demo-scene-v1.schema.json",
+  "title": "Auditable demo scene",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "id", "width", "height", "fps", "durationMs", "title"],
+  "properties": {
+    "schema": { "const": "build-images.demo-scene/v1" },
+    "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$" },
+    "width": { "type": "integer", "minimum": 640, "maximum": 1920 },
+    "height": { "type": "integer", "minimum": 360, "maximum": 1080 },
+    "fps": { "type": "integer", "minimum": 1, "maximum": 30 },
+    "durationMs": { "type": "integer", "minimum": 500, "maximum": 60000 },
+    "title": { "type": "string", "minLength": 1, "maxLength": 120 },
+    "commandLabel": { "type": "string", "maxLength": 160 },
+    "background": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+    "accent": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" }
+  }
+}
