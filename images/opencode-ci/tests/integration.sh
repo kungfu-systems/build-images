@@ -54,7 +54,8 @@ run_case() {
   done
   [ "$ready" -eq 1 ] || { echo "mock endpoint did not become ready" >&2; return 1; }
 
-  docker run --rm --platform linux/amd64 --network "$network" -v "$case_dir:/workspace" -w /workspace \
+  docker run --rm --platform linux/amd64 --user "$(id -u):$(id -g)" \
+    --network "$network" -v "$case_dir:/workspace" -w /workspace \
     -e OPENCODE_BASE_URL=http://mock:8080/v1 \
     -e OPENCODE_MODEL=fixture-model \
     -e OPENCODE_CONTEXT=65536 \
