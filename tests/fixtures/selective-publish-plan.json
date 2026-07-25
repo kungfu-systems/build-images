@@ -73,6 +73,16 @@
       "full_rebuild": false
     },
     {
+      "name": "opencode-context-only",
+      "changed_paths": [
+        "images/opencode-ci/bin/opencode-ci-run"
+      ],
+      "selected_images": [
+        "opencode-ci"
+      ],
+      "full_rebuild": false
+    },
+    {
       "name": "base-context-propagates-to-family",
       "changed_paths": [
         "images/base-linux/Dockerfile"
@@ -84,7 +94,8 @@
         "kungfu-native-linux-x64",
         "node24-pnpm",
         "latex-pdf-builder",
-        "native-linux-x64"
+        "native-linux-x64",
+        "opencode-ci"
       ],
       "full_rebuild": false
     },
@@ -102,7 +113,8 @@
         "kungfu-native-linux-x64",
         "node24-pnpm",
         "latex-pdf-builder",
-        "native-linux-x64"
+        "native-linux-x64",
+        "opencode-ci"
       ],
       "full_rebuild": true
     },
@@ -120,7 +132,8 @@
         "kungfu-native-linux-x64",
         "node24-pnpm",
         "latex-pdf-builder",
-        "native-linux-x64"
+        "native-linux-x64",
+        "opencode-ci"
       ],
       "full_rebuild": true
     },
@@ -138,7 +151,8 @@
         "kungfu-native-linux-x64",
         "node24-pnpm",
         "latex-pdf-builder",
-        "native-linux-x64"
+        "native-linux-x64",
+        "opencode-ci"
       ],
       "full_rebuild": true
     },
@@ -156,7 +170,8 @@
         "kungfu-native-linux-x64",
         "node24-pnpm",
         "latex-pdf-builder",
-        "native-linux-x64"
+        "native-linux-x64",
+        "opencode-ci"
       ],
       "full_rebuild": true
     },
@@ -174,7 +189,8 @@
         "kungfu-native-linux-x64",
         "node24-pnpm",
         "latex-pdf-builder",
-        "native-linux-x64"
+        "native-linux-x64",
+        "opencode-ci"
       ],
       "full_rebuild": true
     },
@@ -190,7 +206,8 @@
         "kungfu-native-linux-x64",
         "node24-pnpm",
         "latex-pdf-builder",
-        "native-linux-x64"
+        "native-linux-x64",
+        "opencode-ci"
       ],
       "full_rebuild": true
     }

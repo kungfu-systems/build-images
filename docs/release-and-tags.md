@@ -232,6 +232,7 @@ here, newest first. Patches are intentionally absent.
 
 | Date | Action | Line | Faces | Class | Rationale | PR |
 |---|---|---|---|---|---|---|
+| 2026-07-25 | open | v1.3 | image-family, image-contracts | additive minor | Add `opencode-ci` as a pinned non-root OpenCode runtime with an external local-model and independent-verifier boundary. | #308 |
 | 2026-07-19 | extend | v1.3 | image-family, image-contracts | additive minor | Add `comparator-formal-runner` as the exact-digest distribution and offline-verification contract for symmetric full-stack and Kungfu/Aeron performance evidence. | #248 |
 | 2026-07-19 | open | v1.3 | image-family, image-contracts | additive minor | Add `kungfu-native-linux-x64` as the exact-digest Kungfu source-build environment with a fresh-consumer evidence contract. | #239 |
 | 2026-07-09 | open | v1.2 | image-family, image-contracts | additive minor | Add `latex-pdf-builder` as a pnpm-driven publication PDF builder image rooted in the existing Kungfu image family. | #38 |
