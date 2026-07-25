@@ -1,0 +1,69 @@
+#!/usr/bin/env python3
+import json
+import sys
+from pathlib import Path
+
+
+def usage(stream=sys.stderr):
+    print("Usage: opencode-ci-verify <events.jsonl> <output-file> <expected-text> <bash-marker>", file=stream)
+
+
+def walk(value):
+    if isinstance(value, dict):
+        yield value
+        for child in value.values():
+            yield from walk(child)
+    elif isinstance(value, list):
+        for child in value:
+            yield from walk(child)
+
+
+def main():
+    if len(sys.argv) == 2 and sys.argv[1] in {"-h", "--help"}:
+        usage(sys.stdout)
+        return 0
+    if len(sys.argv) != 5:
+        usage()
+        return 2
+    events_path, output_path, expected, marker_path = map(Path, (sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]))
+    try:
+        events = [json.loads(line) for line in events_path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        print(f"invalid JSONL evidence: {exc}", file=sys.stderr)
+        return 1
+    if not events:
+        print("JSONL evidence is empty", file=sys.stderr)
+        return 1
+
+    states = {}
+    for event in events:
+        for item in walk(event):
+            if isinstance(item.get("tool"), str) and isinstance(item.get("state"), dict):
+                states.setdefault(item["tool"], []).append(item["state"])
+    for tool in ("read", "write", "bash"):
+        if not any(state.get("status") == "completed" for state in states.get(tool, [])):
+            print(f"missing completed {tool} tool evidence", file=sys.stderr)
+            return 1
+    if not any(
+        isinstance(state.get("metadata"), dict)
+        and any(state["metadata"].get(key) == 0 for key in ("exit", "exitCode", "exit_code"))
+        for state in states["bash"]
+    ):
+        print("missing zero bash exit metadata", file=sys.stderr)
+        return 1
+    try:
+        if output_path.read_bytes() != expected.read_bytes():
+            print("declared output bytes do not match the oracle", file=sys.stderr)
+            return 1
+        if marker_path.read_bytes() != b"bash-ok\n":
+            print("bash marker bytes do not match the oracle", file=sys.stderr)
+            return 1
+    except OSError as exc:
+        print(f"cannot read declared artifact: {exc}", file=sys.stderr)
+        return 1
+    print("independent OpenCode fixture verification passed")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

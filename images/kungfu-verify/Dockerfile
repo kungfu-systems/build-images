@@ -7,6 +7,7 @@ ARG FNM_SHA256=b69e5c9a05c1e17e4a7de9a17df14ba430d049f2591af791a6f850a170296069
 ARG UV_VERSION=0.11.25
 ARG APT_HTTP_PROXY=
 ARG PIP_INDEX_URL=
+ARG PIP_TRUSTED_HOST=
 
 USER root
 
@@ -25,7 +26,13 @@ RUN if [ -n "${APT_HTTP_PROXY}" ]; then \
     && unzip -q /tmp/fnm.zip -d /usr/local/bin \
     && chmod +x /usr/local/bin/fnm \
     && if [ -n "${PIP_INDEX_URL}" ]; then \
-      python3 -m pip install --break-system-packages --no-cache-dir --index-url "${PIP_INDEX_URL}" "uv==${UV_VERSION}"; \
+      if [ -n "${PIP_TRUSTED_HOST}" ]; then \
+        python3 -m pip install --break-system-packages --no-cache-dir --index-url "${PIP_INDEX_URL}" \
+          --trusted-host "${PIP_TRUSTED_HOST}" "uv==${UV_VERSION}"; \
+      else \
+        python3 -m pip install --break-system-packages --no-cache-dir --index-url "${PIP_INDEX_URL}" \
+          "uv==${UV_VERSION}"; \
+      fi; \
     else \
          python3 -m pip install --break-system-packages --no-cache-dir "uv==${UV_VERSION}"; \
         fi \
