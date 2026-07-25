@@ -1,0 +1,129 @@
+name: Demo Renderer Qualification
+
+on:
+  pull_request:
+    paths:
+      - "images/demo-renderer/**"
+      - ".github/workflows/demo-renderer-qualification.yml"
+  push:
+    branches:
+      - "feature/**"
+      - "dev/v1/v1.3"
+      - "alpha/v1/v1.3"
+    paths:
+      - "images/demo-renderer/**"
+      - ".github/workflows/demo-renderer-qualification.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: demo-renderer-qualification-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    name: qualify-linux-amd64
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
+
+      - name: Build authoritative renderer
+        run: >-
+          docker build
+          --platform linux/amd64
+          --label "org.opencontainers.image.source=https://github.com/kungfu-systems/build-images"
+          --label "org.opencontainers.image.revision=${GITHUB_SHA}"
+          --label "io.kungfu.image.contract-major=1"
+          --label "io.kungfu.image.platform=linux/amd64"
+          --tag demo-renderer:qualification
+          images/demo-renderer
+
+      - name: Run deterministic renderer smoke
+        run: |
+          set -euo pipefail
+          docker run --rm --network none --read-only \
+            --tmpfs /tmp:rw,noexec,nosuid,size=512m \
+            demo-renderer:qualification \
+            bash /opt/kungfu/demo-renderer/tests/smoke.sh
+
+      - name: Generate SPDX SBOM
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+        with:
+          image: demo-renderer:qualification
+          format: spdx-json
+          output-file: qualification/demo-renderer.spdx.json
+          upload-artifact: false
+          upload-release-assets: false
+          dependency-snapshot: false
+
+      - name: Generate vulnerability report
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: demo-renderer:qualification
+          format: json
+          output: qualification/demo-renderer.trivy.json
+          exit-code: "0"
+          ignore-unfixed: false
+          severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
+          list-all-pkgs: true
+          timeout: 10m
+
+      - name: Bind qualification provenance
+        id: evidence
+        env:
+          SOURCE_SHA: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          mkdir -p qualification
+          image_id="$(docker image inspect --format '{{.Id}}' demo-renderer:qualification)"
+          base_digest="sha256:18b4bcff4f8ba0ac8c44b09f09def6a4f6cb8579e5f26381c21f38b50935d5d8"
+          python3 - "$image_id" "$base_digest" "$SOURCE_SHA" "$RUN_ID" "$RUN_ATTEMPT" <<'PY'
+          import json, pathlib, sys
+          image_id, base_digest, source_sha, run_id, run_attempt = sys.argv[1:]
+          payload = {
+              "schema": "build-images.demo-renderer-qualification-provenance/v1",
+              "source_repository": "kungfu-systems/build-images",
+              "source_sha": source_sha,
+              "run_id": run_id,
+              "run_attempt": run_attempt,
+              "architecture": "linux/amd64",
+              "base_image": "mcr.microsoft.com/playwright:v1.54.2-noble@" + base_digest,
+              "local_image_id": image_id,
+              "contract": "images/demo-renderer/image.toml",
+              "sbom": "demo-renderer.spdx.json",
+              "vulnerability_report": "demo-renderer.trivy.json",
+              "smoke": "images/demo-renderer/tests/smoke.sh",
+          }
+          pathlib.Path("qualification/provenance.json").write_text(
+              json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+          )
+          PY
+          (
+            cd qualification
+            sha256sum demo-renderer.spdx.json demo-renderer.trivy.json provenance.json \
+              | LC_ALL=C sort > checksums.sha256
+          )
+          evidence_root="$(sha256sum qualification/checksums.sha256 | awk '{print $1}')"
+          short_sha="${SOURCE_SHA:0:12}"
+          echo "root=sha256:${evidence_root}" >> "$GITHUB_OUTPUT"
+          echo "name=demo-renderer-qualification-${short_sha}-${RUN_ID}-${RUN_ATTEMPT}-${evidence_root:0:16}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload content-addressed qualification evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ${{ steps.evidence.outputs.name }}
+          path: qualification
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0
+          overwrite: false

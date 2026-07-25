@@ -18,6 +18,7 @@ base-linux
   -> node24-pnpm
     -> latex-pdf-builder
   -> native-linux-x64
+demo-renderer
 ```
 
 - `base-linux` defines the common Linux build baseline.
@@ -35,6 +36,9 @@ base-linux
 - `latex-pdf-builder` adds LaTeX PDF publication tooling while preserving pnpm
   build orchestration.
 - `native-linux-x64` adds common native build tooling for Linux x64 consumers.
+- `demo-renderer` is a standalone, digest-pinned Playwright/Chromium and
+  ffmpeg runtime that turns declared transcript/projection/scene inputs into
+  deterministic, evidence-bound media without executing consumer source.
 
 Native Kungfu build images should layer on top of `kungfu-verify` when their
 contract needs the same Buildchain entry tools plus C++/Conan/CMake tooling.
@@ -79,6 +83,7 @@ ghcr.io/kungfu-systems/build-images/kungfu-native-linux-x64:v1.3.0-alpha.0
 ghcr.io/kungfu-systems/build-images/node24-pnpm:v1.0.0
 ghcr.io/kungfu-systems/build-images/latex-pdf-builder:v1.2.0-alpha.0
 ghcr.io/kungfu-systems/build-images/native-linux-x64:v1.0.0
+ghcr.io/kungfu-systems/build-images/demo-renderer:v1.3.0-alpha.0
 ```
 
 Release publication becomes selective only after a reviewed,

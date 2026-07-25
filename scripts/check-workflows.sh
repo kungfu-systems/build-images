@@ -64,3 +64,20 @@ if grep -Fq 'api.github.com/orgs/' "$public_verifier" ||
   echo "GHCR public verification must use anonymous registry authority without package API scope" >&2
   exit 1
 fi
+
+renderer_workflow="$repo_root/.github/workflows/demo-renderer-qualification.yml"
+for required in \
+  "actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09" \
+  "docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c" \
+  "anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610" \
+  "aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25" \
+  "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02" \
+  "docker run --rm --network none --read-only" \
+  "compression-level: 0" \
+  "overwrite: false"
+do
+  if ! grep -Fq "$required" "$renderer_workflow"; then
+    echo "Demo renderer qualification is missing required evidence boundary: $required" >&2
+    exit 1
+  fi
+done
