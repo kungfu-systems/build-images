@@ -32,7 +32,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  opencode-ci:
+  opencode_ci:
     name: OpenCode CI deterministic fixture
     runs-on: ubuntu-24.04
     steps:
@@ -85,7 +85,7 @@ jobs:
     name: check
     needs:
       - buildchain
-      - opencode-ci
+      - opencode_ci
     if: ${{ always() }}
     runs-on: ubuntu-24.04
     steps:
@@ -93,7 +93,7 @@ jobs:
         shell: bash
         env:
           BUILDCHAIN_RESULT: ${{ needs.buildchain.result }}
-          OPENCODE_CI_RESULT: ${{ needs.opencode-ci.result }}
+          OPENCODE_CI_RESULT: ${{ needs.opencode_ci.result }}
           RESOLVED_CHANNEL: ${{ needs.buildchain.outputs.buildchain-channel }}
           BASE_REF: ${{ github.base_ref }}
         run: |
