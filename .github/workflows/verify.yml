@@ -23,6 +23,7 @@ on:
         default: ""
 
 permissions:
+  actions: read
   contents: read
   issues: write
   id-token: write
@@ -54,6 +55,7 @@ jobs:
   buildchain:
     uses: kungfu-systems/buildchain/.github/workflows/build.yml@v2
     permissions:
+      actions: read
       contents: read
       issues: write
       id-token: write
