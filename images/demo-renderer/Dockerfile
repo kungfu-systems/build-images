@@ -7,7 +7,10 @@ ARG PLAYWRIGHT_INTEGRITY=sha512-Hu/BMoA1NAdRUuulyvQC0pEqZ4vQbGfn8f7wPXcnqQmM+zct
 
 USER root
 
-RUN curl -fsSLO "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.xz" \
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends xz-utils \
+    && rm -rf /var/lib/apt/lists/* \
+    && curl -fsSLO "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.xz" \
     && echo "${NODE_SHA256}  node-v${NODE_VERSION}-linux-x64.tar.xz" | sha256sum -c - \
     && tar -xJf "node-v${NODE_VERSION}-linux-x64.tar.xz" -C /usr/local --strip-components=1 \
     && rm "node-v${NODE_VERSION}-linux-x64.tar.xz" \
