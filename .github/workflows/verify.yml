@@ -32,6 +32,25 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  opencode-ci:
+    name: OpenCode CI deterministic fixture
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Validate OpenCode CI sources
+        run: |
+          python3 -m py_compile \
+            images/opencode-ci/bin/opencode-ci-verify \
+            images/opencode-ci/tests/mock-openai.py
+          bash -n \
+            images/opencode-ci/bin/opencode-ci-run \
+            images/opencode-ci/tests/integration.sh
+
+      - name: Build and verify OpenCode CI image
+        run: bash images/opencode-ci/tests/integration.sh
+
   buildchain:
     uses: kungfu-systems/buildchain/.github/workflows/build.yml@v2
     permissions:
@@ -64,7 +83,9 @@ jobs:
 
   check:
     name: check
-    needs: buildchain
+    needs:
+      - buildchain
+      - opencode-ci
     if: ${{ always() }}
     runs-on: ubuntu-24.04
     steps:
@@ -72,12 +93,17 @@ jobs:
         shell: bash
         env:
           BUILDCHAIN_RESULT: ${{ needs.buildchain.result }}
+          OPENCODE_CI_RESULT: ${{ needs.opencode-ci.result }}
           RESOLVED_CHANNEL: ${{ needs.buildchain.outputs.buildchain-channel }}
           BASE_REF: ${{ github.base_ref }}
         run: |
           set -euo pipefail
           if [ "$BUILDCHAIN_RESULT" != "success" ]; then
             echo "::error::Buildchain verification result was $BUILDCHAIN_RESULT"
+            exit 1
+          fi
+          if [ "$OPENCODE_CI_RESULT" != "success" ]; then
+            echo "::error::OpenCode CI fixture result was $OPENCODE_CI_RESULT"
             exit 1
           fi
 

@@ -1,0 +1,117 @@
+#!/bin/bash
+set -euo pipefail
+
+usage() {
+  cat <<'EOF'
+Usage: opencode-ci-run
+
+Required environment:
+  OPENCODE_BASE_URL        OpenAI-compatible endpoint ending in /v1
+  OPENCODE_MODEL           Explicit model identifier
+  OPENCODE_PROMPT          Bounded task prompt
+  OPENCODE_VERIFY_COMMAND  Independent verifier command
+
+Optional environment:
+  OPENCODE_PROVIDER_ID     Provider id (default: local)
+  OPENCODE_CONTEXT         Model context limit (default: 65536)
+  OPENCODE_OUTPUT_DIR      Evidence directory (default: /work/.opencode-ci)
+  OPENCODE_TIMEOUT_SECONDS Run timeout (default: 300)
+EOF
+}
+
+if [ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ]; then
+  usage
+  exit 0
+fi
+[ "$#" -eq 0 ] || { usage >&2; exit 2; }
+
+required_env() {
+  local name="$1"
+  [ -n "${!name:-}" ] || { echo "${name} is required" >&2; exit 2; }
+}
+required_env OPENCODE_BASE_URL
+required_env OPENCODE_MODEL
+required_env OPENCODE_PROMPT
+required_env OPENCODE_VERIFY_COMMAND
+
+provider_id="${OPENCODE_PROVIDER_ID:-local}"
+context_limit="${OPENCODE_CONTEXT:-65536}"
+output_dir="${OPENCODE_OUTPUT_DIR:-/work/.opencode-ci}"
+timeout_seconds="${OPENCODE_TIMEOUT_SECONDS:-300}"
+
+case "$provider_id" in *[!A-Za-z0-9_-]*|"") echo "invalid provider id" >&2; exit 2;; esac
+case "$context_limit" in *[!0-9]*|"") echo "invalid context limit" >&2; exit 2;; esac
+case "$timeout_seconds" in *[!0-9]*|"") echo "invalid timeout" >&2; exit 2;; esac
+case "$OPENCODE_BASE_URL" in http://*/v1|https://*/v1) ;; *) echo "base URL must use http(s) and end in /v1" >&2; exit 2;; esac
+
+mkdir -p "$output_dir"
+runtime_home="$(mktemp -d)"
+export HOME="$runtime_home"
+export XDG_CONFIG_HOME="$runtime_home/config"
+export XDG_DATA_HOME="$runtime_home/data"
+export XDG_STATE_HOME="$runtime_home/state"
+export XDG_CACHE_HOME="$runtime_home/cache"
+mkdir -p "$XDG_CONFIG_HOME" "$XDG_DATA_HOME" "$XDG_STATE_HOME" "$XDG_CACHE_HOME"
+
+export OPENCODE_CONFIG_CONTENT
+OPENCODE_CONFIG_CONTENT="$(python3 - "$provider_id" "$OPENCODE_BASE_URL" "$OPENCODE_MODEL" "$context_limit" <<'PY'
+import json, sys
+provider, base_url, model, context = sys.argv[1:]
+print(json.dumps({
+    "$schema": "https://opencode.ai/config.json",
+    "autoupdate": False,
+    "share": "disabled",
+    "permission": {
+        "*": "deny", "read": "allow", "list": "allow", "glob": "allow",
+        "grep": "allow", "edit": "allow", "bash": "allow",
+        "external_directory": "deny",
+    },
+    "provider": {provider: {
+        "npm": "@ai-sdk/openai-compatible",
+        "name": "Runtime supplied local provider",
+        "options": {"baseURL": base_url},
+        "models": {model: {
+            "name": model,
+            "limit": {"context": int(context), "output": 8192},
+        }},
+    }},
+}, separators=(",", ":")))
+PY
+)"
+
+events_path="$output_dir/events.jsonl"
+stderr_path="$output_dir/opencode.stderr"
+run_path="$output_dir/run.json"
+
+set +e
+timeout "$timeout_seconds" opencode run --pure --format json \
+  --model "${provider_id}/${OPENCODE_MODEL}" "$OPENCODE_PROMPT" \
+  >"$events_path" 2>"$stderr_path"
+opencode_exit="$?"
+set -e
+
+verifier_exit=125
+if [ "$opencode_exit" -eq 0 ]; then
+  set +e
+  /bin/bash -lc "$OPENCODE_VERIFY_COMMAND"
+  verifier_exit="$?"
+  set -e
+fi
+
+python3 - "$run_path" "$provider_id" "$OPENCODE_MODEL" "$context_limit" "$opencode_exit" "$verifier_exit" <<'PY'
+import json, subprocess, sys
+from pathlib import Path
+path, provider, model, context, opencode_exit, verifier_exit = sys.argv[1:]
+payload = {
+    "schema": 1,
+    "opencode_version": subprocess.check_output(["opencode", "--version"], text=True).strip(),
+    "provider": provider, "model": model, "context": int(context),
+    "opencode_exit": int(opencode_exit), "verifier_exit": int(verifier_exit),
+    "passed": int(opencode_exit) == 0 and int(verifier_exit) == 0,
+}
+Path(path).write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+PY
+
+[ "$opencode_exit" -eq 0 ] || { echo "OpenCode failed with exit ${opencode_exit}; see ${stderr_path}" >&2; exit "$opencode_exit"; }
+[ "$verifier_exit" -eq 0 ] || { echo "Independent verifier failed with exit ${verifier_exit}" >&2; exit "$verifier_exit"; }
+echo "OpenCode and independent verification passed"

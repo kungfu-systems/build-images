@@ -8,14 +8,14 @@
     "cwd": "",
     "sourceSha": "",
     "registryPath": ".buildchain/kfd/kfd-3/surfaces.json",
-    "registryDigest": "sha256:2016f336627b8689d7e183e1b8dc86e9b956f04fba9fa692311eb9cea663f17d"
+    "registryDigest": "sha256:36fd2687778bc2842469ee9f2450b016707d5f74b463c18a0382517d994c7ad2"
   },
   "sourceRegistry": {
     "id": "Kungfu Build Images",
     "path": ".buildchain/kfd/kfd-3/surfaces.json",
-    "sha256": "1194d7e30cdf75005e2fe88c10faefafdf31e1fc4015090f77c347786070be96"
+    "sha256": "c66a92a1a166c2fa9a67cf7e093a32e61e746de2dbe03e513b91488d5f14465d"
   },
-  "collaborationInterfaceDigest": "sha256:b1bf513e6a17a6a740c24d201bc6aff7a94089c0d693d52d6fccfda490a715c1",
+  "collaborationInterfaceDigest": "sha256:d7ba9560fbc2a888ac1e4b42d22a2d87709c1d6bf1c53be318b33b5ca6d7e985",
   "collaborationInterface": {
     "schemaVersion": 1,
     "contract": "kungfu-buildchain-kfd-3-surface-registry",
@@ -37,7 +37,7 @@
         "policy": {},
         "facts": {
           "path": "docs/image-contract.md",
-          "sha256": "5f7274cc01b5d9cffa73cdb125e61511da27cf3eda38131b1c7cd505c7710af4"
+          "sha256": "8911201737df54884077dc788a7f6483bd71037f85b05e96859a4a188481070e"
         },
         "declaration": {
           "owner": "product",
@@ -59,7 +59,7 @@
         "policy": {},
         "facts": {
           "path": "docs/release-and-tags.md",
-          "sha256": "fa5afa8ba9beb54195e272efca51033a7aeb55cfbfc7ec55eccc9f734e7e61db"
+          "sha256": "41ba1f383d481123fb25bc54c8d751daaacbfe231a414120a6513fe0cbdb9bf4"
         },
         "declaration": {
           "owner": "product",
@@ -103,7 +103,7 @@
         "policy": {},
         "facts": {
           "path": "README.md",
-          "sha256": "e2747cc895f8cdef29e61e635621b73ee3db93e1231ade175a48eca4707a0fc3"
+          "sha256": "bae2dab486cbc9890d6964a0efe55fa9641f4f3c964ae05d221a68baea115867"
         },
         "declaration": {
           "owner": "product",
@@ -127,7 +127,7 @@
         "policy": {},
         "facts": {
           "path": "docs/image-contract.md",
-          "sha256": "5f7274cc01b5d9cffa73cdb125e61511da27cf3eda38131b1c7cd505c7710af4"
+          "sha256": "8911201737df54884077dc788a7f6483bd71037f85b05e96859a4a188481070e"
         }
       },
       {
@@ -144,7 +144,7 @@
         "policy": {},
         "facts": {
           "path": "docs/release-and-tags.md",
-          "sha256": "fa5afa8ba9beb54195e272efca51033a7aeb55cfbfc7ec55eccc9f734e7e61db"
+          "sha256": "41ba1f383d481123fb25bc54c8d751daaacbfe231a414120a6513fe0cbdb9bf4"
         }
       },
       {
@@ -178,7 +178,7 @@
         "policy": {},
         "facts": {
           "path": "README.md",
-          "sha256": "e2747cc895f8cdef29e61e635621b73ee3db93e1231ade175a48eca4707a0fc3"
+          "sha256": "bae2dab486cbc9890d6964a0efe55fa9641f4f3c964ae05d221a68baea115867"
         }
       }
     ],
@@ -228,7 +228,7 @@
             "policy": {},
             "facts": {
               "path": "docs/image-contract.md",
-              "sha256": "5f7274cc01b5d9cffa73cdb125e61511da27cf3eda38131b1c7cd505c7710af4"
+              "sha256": "8911201737df54884077dc788a7f6483bd71037f85b05e96859a4a188481070e"
             }
           },
           {
@@ -245,7 +245,7 @@
             "policy": {},
             "facts": {
               "path": "docs/release-and-tags.md",
-              "sha256": "fa5afa8ba9beb54195e272efca51033a7aeb55cfbfc7ec55eccc9f734e7e61db"
+              "sha256": "41ba1f383d481123fb25bc54c8d751daaacbfe231a414120a6513fe0cbdb9bf4"
             }
           },
           {
@@ -279,7 +279,7 @@
             "policy": {},
             "facts": {
               "path": "README.md",
-              "sha256": "e2747cc895f8cdef29e61e635621b73ee3db93e1231ade175a48eca4707a0fc3"
+              "sha256": "bae2dab486cbc9890d6964a0efe55fa9641f4f3c964ae05d221a68baea115867"
             }
           }
         ]
@@ -306,7 +306,7 @@
             "policy": {},
             "facts": {
               "path": "docs/image-contract.md",
-              "sha256": "5f7274cc01b5d9cffa73cdb125e61511da27cf3eda38131b1c7cd505c7710af4"
+              "sha256": "8911201737df54884077dc788a7f6483bd71037f85b05e96859a4a188481070e"
             },
             "declaration": {
               "owner": "product",
@@ -327,7 +327,7 @@
             "policy": {},
             "facts": {
               "path": "docs/release-and-tags.md",
-              "sha256": "fa5afa8ba9beb54195e272efca51033a7aeb55cfbfc7ec55eccc9f734e7e61db"
+              "sha256": "41ba1f383d481123fb25bc54c8d751daaacbfe231a414120a6513fe0cbdb9bf4"
             },
             "declaration": {
               "owner": "product",
@@ -369,7 +369,7 @@
             "policy": {},
             "facts": {
               "path": "README.md",
-              "sha256": "e2747cc895f8cdef29e61e635621b73ee3db93e1231ade175a48eca4707a0fc3"
+              "sha256": "bae2dab486cbc9890d6964a0efe55fa9641f4f3c964ae05d221a68baea115867"
             },
             "declaration": {
               "owner": "product",
@@ -405,7 +405,7 @@
             "policy": {},
             "facts": {
               "path": "docs/image-contract.md",
-              "sha256": "5f7274cc01b5d9cffa73cdb125e61511da27cf3eda38131b1c7cd505c7710af4"
+              "sha256": "8911201737df54884077dc788a7f6483bd71037f85b05e96859a4a188481070e"
             }
           },
           {
@@ -422,7 +422,7 @@
             "policy": {},
             "facts": {
               "path": "docs/release-and-tags.md",
-              "sha256": "fa5afa8ba9beb54195e272efca51033a7aeb55cfbfc7ec55eccc9f734e7e61db"
+              "sha256": "41ba1f383d481123fb25bc54c8d751daaacbfe231a414120a6513fe0cbdb9bf4"
             }
           },
           {
@@ -456,7 +456,7 @@
             "policy": {},
             "facts": {
               "path": "README.md",
-              "sha256": "e2747cc895f8cdef29e61e635621b73ee3db93e1231ade175a48eca4707a0fc3"
+              "sha256": "bae2dab486cbc9890d6964a0efe55fa9641f4f3c964ae05d221a68baea115867"
             }
           }
         ],
@@ -475,7 +475,7 @@
             "policy": {},
             "facts": {
               "path": "docs/image-contract.md",
-              "sha256": "5f7274cc01b5d9cffa73cdb125e61511da27cf3eda38131b1c7cd505c7710af4"
+              "sha256": "8911201737df54884077dc788a7f6483bd71037f85b05e96859a4a188481070e"
             },
             "declaration": {
               "owner": "product",
@@ -496,7 +496,7 @@
             "policy": {},
             "facts": {
               "path": "docs/release-and-tags.md",
-              "sha256": "fa5afa8ba9beb54195e272efca51033a7aeb55cfbfc7ec55eccc9f734e7e61db"
+              "sha256": "41ba1f383d481123fb25bc54c8d751daaacbfe231a414120a6513fe0cbdb9bf4"
             },
             "declaration": {
               "owner": "product",
@@ -538,7 +538,7 @@
             "policy": {},
             "facts": {
               "path": "README.md",
-              "sha256": "e2747cc895f8cdef29e61e635621b73ee3db93e1231ade175a48eca4707a0fc3"
+              "sha256": "bae2dab486cbc9890d6964a0efe55fa9641f4f3c964ae05d221a68baea115867"
             },
             "declaration": {
               "owner": "product",
@@ -585,7 +585,7 @@
       "policy": {},
       "facts": {
         "path": "docs/image-contract.md",
-        "sha256": "5f7274cc01b5d9cffa73cdb125e61511da27cf3eda38131b1c7cd505c7710af4"
+        "sha256": "8911201737df54884077dc788a7f6483bd71037f85b05e96859a4a188481070e"
       },
       "declaration": {
         "owner": "product",
@@ -607,7 +607,7 @@
       "policy": {},
       "facts": {
         "path": "docs/release-and-tags.md",
-        "sha256": "fa5afa8ba9beb54195e272efca51033a7aeb55cfbfc7ec55eccc9f734e7e61db"
+        "sha256": "41ba1f383d481123fb25bc54c8d751daaacbfe231a414120a6513fe0cbdb9bf4"
       },
       "declaration": {
         "owner": "product",
@@ -651,7 +651,7 @@
       "policy": {},
       "facts": {
         "path": "README.md",
-        "sha256": "e2747cc895f8cdef29e61e635621b73ee3db93e1231ade175a48eca4707a0fc3"
+        "sha256": "bae2dab486cbc9890d6964a0efe55fa9641f4f3c964ae05d221a68baea115867"
       },
       "declaration": {
         "owner": "product",

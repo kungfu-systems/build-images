@@ -52,6 +52,7 @@ base-linux
   -> kungfu-verify
     -> comparator-formal-runner
     -> kungfu-native-linux-x64
+    -> opencode-ci
   -> node24-pnpm
     -> latex-pdf-builder
   -> native-linux-x64
@@ -79,6 +80,12 @@ counter units, offline fresh-project timer, Kungfu/Aeron matched lane, and
 fail-closed offline verifier. It can report descriptive medians, tails, and
 ratios but must keep `winner_authority=false`, must not self-grade blinded M3/M4
 reviews, and must not give Aeron a complete-product verdict.
+
+`opencode-ci` is an Agent runtime envelope, not a model or credential image. Its
+v1 contract pins OpenCode, runs as the unprivileged `kungfu` user, accepts only
+runtime-supplied endpoint and model coordinates, emits JSONL evidence, and
+requires an independent verifier. OpenCode text and exit status alone never
+settle the job.
 
 ## First Publish Lock State
 

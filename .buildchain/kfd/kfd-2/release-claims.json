@@ -6,17 +6,17 @@
     {
       "id": "readme",
       "path": "README.md",
-      "sha256": "e2747cc895f8cdef29e61e635621b73ee3db93e1231ade175a48eca4707a0fc3"
+      "sha256": "bae2dab486cbc9890d6964a0efe55fa9641f4f3c964ae05d221a68baea115867"
     },
     {
       "id": "image-contract",
       "path": "docs/image-contract.md",
-      "sha256": "5f7274cc01b5d9cffa73cdb125e61511da27cf3eda38131b1c7cd505c7710af4"
+      "sha256": "8911201737df54884077dc788a7f6483bd71037f85b05e96859a4a188481070e"
     },
     {
       "id": "release-and-tags",
       "path": "docs/release-and-tags.md",
-      "sha256": "fa5afa8ba9beb54195e272efca51033a7aeb55cfbfc7ec55eccc9f734e7e61db"
+      "sha256": "41ba1f383d481123fb25bc54c8d751daaacbfe231a414120a6513fe0cbdb9bf4"
     },
     {
       "id": "image-lock",
@@ -43,7 +43,7 @@
     {
       "id": "kfd-1-contract-world-witness",
       "path": ".buildchain/kfd/kfd-1/build-images-contract-world.witness.json",
-      "sha256": "726ddd51063371286bfba9f699c77d20c708a8904562dd3ae7ead621ec0de6d1",
+      "sha256": "3a92ef0482163b5099536185520f4fa4ec1322265ac35735e59e320d3102ca3c",
       "contract": "kfd-1",
       "status": "passed"
     },
@@ -57,16 +57,16 @@
     {
       "id": "kfd-3-surface-registry",
       "path": ".buildchain/kfd/kfd-3/surfaces.json",
-      "sha256": "1194d7e30cdf75005e2fe88c10faefafdf31e1fc4015090f77c347786070be96",
+      "sha256": "c66a92a1a166c2fa9a67cf7e093a32e61e746de2dbe03e513b91488d5f14465d",
       "contract": "kungfu-buildchain-kfd-3-surface-registry",
       "status": "passed"
     }
   ],
   "hashes": {
-    "kfd1WitnessSha256": "d514edab48085ce2976f61c0d3260c75987acb1cabca1cb3617a34b7104108a4",
+    "kfd1WitnessSha256": "a000f752ec90ea3da0fa05f9b7f855634863b6024ad995d831092c9338a1a54c",
     "upstreamAggregateSha256": "ed66976ace03e2492ba4cadcd9d1caf25db32b5634957dee9bcae3582b8dfcdd",
-    "sourceBindingsSha256": "a1bc3e6d809c536da5f88ea449e34a451ef61e09ea5db9d4cd54e6f718d56a88",
-    "machineEvidenceSha256": "97932ff3cc239117de0738c93801bd3b3bf9168e2312d5977a9cdf47c778588e"
+    "sourceBindingsSha256": "71311435401a3c40efcaa38dc6c91f9b71829a93584df40f21b72f17c40e1939",
+    "machineEvidenceSha256": "30b5915b69718cdda67823f805e5a8ff156255d8d70c339587efec45ccaf948f"
   },
   "artifacts": [
     {

@@ -14,6 +14,7 @@ base-linux
   -> kungfu-verify
     -> comparator-formal-runner
     -> kungfu-native-linux-x64
+    -> opencode-ci
   -> node24-pnpm
     -> latex-pdf-builder
   -> native-linux-x64
@@ -27,6 +28,8 @@ base-linux
   host tuning controls inside the image.
 - `kungfu-native-linux-x64` adds the pinned GCC 14, Node 22, Python, Conan, and
   Rust toolchains required to build Kungfu native source reproducibly.
+- `opencode-ci` adds a pinned non-root OpenCode runtime with an external
+  local-model boundary and independent verification contract.
 - `node24-pnpm` adds Node.js 24 and pnpm for GitHub Action and JavaScript build
   surfaces.
 - `latex-pdf-builder` adds LaTeX PDF publication tooling while preserving pnpm
