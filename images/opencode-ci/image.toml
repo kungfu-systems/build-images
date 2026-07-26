@@ -24,7 +24,3 @@ test_commands = [
   "opencode-ci-run --help",
   "opencode-ci-verify --help",
 ]
-
-[lock]
-status = "pending-first-publish"
-reason = "The image is new on the v1.3 line and has no accepted public digest yet."
