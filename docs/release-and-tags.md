@@ -6,7 +6,7 @@ proves that the image family needs separate release cadence.
 
 ## Buildchain Governance
 
-Buildchain v2 is the release authority for this repository. Day-to-day changes
+Buildchain v3 is the release authority for this repository. Day-to-day changes
 land on `dev/vN/vN.M`, reviewed channel promotion moves through
 `alpha/vN/vN.M` and `release/vN/vN.M`, and Buildchain creates the exact
 version-state commits plus exact/floating tags.

@@ -45,13 +45,13 @@ The default verification path validates `buildchain.toml`, image manifests,
 the image lock, workflow syntax, and shell syntax. It does not publish images
 and does not require a self-hosted runner.
 
-The GitHub `Verify` workflow exposes a `check` job so Buildchain v2 promotion
+The GitHub `Verify` workflow exposes a `check` job so Buildchain v3 promotion
 can use it as the protected release-line status check.
 
 ## Release Model
 
 The repository uses one Buildchain release version for the image family at
-first. Buildchain v2 owns channel promotion, image publish transactions, durable
+first. Buildchain v3 owns channel promotion, image publish transactions, durable
 publish evidence, and exact release tags. Exact image tags mirror exact
 repository tags, for example:
 
