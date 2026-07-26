@@ -2,15 +2,22 @@
   "schemaVersion": 1,
   "contract": "kungfu-buildchain-impact",
   "release": {
-    "version": "1.3.0-alpha.15",
+    "version": "1.3.0-alpha.16",
     "line": "v1.3"
   },
   "versionImpact": {
     "final": "minor",
     "source": "build-images-surface-review",
-    "rationale": "The release adds the kungfu-native-linux-x64 source builder and comparator-formal-runner evidence distribution contracts without changing existing image identities."
+    "rationale": "The release adds the consumer-neutral demo-renderer image contract without changing existing image identities."
   },
   "surfaceImpacts": [
+    {
+      "id": "auditable-demo-renderer",
+      "impact": "minor",
+      "class": "container-runtime",
+      "rationale": "The image family gains a non-root, network-disabled renderer with transcript-bound scene and projection contracts, deterministic MP4/WebM/GIF/poster outputs, media probes, checksums, SBOM, vulnerability, and provenance evidence.",
+      "source": "images/demo-renderer"
+    },
     {
       "id": "comparator-formal-performance-runner",
       "impact": "minor",
@@ -65,5 +72,5 @@
   "breaking": false,
   "security": false,
   "migrationRequired": false,
-  "summary": "Build images v1.3 adds exact-digest Kungfu source-build and formal comparator runner contracts while keeping measured host execution and winner authority outside Docker."
+  "summary": "Build images v1.3 adds the exact-digest demo renderer, Kungfu source-build, and formal comparator runner contracts while keeping runtime authority and winner authority outside presentation media."
 }
