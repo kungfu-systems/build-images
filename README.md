@@ -36,8 +36,9 @@ demo-renderer
 - `latex-pdf-builder` adds LaTeX PDF publication tooling while preserving pnpm
   build orchestration.
 - `native-linux-x64` adds common native build tooling for Linux x64 consumers.
-- `demo-renderer` is a standalone, digest-pinned Playwright/Chromium and
-  ffmpeg runtime that turns declared transcript/projection/scene inputs into
+- `demo-renderer` is a standalone, digest-pinned Playwright/Chromium, xterm
+  state-machine, and ffmpeg runtime that turns declared transcript,
+  projection, scene, and optional bounded PTY capture inputs into
   deterministic, evidence-bound media without executing consumer source.
 
 Native Kungfu build images should layer on top of `kungfu-verify` when their
