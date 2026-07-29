@@ -61,9 +61,11 @@ demo-renderer
 
 `demo-renderer` is intentionally a standalone root. Its external Playwright
 base is pinned by OCI digest in the Dockerfile, while its Node, Playwright,
-Chromium bundle, ffmpeg/ffprobe and redistribution-licensed font inventory are
-validated by the image smoke. It does not inherit consumer build credentials
-or product-specific tools.
+Chromium bundle, ffmpeg/ffprobe, `@xterm/headless` terminal state machine, and
+redistribution-licensed font inventory are validated by the image smoke. The
+optional terminal input is a bounded observation with an explicitly empty
+authority-grant list; it does not inherit consumer build credentials,
+authorization, or product-specific tools.
 
 ## Test Commands
 

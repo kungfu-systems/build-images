@@ -20,7 +20,7 @@
       "policy": {},
       "facts": {
         "path": "docs/image-contract.md",
-        "sha256": "85a3fa1336fac56e5a08352b1d258adeab978671e4f0ed0829d67beeaef56bbe"
+        "sha256": "121653365abfa08a1618123fab6d297bb73eedcfdd389ee05280b607416f87e4"
       },
       "declaration": {
         "owner": "product",
@@ -83,7 +83,7 @@
       "policy": {},
       "facts": {
         "path": "README.md",
-        "sha256": "8151ff0bc4e7a5f440bf48dd65ccb6004b2e305c386b36613a33a8228c9c30a9"
+        "sha256": "a4fc0b80195f5ac88464da983610e32e85daab8708d868d94750430cf201e219"
       },
       "declaration": {
         "owner": "product",

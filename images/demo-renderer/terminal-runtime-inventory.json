@@ -1,0 +1,12 @@
+{
+  "schema": "build-images.demo-renderer-terminal-runtime-inventory/v1",
+  "packages": [
+    {
+      "integrity": "sha512-5xXB7kdQlFBP82ViMJTwwEc3gKCLGKR/eoxQm4zge7GPBl86tCdI0IdPJjoKd8mUSFXz5V7i/25sfsEkP4j46g==",
+      "license": "MIT",
+      "name": "@xterm/headless",
+      "repository": "https://github.com/xtermjs/xterm.js",
+      "version": "5.5.0"
+    }
+  ]
+}

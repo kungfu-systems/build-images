@@ -4,6 +4,8 @@ ARG NODE_VERSION=24.0.0
 ARG NODE_SHA256=59b8af617dccd7f9f68cc8451b2aee1e86d6bd5cb92cd51dd6216a31b707efd7
 ARG PLAYWRIGHT_VERSION=1.54.2
 ARG PLAYWRIGHT_INTEGRITY=sha512-Hu/BMoA1NAdRUuulyvQC0pEqZ4vQbGfn8f7wPXcnqQmM+zct9UliKxsIkLNmz/ku7LElUNqmaiv1TG/aL5ACsw==
+ARG XTERM_HEADLESS_VERSION=5.5.0
+ARG XTERM_HEADLESS_INTEGRITY=sha512-5xXB7kdQlFBP82ViMJTwwEc3gKCLGKR/eoxQm4zge7GPBl86tCdI0IdPJjoKd8mUSFXz5V7i/25sfsEkP4j46g==
 
 USER root
 
@@ -19,14 +21,18 @@ RUN apt-get update \
     && rm "node-v${NODE_VERSION}-linux-x64.tar.xz" \
     && observed_integrity="$(npm view "playwright@${PLAYWRIGHT_VERSION}" dist.integrity --registry=https://registry.npmjs.org)" \
     && test "${observed_integrity}" = "${PLAYWRIGHT_INTEGRITY}" \
+    && observed_xterm_integrity="$(npm view "@xterm/headless@${XTERM_HEADLESS_VERSION}" dist.integrity --registry=https://registry.npmjs.org)" \
+    && test "${observed_xterm_integrity}" = "${XTERM_HEADLESS_INTEGRITY}" \
     && PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm install \
       --prefix /opt/kungfu/demo-renderer \
       --omit=dev \
       --ignore-scripts \
       --registry=https://registry.npmjs.org \
       "playwright@${PLAYWRIGHT_VERSION}" \
+      "@xterm/headless@${XTERM_HEADLESS_VERSION}" \
     && test "$(node --version)" = "v${NODE_VERSION}" \
     && test "$(node -p "require('/opt/kungfu/demo-renderer/node_modules/playwright/package.json').version")" = "${PLAYWRIGHT_VERSION}" \
+    && test "$(node -p "require('/opt/kungfu/demo-renderer/node_modules/@xterm/headless/package.json').version")" = "${XTERM_HEADLESS_VERSION}" \
     && test -x "$(command -v ffmpeg)" \
     && test -x "$(command -v ffprobe)" \
     && test -f /usr/share/doc/fonts-dejavu-core/copyright \
@@ -37,6 +43,7 @@ RUN apt-get update \
 COPY render-demo.mjs /opt/kungfu/demo-renderer/render-demo.mjs
 COPY contracts /opt/kungfu/demo-renderer/contracts
 COPY font-inventory.json /opt/kungfu/demo-renderer/font-inventory.json
+COPY terminal-runtime-inventory.json /opt/kungfu/demo-renderer/terminal-runtime-inventory.json
 COPY tests /opt/kungfu/demo-renderer/tests
 
 RUN printf '%s\n' '#!/bin/sh' 'exec node /opt/kungfu/demo-renderer/render-demo.mjs "$@"' \
@@ -45,6 +52,7 @@ RUN printf '%s\n' '#!/bin/sh' 'exec node /opt/kungfu/demo-renderer/render-demo.m
     && chmod 0444 \
       /opt/kungfu/demo-renderer/render-demo.mjs \
       /opt/kungfu/demo-renderer/font-inventory.json \
+      /opt/kungfu/demo-renderer/terminal-runtime-inventory.json \
       /opt/kungfu/demo-renderer/contracts/*.json \
       /opt/kungfu/demo-renderer/tests/fixtures/* \
     && chmod 0555 /opt/kungfu/demo-renderer/tests/smoke.sh \
