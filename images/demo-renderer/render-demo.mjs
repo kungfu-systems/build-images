@@ -436,6 +436,7 @@ async function render(options) {
         cursorBlink: false,
         disableStdin: true,
         logLevel: 'off',
+        allowProposedApi: true,
       })
       : null;
     let terminalEventIndex = 0;
