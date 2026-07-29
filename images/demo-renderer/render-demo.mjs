@@ -7,7 +7,9 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { chromium } from 'playwright';
-import { Terminal } from '@xterm/headless';
+import xtermHeadless from '@xterm/headless';
+
+const { Terminal } = xtermHeadless;
 
 const VERSION = '1.1.0';
 const MEDIA = ['demo.mp4', 'demo.webm', 'demo.gif', 'poster.png'];
