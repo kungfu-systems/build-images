@@ -7,10 +7,26 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { chromium } from 'playwright';
+import xtermHeadless from '@xterm/headless';
 
-const VERSION = '1.0.0';
+const { Terminal } = xtermHeadless;
+
+const VERSION = '1.1.0';
 const MEDIA = ['demo.mp4', 'demo.webm', 'demo.gif', 'poster.png'];
 const UTF8 = new TextDecoder('utf-8', { fatal: true });
+const DIGEST_PATTERN = /^sha256:[0-9a-f]{64}$/;
+const MAX_CAPTURE_BYTES = 4 * 1024 * 1024;
+const MAX_CAPTURE_EVENTS = 10_000;
+const CAPTURE_NON_AUTHORITIES = [
+  'first-party-identity',
+  'system-identity',
+  'kfd-compliance',
+  'product-system-metadata',
+  'package-metadata',
+  'registry-history',
+  'scan-output',
+  'standalone-generation',
+];
 
 function fail(message) {
   process.stderr.write(`demo-renderer: ${message}\n`);
@@ -24,7 +40,7 @@ function parseArguments(argv) {
   }
   if (argv.length === 1 && argv[0] === '--help') {
     process.stdout.write(
-      'Usage: demo-renderer --scene FILE --transcript FILE --projection FILE --output DIR --renderer-image IMAGE@sha256:DIGEST\n',
+      'Usage: demo-renderer --scene FILE --transcript FILE --projection FILE [--terminal-capture FILE] --output DIR --renderer-image IMAGE@sha256:DIGEST\n',
     );
     process.exit(0);
   }
@@ -34,6 +50,7 @@ function parseArguments(argv) {
     '--projection',
     '--output',
     '--renderer-image',
+    '--terminal-capture',
   ]);
   const values = {};
   for (let index = 0; index < argv.length; index += 2) {
@@ -43,7 +60,7 @@ function parseArguments(argv) {
     if (values[flag]) fail(`duplicate argument: ${flag}`);
     values[flag] = value;
   }
-  for (const flag of allowed) {
+  for (const flag of ['--scene', '--transcript', '--projection', '--output', '--renderer-image']) {
     if (!values[flag]) fail(`${flag} is required`);
   }
   if (!/@sha256:[0-9a-f]{64}$/.test(values['--renderer-image'])) {
@@ -55,6 +72,7 @@ function parseArguments(argv) {
     projectionPath: values['--projection'],
     outputPath: values['--output'],
     rendererImage: values['--renderer-image'],
+    terminalCapturePath: values['--terminal-capture'] || '',
   };
 }
 
@@ -174,6 +192,120 @@ function validateProjection(value, scene, transcriptLines) {
   return { schema: value.schema, evidenceClass, claimBoundary, cues };
 }
 
+function decodeBase64(value, label) {
+  if (
+    typeof value !== 'string'
+    || value.length === 0
+    || value.length > MAX_CAPTURE_BYTES * 2
+    || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(value)
+  ) {
+    fail(`${label} must be canonical base64`);
+  }
+  const decoded = Buffer.from(value, 'base64');
+  if (decoded.toString('base64') !== value) fail(`${label} must be canonical base64`);
+  return decoded;
+}
+
+function validateTerminalCapture(value, scene) {
+  exactKeys(
+    value,
+    [
+      'schema',
+      'command',
+      'dimensions',
+      'durationMs',
+      'encoding',
+      'events',
+      'completion',
+      'exitCode',
+      'authority',
+    ],
+    [],
+    'terminalCapture',
+  );
+  if (value.schema !== 'kungfu.terminal-capture/v1') fail('unsupported terminal capture schema');
+  const command = text(value.command, 1, 160, 'terminalCapture.command');
+  exactKeys(value.dimensions, ['columns', 'rows'], [], 'terminalCapture.dimensions');
+  const dimensions = {
+    columns: integer(value.dimensions.columns, 80, 200, 'terminalCapture.dimensions.columns'),
+    rows: integer(value.dimensions.rows, 24, 80, 'terminalCapture.dimensions.rows'),
+  };
+  const durationMs = integer(value.durationMs, 500, 60_000, 'terminalCapture.durationMs');
+  if (durationMs > scene.durationMs || scene.durationMs - durationMs > 2_000) {
+    fail('terminal capture duration must end within two seconds of the scene');
+  }
+  if (value.encoding !== 'base64') fail('terminalCapture.encoding must be base64');
+  if (!Array.isArray(value.events) || value.events.length < 1 || value.events.length > MAX_CAPTURE_EVENTS) {
+    fail(`terminalCapture.events must contain 1 through ${MAX_CAPTURE_EVENTS} events`);
+  }
+  let previousAtMs = -1;
+  let totalBytes = 0;
+  const events = value.events.map((event, index) => {
+    exactKeys(event, ['atMs', 'data'], [], `terminalCapture.events[${index}]`);
+    const atMs = integer(event.atMs, 0, durationMs - 1, `terminalCapture.events[${index}].atMs`);
+    if (atMs < previousAtMs) fail('terminal capture event timestamps must be monotonic');
+    if (index === 0 && atMs !== 0) fail('the first terminal capture event must start at zero');
+    previousAtMs = atMs;
+    const data = decodeBase64(event.data, `terminalCapture.events[${index}].data`);
+    totalBytes += data.length;
+    if (totalBytes > MAX_CAPTURE_BYTES) fail('terminal capture exceeds the 4 MiB byte bound');
+    return { atMs, data, encoded: event.data };
+  });
+  exactKeys(
+    value.completion,
+    ['schema', 'status', 'reportRoot', 'eventCount'],
+    [],
+    'terminalCapture.completion',
+  );
+  if (
+    value.completion.schema !== 'kungfu.agent-work-lab.tui-autoplay/v1'
+    || value.completion.status !== 'passed'
+    || !DIGEST_PATTERN.test(value.completion.reportRoot)
+  ) {
+    fail('terminal capture completion sentinel is not a passed Agent Work Lab autoplay');
+  }
+  integer(value.completion.eventCount, 1, 100_000, 'terminalCapture.completion.eventCount');
+  if (value.exitCode !== 0) fail('terminal capture exitCode must be zero');
+  exactKeys(value.authority, ['classification', 'grants', 'nonAuthorities'], [], 'terminalCapture.authority');
+  if (value.authority.classification !== 'volatile-terminal-observation') {
+    fail('terminal capture authority classification must remain observation-only');
+  }
+  if (!Array.isArray(value.authority.grants) || value.authority.grants.length !== 0) {
+    fail('terminal capture must not grant authority');
+  }
+  if (
+    JSON.stringify(value.authority.nonAuthorities) !== JSON.stringify(CAPTURE_NON_AUTHORITIES)
+  ) {
+    fail('terminal capture must declare every identity and metadata non-authority');
+  }
+  return {
+    schema: value.schema,
+    command,
+    dimensions,
+    durationMs,
+    encoding: value.encoding,
+    events,
+    completion: value.completion,
+    exitCode: value.exitCode,
+    authority: value.authority,
+    totalBytes,
+  };
+}
+
+function writeTerminal(terminal, bytes) {
+  return new Promise((resolve) => terminal.write(bytes, resolve));
+}
+
+function terminalScreen(terminal, rows) {
+  const lines = [];
+  for (let row = 0; row < rows; row += 1) {
+    const line = terminal.buffer.active.getLine(row);
+    lines.push(line ? line.translateToString(true) : '');
+  }
+  while (lines.length > 1 && lines.at(-1) === '') lines.pop();
+  return lines.join('\n');
+}
+
 function stableJson(value) {
   const canonical = (item) => {
     if (Array.isArray(item)) return item.map(canonical);
@@ -277,6 +409,12 @@ async function render(options) {
     : transcript.split('\n');
   const scene = validateScene(parseJson(sceneBytes, 'scene'));
   const projection = validateProjection(parseJson(projectionBytes, 'projection'), scene, transcriptLines);
+  const terminalCaptureBytes = options.terminalCapturePath
+    ? readRegularFile(options.terminalCapturePath, 'terminal capture')
+    : null;
+  const terminalCapture = terminalCaptureBytes
+    ? validateTerminalCapture(parseJson(terminalCaptureBytes, 'terminal capture'), scene)
+    : null;
 
   const outputMetadata = fs.lstatSync(options.outputPath);
   if (outputMetadata.isSymbolicLink() || !outputMetadata.isDirectory()) fail('output must be a non-symlink directory');
@@ -289,6 +427,19 @@ async function render(options) {
 
   const frames = fs.mkdtempSync(path.join(os.tmpdir(), 'demo-renderer-frames-'));
   try {
+    const terminal = terminalCapture
+      ? new Terminal({
+        cols: terminalCapture.dimensions.columns,
+        rows: terminalCapture.dimensions.rows,
+        scrollback: 0,
+        convertEol: false,
+        cursorBlink: false,
+        disableStdin: true,
+        logLevel: 'off',
+        allowProposedApi: true,
+      })
+      : null;
+    let terminalEventIndex = 0;
     const browser = await chromium.launch({
       headless: true,
       args: ['--disable-gpu', '--font-render-hinting=none', '--force-color-profile=srgb'],
@@ -308,9 +459,11 @@ body{background:${scene.background};color:#e8edf5;font-family:"DejaVu Sans Mono"
 .bar{height:48px;border-bottom:1px solid #283446;display:flex;align-items:center;padding:0 16px;gap:8px;background:#121a26}
 .dot{width:11px;height:11px;border-radius:50%;background:#65738a}.title{font:600 14px system-ui,sans-serif;margin-left:8px;color:#cbd5e1}
 .badge{margin-left:auto;font:600 11px system-ui,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:${scene.accent};border:1px solid ${scene.accent}66;border-radius:999px;padding:5px 9px}
-.terminal{height:calc(100% - 48px);padding:22px 24px;display:flex;flex-direction:column}
+.terminal{height:calc(100% - 48px);padding:18px 22px;display:flex;flex-direction:column}
 .command{color:${scene.accent};font-size:14px;min-height:22px}.runtime-label,.annotation-label{font:600 10px system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#8290a6;margin:14px 0 8px}
 pre{font:14px/1.52 "DejaVu Sans Mono",monospace;white-space:pre-wrap;word-break:break-word;margin:0;color:#e5edf7}
+.capture pre{font:13px/1.24 "DejaVu Sans Mono",monospace;white-space:pre;word-break:normal}
+.capture .runtime-label{margin-top:7px}.capture .annotation{min-height:38px;padding-top:8px}
 .annotation{margin-top:auto;border-top:1px solid #283446;padding-top:11px;color:#9facbf;font:12px/1.4 system-ui,sans-serif;min-height:48px}
 .cursor{display:inline-block;width:8px;height:15px;background:${scene.accent};vertical-align:-2px;margin-left:3px;opacity:.9}
 </style></head><body>
@@ -323,16 +476,49 @@ pre{font:14px/1.52 "DejaVu Sans Mono",monospace;white-space:pre-wrap;word-break:
       const active = projection.cues.filter((cue) => cue.startMs <= atMs && atMs < cue.endMs).at(-1)
         ?? projection.cues.filter((cue) => cue.startMs <= atMs).at(-1)
         ?? projection.cues[0];
-      const runtime = active.transcriptLines.map((line) => transcriptLines[line - 1]).join('\n');
+      if (terminalCapture && terminal) {
+        while (
+          terminalEventIndex < terminalCapture.events.length
+          && terminalCapture.events[terminalEventIndex].atMs <= atMs
+        ) {
+          await writeTerminal(terminal, terminalCapture.events[terminalEventIndex].data);
+          terminalEventIndex += 1;
+        }
+      }
+      const runtime = terminal && terminalCapture
+        ? terminalScreen(terminal, terminalCapture.dimensions.rows)
+        : active.transcriptLines.map((line) => transcriptLines[line - 1]).join('\n');
+      const annotation = terminalCapture
+        ? `${terminalCapture.dimensions.columns}x${terminalCapture.dimensions.rows} bounded PTY replay · captured bytes grant no authority`
+        : active.annotation;
       await page.evaluate(
-        ({ title, commandLabel, runtime, annotation, frame }) => {
+        ({ title, commandLabel, runtime, annotation, frame, captureMode }) => {
+          document.querySelector('.window').classList.toggle('capture', captureMode);
           document.querySelector('.title').textContent = title;
           document.querySelector('.command').textContent = commandLabel;
           document.querySelector('pre').textContent = runtime;
           document.querySelector('.annotation span').textContent = annotation;
-          document.querySelector('.cursor').style.opacity = frame % 2 === 0 ? '0.9' : '0.25';
+          document.querySelector('.runtime-label').textContent = captureMode
+            ? 'exact bounded terminal capture'
+            : 'traceable runtime transcript';
+          document.querySelector('.annotation-label').textContent = captureMode
+            ? 'authority boundary'
+            : 'presentation annotation';
+          document.querySelector('.badge').textContent = captureMode
+            ? 'captured PTY replay'
+            : 'presentation, not screen capture';
+          document.querySelector('.cursor').style.opacity = captureMode
+            ? '0'
+            : frame % 2 === 0 ? '0.9' : '0.25';
         },
-        { title: scene.title, commandLabel: scene.commandLabel, runtime, annotation: active.annotation, frame },
+        {
+          title: scene.title,
+          commandLabel: scene.commandLabel,
+          runtime,
+          annotation,
+          frame,
+          captureMode: Boolean(terminalCapture),
+        },
       );
       await page.screenshot({
         path: path.join(frames, `frame-${String(frame + 1).padStart(6, '0')}.png`),
@@ -341,8 +527,15 @@ pre{font:14px/1.52 "DejaVu Sans Mono",monospace;white-space:pre-wrap;word-break:
       });
     }
     await browser.close();
+    terminal?.dispose();
 
-    fs.copyFileSync(path.join(frames, 'frame-000001.png'), path.join(options.outputPath, 'poster.png'));
+    const posterFrame = terminalCapture
+      ? Math.min(frameCount, Math.max(1, Math.floor(frameCount * 0.55)))
+      : 1;
+    fs.copyFileSync(
+      path.join(frames, `frame-${String(posterFrame).padStart(6, '0')}.png`),
+      path.join(options.outputPath, 'poster.png'),
+    );
     const input = path.join(frames, 'frame-%06d.png');
     run(
       'ffmpeg',
@@ -378,6 +571,21 @@ pre{font:14px/1.52 "DejaVu Sans Mono",monospace;white-space:pre-wrap;word-break:
   const fontInventory = JSON.parse(
     fs.readFileSync('/opt/kungfu/demo-renderer/font-inventory.json', 'utf8'),
   );
+  const terminalRuntimeInventoryBytes = fs.readFileSync(
+    '/opt/kungfu/demo-renderer/terminal-runtime-inventory.json',
+  );
+  const terminalRuntimeInventory = JSON.parse(terminalRuntimeInventoryBytes.toString('utf8'));
+  const xtermVersion = JSON.parse(
+    fs.readFileSync('/opt/kungfu/demo-renderer/node_modules/@xterm/headless/package.json', 'utf8'),
+  ).version;
+  if (
+    terminalRuntimeInventory.schema !== 'build-images.demo-renderer-terminal-runtime-inventory/v1'
+    || terminalRuntimeInventory.packages?.length !== 1
+    || terminalRuntimeInventory.packages[0]?.name !== '@xterm/headless'
+    || terminalRuntimeInventory.packages[0]?.version !== xtermVersion
+  ) {
+    fail('terminal runtime inventory does not match the installed state machine');
+  }
   const manifest = {
     schema: 'build-images.auditable-demo-render/v1',
     renderer: {
@@ -395,14 +603,23 @@ pre{font:14px/1.52 "DejaVu Sans Mono",monospace;white-space:pre-wrap;word-break:
       node: process.version,
       ffmpeg: run('ffmpeg', ['-hide_banner', '-version'], 'ffmpeg version').split('\n')[0],
       fonts: fontInventory,
+      ...(terminalCapture
+        ? {
+          terminal: {
+            engine: '@xterm/headless',
+            version: xtermVersion,
+            inventoryRoot: sha256(terminalRuntimeInventoryBytes),
+          },
+        }
+        : {}),
     },
     policy: {
       locale: 'C.UTF-8',
       timezone: 'UTC',
       sourceDateEpoch: '0',
       network: 'caller-disabled-and-browser-requests-blocked',
-      runtimeTextAuthority: 'complete-transcript.txt',
-      visualClassification: 'styled-presentation-not-literal-screen-capture',
+      runtimeTextAuthority: terminalCapture ? 'terminal-capture.json' : 'complete-transcript.txt',
+      visualClassification: terminalCapture ? 'bounded-pty-replay' : 'styled-presentation-not-literal-screen-capture',
       evidenceClass: projection.evidenceClass,
       claimBoundary: projection.claimBoundary,
     },
@@ -417,6 +634,19 @@ pre{font:14px/1.52 "DejaVu Sans Mono",monospace;white-space:pre-wrap;word-break:
         path: 'public-projection.json',
         root: sha256(fs.readFileSync(path.join(options.outputPath, 'public-projection.json'))),
       },
+      ...(terminalCaptureBytes
+        ? {
+          terminalCapture: {
+            path: 'terminal-capture.json',
+            root: sha256(terminalCaptureBytes),
+            schema: terminalCapture.schema,
+            events: terminalCapture.events.length,
+            bytes: terminalCapture.totalBytes,
+            dimensions: terminalCapture.dimensions,
+            durationMs: terminalCapture.durationMs,
+          },
+        }
+        : {}),
     },
     traceability: projection.cues.map((cue) => ({
       startMs: cue.startMs,
