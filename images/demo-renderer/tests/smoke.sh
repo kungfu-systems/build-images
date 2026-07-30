@@ -99,3 +99,22 @@ then
   echo "terminal capture with an implicit authority grant was accepted" >&2
   exit 1
 fi
+
+node - "$fixture_root/terminal-capture.json" "$scratch/legacy-passed.json" <<'JS'
+const fs = require('node:fs');
+const capture = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+capture.completion.status = 'passed';
+fs.writeFileSync(process.argv[3], `${JSON.stringify(capture, null, 2)}\n`);
+JS
+mkdir "$scratch/rejected-passed"
+if demo-renderer \
+  --scene "$fixture_root/scene.json" \
+  --transcript "$fixture_root/transcript.txt" \
+  --projection "$fixture_root/projection.json" \
+  --terminal-capture "$scratch/legacy-passed.json" \
+  --output "$scratch/rejected-passed" \
+  --renderer-image "local-smoke@sha256:0000000000000000000000000000000000000000000000000000000000000000"
+then
+  echo "terminal capture with the legacy passed sentinel was accepted" >&2
+  exit 1
+fi
