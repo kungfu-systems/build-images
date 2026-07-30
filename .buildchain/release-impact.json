@@ -8,14 +8,14 @@
   "versionImpact": {
     "final": "minor",
     "source": "build-images-surface-review",
-    "rationale": "The release adds the consumer-neutral demo-renderer image contract without changing existing image identities."
+    "rationale": "The release adds the consumer-neutral demo-renderer image contract and its deterministic ANSI style replay without changing existing image identities."
   },
   "surfaceImpacts": [
     {
       "id": "auditable-demo-renderer",
       "impact": "minor",
       "class": "container-runtime",
-      "rationale": "The image family gains a non-root, network-disabled renderer with transcript-bound scene and projection contracts, deterministic MP4/WebM/GIF/poster outputs, media probes, checksums, SBOM, vulnerability, and provenance evidence.",
+      "rationale": "The image family gains a non-root, network-disabled renderer with transcript-bound scene and projection contracts, deterministic ANSI 16-color/xterm 256-color/RGB terminal style replay, MP4/WebM/GIF/poster outputs, media probes, checksums, SBOM, vulnerability, and provenance evidence.",
       "source": "images/demo-renderer"
     },
     {
@@ -72,5 +72,5 @@
   "breaking": false,
   "security": false,
   "migrationRequired": false,
-  "summary": "Build images v1.3 adds the exact-digest demo renderer, Kungfu source-build, and formal comparator runner contracts while keeping runtime authority and winner authority outside presentation media."
+  "summary": "Build images v1.3 adds the exact-digest ANSI-faithful demo renderer, Kungfu source-build, and formal comparator runner contracts while keeping runtime authority and winner authority outside presentation media."
 }

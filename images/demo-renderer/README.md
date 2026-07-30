@@ -18,8 +18,11 @@ Callers may additionally stage one `kungfu.terminal-capture/v1` file and pass
 content-addressed PTY observation: fixed dimensions, at most 60 seconds,
 10,000 events, and 4 MiB of canonical base64 terminal bytes. The renderer
 replays those bytes through the pinned `@xterm/headless` state machine and
-binds the capture root in its manifest. It does not copy raw capture bytes into
-the media output.
+binds the capture root in its manifest. ANSI 16-color, xterm 256-color, RGB
+foreground/background colors, inverse video, bold, dim, italic, underline,
+strikethrough, overline, and invisible-cell state are replayed through a fixed
+renderer-owned style model; raw SGR bytes never enter the page as markup. It
+does not copy raw capture bytes into the media output.
 
 The capture schema requires an empty authority-grant list. First-party or
 System identity, KFD compliance, Product System metadata, package metadata,
@@ -57,7 +60,8 @@ are needed.
 The renderer fixes locale, timezone, viewport, frame rate, font family,
 terminal emulator version, single-thread codec settings, volatile media
 metadata, and output ordering.
-Its smoke renders the same fixture twice and requires byte-identical outputs.
+Its smoke renders the same ANSI-colored fixture twice, requires byte-identical
+outputs, and checks the poster pixels for the fixed palette and RGB colors.
 Consumers still bind the exact image digest and architecture in their own gate
 receipt; a different digest is a different renderer identity.
 
