@@ -259,10 +259,10 @@ function validateTerminalCapture(value, scene) {
   );
   if (
     value.completion.schema !== 'kungfu.agent-work-lab.tui-autoplay/v1'
-    || value.completion.status !== 'passed'
+    || value.completion.status !== 'qualified'
     || !DIGEST_PATTERN.test(value.completion.reportRoot)
   ) {
-    fail('terminal capture completion sentinel is not a passed Agent Work Lab autoplay');
+    fail('terminal capture completion sentinel is not a qualified Agent Work Lab autoplay');
   }
   integer(value.completion.eventCount, 1, 100_000, 'terminalCapture.completion.eventCount');
   if (value.exitCode !== 0) fail('terminal capture exitCode must be zero');
