@@ -19,7 +19,7 @@
   ],
   "completion": {
     "schema": "kungfu.agent-work-lab.tui-autoplay/v1",
-    "status": "passed",
+    "status": "qualified",
     "reportRoot": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     "eventCount": 4
   },
