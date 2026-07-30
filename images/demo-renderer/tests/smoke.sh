@@ -54,6 +54,30 @@ cmp "$scratch/first/manifest.json" "$scratch/second/manifest.json"
 diff -u "$scratch/capture-first/checksums.sha256" "$scratch/capture-second/checksums.sha256"
 cmp "$scratch/capture-first/manifest.json" "$scratch/capture-second/manifest.json"
 
+ffmpeg -hide_banner -loglevel error \
+  -i "$scratch/capture-first/poster.png" \
+  -f rawvideo -pix_fmt rgb24 \
+  "$scratch/capture-poster.rgb"
+
+python3 - "$scratch/capture-poster.rgb" <<'PY'
+import pathlib, sys
+
+pixels = pathlib.Path(sys.argv[1]).read_bytes()
+assert len(pixels) == 640 * 360 * 3
+
+def nearby(target, tolerance=8):
+    return sum(
+        1
+        for index in range(0, len(pixels), 3)
+        if all(abs(pixels[index + channel] - target[channel]) <= tolerance for channel in range(3))
+    )
+
+# xterm 256-color background 17 and the explicit RGB foreground are both
+# present in the poster. A text-only replay or a one-color CSS fallback fails.
+assert nearby((0, 0, 95), tolerance=2) > 100
+assert nearby((103, 232, 165)) > 5
+PY
+
 python3 - "$scratch/first/media-probe.json" <<'PY'
 import json, sys
 probe = json.load(open(sys.argv[1], encoding="utf-8"))
@@ -78,6 +102,8 @@ assert manifest["policy"]["visualClassification"] == "bounded-pty-replay"
 assert manifest["renderer"]["terminal"]["engine"] == "@xterm/headless"
 assert manifest["renderer"]["terminal"]["version"] == "5.5.0"
 assert manifest["renderer"]["terminal"]["inventoryRoot"].startswith("sha256:")
+assert manifest["renderer"]["terminal"]["styleModel"] == "ansi16-xterm256-rgb/v1"
+assert manifest["renderer"]["contractVersion"] == "1.2.0"
 assert "terminal-capture.json" not in manifest["outputs"]
 PY
 

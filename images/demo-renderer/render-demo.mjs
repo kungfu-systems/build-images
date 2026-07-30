@@ -11,12 +11,33 @@ import xtermHeadless from '@xterm/headless';
 
 const { Terminal } = xtermHeadless;
 
-const VERSION = '1.1.0';
+const VERSION = '1.2.0';
+const TERMINAL_STYLE_MODEL = 'ansi16-xterm256-rgb/v1';
 const MEDIA = ['demo.mp4', 'demo.webm', 'demo.gif', 'poster.png'];
 const UTF8 = new TextDecoder('utf-8', { fatal: true });
 const DIGEST_PATTERN = /^sha256:[0-9a-f]{64}$/;
 const MAX_CAPTURE_BYTES = 4 * 1024 * 1024;
 const MAX_CAPTURE_EVENTS = 10_000;
+const TERMINAL_DEFAULT_FOREGROUND = '#e5edf7';
+const TERMINAL_DEFAULT_BACKGROUND = '#0b1018';
+const ANSI_COLORS = [
+  '#2e3436',
+  '#cc0000',
+  '#4e9a06',
+  '#c4a000',
+  '#3465a4',
+  '#75507b',
+  '#06989a',
+  '#d3d7cf',
+  '#555753',
+  '#ef2929',
+  '#8ae234',
+  '#fce94f',
+  '#729fcf',
+  '#ad7fa8',
+  '#34e2e2',
+  '#eeeeec',
+];
 const CAPTURE_NON_AUTHORITIES = [
   'first-party-identity',
   'system-identity',
@@ -296,14 +317,91 @@ function writeTerminal(terminal, bytes) {
   return new Promise((resolve) => terminal.write(bytes, resolve));
 }
 
-function terminalScreen(terminal, rows) {
+function rgbColor(value) {
+  return `#${value.toString(16).padStart(6, '0')}`;
+}
+
+function paletteColor(index) {
+  if (index < ANSI_COLORS.length) return ANSI_COLORS[index];
+  if (index < 232) {
+    const offset = index - 16;
+    const levels = [0, 95, 135, 175, 215, 255];
+    return rgbColor(
+      (levels[Math.floor(offset / 36)] << 16)
+      | (levels[Math.floor((offset % 36) / 6)] << 8)
+      | levels[offset % 6],
+    );
+  }
+  const level = 8 + ((index - 232) * 10);
+  return rgbColor((level << 16) | (level << 8) | level);
+}
+
+function terminalColor(cell, foreground) {
+  const isDefault = foreground ? cell.isFgDefault() : cell.isBgDefault();
+  if (isDefault) return null;
+  const isRgb = foreground ? cell.isFgRGB() : cell.isBgRGB();
+  const value = foreground ? cell.getFgColor() : cell.getBgColor();
+  if (isRgb) return rgbColor(value);
+  const paletteIndex = foreground && cell.isBold() && value < 8 ? value + 8 : value;
+  return paletteColor(paletteIndex);
+}
+
+function terminalCellStyle(cell) {
+  let foreground = terminalColor(cell, true);
+  let background = terminalColor(cell, false);
+  if (cell.isInverse()) {
+    [foreground, background] = [
+      background ?? TERMINAL_DEFAULT_BACKGROUND,
+      foreground ?? TERMINAL_DEFAULT_FOREGROUND,
+    ];
+  }
+  const decorations = [];
+  if (cell.isUnderline()) decorations.push('underline');
+  if (cell.isStrikethrough()) decorations.push('line-through');
+  if (cell.isOverline()) decorations.push('overline');
+  return {
+    ...(foreground ? { color: foreground } : {}),
+    ...(background ? { backgroundColor: background } : {}),
+    ...(cell.isBold() ? { fontWeight: '700' } : {}),
+    ...(cell.isItalic() ? { fontStyle: 'italic' } : {}),
+    ...(cell.isDim() ? { opacity: '0.65' } : {}),
+    ...(decorations.length ? { textDecorationLine: decorations.join(' ') } : {}),
+    ...(cell.isInvisible() ? { visibility: 'hidden' } : {}),
+  };
+}
+
+function terminalScreen(terminal, rows, columns) {
   const lines = [];
   for (let row = 0; row < rows; row += 1) {
     const line = terminal.buffer.active.getLine(row);
-    lines.push(line ? line.translateToString(true) : '');
+    const cells = [];
+    for (let column = 0; column < columns; column += 1) {
+      const cell = line?.getCell(column);
+      if (!cell || cell.getWidth() === 0) continue;
+      const text = cell.getChars() || ' ';
+      const style = terminalCellStyle(cell);
+      cells.push({ text, style, styleKey: JSON.stringify(style) });
+    }
+    while (
+      cells.length
+      && cells.at(-1).text === ' '
+      && Object.keys(cells.at(-1).style).length === 0
+    ) {
+      cells.pop();
+    }
+    const runs = [];
+    for (const cell of cells) {
+      const previous = runs.at(-1);
+      if (previous?.styleKey === cell.styleKey) {
+        previous.text += cell.text;
+      } else {
+        runs.push({ text: cell.text, style: cell.style, styleKey: cell.styleKey });
+      }
+    }
+    lines.push(runs.map(({ text, style }) => ({ text, style })));
   }
-  while (lines.length > 1 && lines.at(-1) === '') lines.pop();
-  return lines.join('\n');
+  while (lines.length > 1 && lines.at(-1).length === 0) lines.pop();
+  return lines;
 }
 
 function stableJson(value) {
@@ -462,7 +560,7 @@ body{background:${scene.background};color:#e8edf5;font-family:"DejaVu Sans Mono"
 .terminal{height:calc(100% - 48px);padding:18px 22px;display:flex;flex-direction:column}
 .command{color:${scene.accent};font-size:14px;min-height:22px}.runtime-label,.annotation-label{font:600 10px system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#8290a6;margin:14px 0 8px}
 pre{font:14px/1.52 "DejaVu Sans Mono",monospace;white-space:pre-wrap;word-break:break-word;margin:0;color:#e5edf7}
-.capture pre{font:13px/1.24 "DejaVu Sans Mono",monospace;white-space:pre;word-break:normal}
+.capture pre{font:13px/1.06 "DejaVu Sans Mono",monospace;white-space:pre;word-break:normal}
 .capture .runtime-label{margin-top:7px}.capture .annotation{min-height:38px;padding-top:8px}
 .annotation{margin-top:auto;border-top:1px solid #283446;padding-top:11px;color:#9facbf;font:12px/1.4 system-ui,sans-serif;min-height:48px}
 .cursor{display:inline-block;width:8px;height:15px;background:${scene.accent};vertical-align:-2px;margin-left:3px;opacity:.9}
@@ -486,7 +584,11 @@ pre{font:14px/1.52 "DejaVu Sans Mono",monospace;white-space:pre-wrap;word-break:
         }
       }
       const runtime = terminal && terminalCapture
-        ? terminalScreen(terminal, terminalCapture.dimensions.rows)
+        ? terminalScreen(
+          terminal,
+          terminalCapture.dimensions.rows,
+          terminalCapture.dimensions.columns,
+        )
         : active.transcriptLines.map((line) => transcriptLines[line - 1]).join('\n');
       const annotation = terminalCapture
         ? `${terminalCapture.dimensions.columns}x${terminalCapture.dimensions.rows} bounded PTY replay · captured bytes grant no authority`
@@ -496,7 +598,22 @@ pre{font:14px/1.52 "DejaVu Sans Mono",monospace;white-space:pre-wrap;word-break:
           document.querySelector('.window').classList.toggle('capture', captureMode);
           document.querySelector('.title').textContent = title;
           document.querySelector('.command').textContent = commandLabel;
-          document.querySelector('pre').textContent = runtime;
+          const pre = document.querySelector('pre');
+          if (captureMode) {
+            const fragment = document.createDocumentFragment();
+            runtime.forEach((line, lineIndex) => {
+              line.forEach((run) => {
+                const span = document.createElement('span');
+                span.textContent = run.text;
+                Object.assign(span.style, run.style);
+                fragment.append(span);
+              });
+              if (lineIndex < runtime.length - 1) fragment.append('\n');
+            });
+            pre.replaceChildren(fragment);
+          } else {
+            pre.textContent = runtime;
+          }
           document.querySelector('.annotation span').textContent = annotation;
           document.querySelector('.runtime-label').textContent = captureMode
             ? 'exact bounded terminal capture'
@@ -609,6 +726,7 @@ pre{font:14px/1.52 "DejaVu Sans Mono",monospace;white-space:pre-wrap;word-break:
             engine: '@xterm/headless',
             version: xtermVersion,
             inventoryRoot: sha256(terminalRuntimeInventoryBytes),
+            styleModel: TERMINAL_STYLE_MODEL,
           },
         }
         : {}),
