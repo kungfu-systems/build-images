@@ -7,7 +7,9 @@ The inherited toolchain provides the non-root `kungfu` user, Node.js 24, and
 `pnpm@11.7.0`. This layer adds `latexmk`, `biber`, Ghostscript, and a practical
 TeX Live package set for paper-style PDF builds. CM-Super provides scalable
 Type 1 defaults for T1-encoded documents so microtype font expansion works
-without requiring a document-level font substitution.
+without requiring a document-level font substitution. The image also installs
+the TeX Gyre font files explicitly so publication themes can use Pagella,
+Heros, and Cursor even though the image disables recommended APT dependencies.
 
 ## Usage
 
