@@ -32,8 +32,11 @@ bound by the caller's exact Work or Warrant, capability grant, runtime
 isolation, Gate, and Release Passport.
 
 The command writes a complete transcript, normalized scene and projection,
-poster, MP4, WebM, README-compatible GIF, media probe, content manifest, and
-checksums into an initially empty output directory:
+source-resolution MP4/WebM/poster media, 1280x720 MP4/WebM responsive
+renditions, a 1280x720 README-compatible GIF, a media probe, a content
+manifest, and checksums into an initially empty output directory. Every media
+member is encoded from the same deterministic frame set; the 720p members do
+not execute or recapture the product command.
 
 ```bash
 docker run --rm --network none --read-only \
@@ -57,8 +60,9 @@ Docker socket, host Home, signing material, credentials, or writable source
 checkout. Only the declared read-only inputs and bounded output/tmpfs mounts
 are needed.
 
-The renderer fixes locale, timezone, viewport, frame rate, font family,
-terminal emulator version, single-thread codec settings, volatile media
+The source scene must be 16:9 and at least 1280x720. The renderer fixes locale,
+timezone, viewport, frame rate, font family, terminal emulator version,
+single-thread codec settings, Lanczos downscale policy, volatile media
 metadata, and output ordering.
 Its smoke renders the same ANSI-colored fixture twice, requires byte-identical
 outputs, and checks the poster pixels for the fixed palette and RGB colors.
