@@ -70,7 +70,7 @@ function parseArguments(argv) {
   }
   if (argv.length === 1 && argv[0] === '--help') {
     process.stdout.write(
-      'Usage: demo-renderer --scene FILE --transcript FILE --projection FILE [--terminal-capture FILE] --output DIR --renderer-image IMAGE@sha256:DIGEST\n',
+      'Usage: demo-renderer --scene FILE --transcript FILE --projection FILE [--terminal-capture FILE] [--rendition-set FILE] --output DIR --renderer-image IMAGE@sha256:DIGEST\n',
     );
     process.exit(0);
   }
@@ -81,6 +81,7 @@ function parseArguments(argv) {
     '--output',
     '--renderer-image',
     '--terminal-capture',
+    '--rendition-set',
   ]);
   const values = {};
   for (let index = 0; index < argv.length; index += 2) {
@@ -103,6 +104,7 @@ function parseArguments(argv) {
     outputPath: values['--output'],
     rendererImage: values['--renderer-image'],
     terminalCapturePath: values['--terminal-capture'] || '',
+    renditionSetPath: values['--rendition-set'] || '',
   };
 }
 
@@ -506,66 +508,121 @@ function checksums(output, names) {
     .join('\n') + '\n';
 }
 
-async function render(options) {
-  const sceneBytes = readRegularFile(options.scenePath, 'scene');
-  const transcriptBytes = readRegularFile(options.transcriptPath, 'transcript');
-  const projectionBytes = readRegularFile(options.projectionPath, 'projection');
-  if (transcriptBytes.includes(0)) fail('transcript must be UTF-8 text without NUL bytes');
+function transcriptInput(filePath, label) {
+  const bytes = readRegularFile(filePath, label);
+  if (bytes.includes(0)) fail(`${label} must be UTF-8 text without NUL bytes`);
   let transcript;
   try {
-    transcript = UTF8.decode(transcriptBytes).replace(/\r\n/g, '\n');
+    transcript = UTF8.decode(bytes).replace(/\r\n/g, '\n');
   } catch {
-    fail('transcript must be valid UTF-8 text');
+    fail(`${label} must be valid UTF-8 text`);
   }
-  if (!transcript.trim()) fail('transcript must not be empty');
-  const transcriptLines = transcript.endsWith('\n')
+  if (!transcript.trim()) fail(`${label} must not be empty`);
+  const lines = transcript.endsWith('\n')
     ? transcript.slice(0, -1).split('\n')
     : transcript.split('\n');
-  const scene = validateScene(parseJson(sceneBytes, 'scene'));
-  if (scene.width < RESPONSIVE_WIDTH || scene.height < RESPONSIVE_HEIGHT) {
-    fail(`scene dimensions must be at least ${RESPONSIVE_WIDTH}x${RESPONSIVE_HEIGHT}`);
+  return { bytes, transcript, lines };
+}
+
+function loadRenditionSet(filePath, primary) {
+  if (!filePath) return null;
+  const bytes = readRegularFile(filePath, 'rendition set');
+  const value = parseJson(bytes, 'rendition set');
+  exactKeys(value, ['schema', 'renditions', 'authority'], [], 'renditionSet');
+  if (value.schema !== 'kungfu.auditable-demo.rendition-set/v1') fail('unsupported rendition set schema');
+  exactKeys(value.authority, ['classification', 'grants', 'nonAuthorities'], [], 'renditionSet.authority');
+  if (
+    value.authority.classification !== 'capture-routing-metadata'
+    || !Array.isArray(value.authority.grants)
+    || value.authority.grants.length !== 0
+    || JSON.stringify(value.authority.nonAuthorities) !== JSON.stringify([
+      'publication-authority',
+      'runtime-authority',
+      ...CAPTURE_NON_AUTHORITIES,
+    ])
+  ) fail('rendition set authority boundary is invalid');
+  if (!Array.isArray(value.renditions) || value.renditions.length !== 2) {
+    fail('rendition set must declare exactly two native captures');
   }
-  if (scene.width * RESPONSIVE_HEIGHT !== scene.height * RESPONSIVE_WIDTH) {
-    fail('scene dimensions must preserve the 16:9 responsive rendition aspect ratio');
-  }
-  const projection = validateProjection(parseJson(projectionBytes, 'projection'), scene, transcriptLines);
-  const terminalCaptureBytes = options.terminalCapturePath
-    ? readRegularFile(options.terminalCapturePath, 'terminal capture')
-    : null;
-  const terminalCapture = terminalCaptureBytes
-    ? validateTerminalCapture(parseJson(terminalCaptureBytes, 'terminal capture'), scene)
-    : null;
+  const declarations = [
+    {
+      id: '1080p', role: 'primary', transcript: 'complete-transcript.txt',
+      projection: 'public-projection.json', scene: 'scene.json', terminalCapture: 'terminal-capture.json',
+      width: 1920, height: 1080,
+    },
+    {
+      id: '720p', role: 'responsive', transcript: 'complete-transcript-720p.txt',
+      projection: 'public-projection-720p.json', scene: 'scene-720p.json', terminalCapture: 'terminal-capture-720p.json',
+      width: 1280, height: 720,
+    },
+  ];
+  const root = path.dirname(filePath);
+  const renditions = value.renditions.map((entry, index) => {
+    const declaration = declarations[index];
+    const label = `renditionSet.renditions[${index}]`;
+    exactKeys(entry, ['id', 'role', 'transcript', 'projection', 'scene', 'terminalCapture', 'captureRoot'], [], label);
+    for (const key of ['id', 'role', 'transcript', 'projection', 'scene', 'terminalCapture']) {
+      if (entry[key] !== declaration[key]) fail(`${label}.${key} is not the exact native rendition contract`);
+    }
+    const transcript = transcriptInput(path.join(root, entry.transcript), `${entry.id} transcript`);
+    const sceneBytes = readRegularFile(path.join(root, entry.scene), `${entry.id} scene`);
+    const scene = validateScene(parseJson(sceneBytes, `${entry.id} scene`));
+    if (scene.width !== declaration.width || scene.height !== declaration.height) {
+      fail(`${entry.id} scene dimensions are not native`);
+    }
+    const projectionBytes = readRegularFile(path.join(root, entry.projection), `${entry.id} projection`);
+    const projection = validateProjection(parseJson(projectionBytes, `${entry.id} projection`), scene, transcript.lines);
+    const captureBytes = readRegularFile(path.join(root, entry.terminalCapture), `${entry.id} terminal capture`);
+    const capture = validateTerminalCapture(parseJson(captureBytes, `${entry.id} terminal capture`), scene);
+    if (entry.captureRoot !== sha256(captureBytes)) fail(`${entry.id} terminal capture root mismatch`);
+    return {
+      ...entry,
+      transcriptBytes: transcript.bytes,
+      transcript: transcript.transcript,
+      transcriptLines: transcript.lines,
+      sceneBytes,
+      scene,
+      projectionBytes,
+      projection,
+      terminalCaptureBytes: captureBytes,
+      terminalCapture: capture,
+    };
+  });
+  if (
+    renditions[0].captureRoot === renditions[1].captureRoot
+    || JSON.stringify(renditions[0].terminalCapture.dimensions)
+      === JSON.stringify(renditions[1].terminalCapture.dimensions)
+  ) fail('native rendition captures must have distinct roots and PTY dimensions');
+  if (
+    sha256(primary.sceneBytes) !== sha256(renditions[0].sceneBytes)
+    || sha256(primary.transcriptBytes) !== sha256(renditions[0].transcriptBytes)
+    || sha256(primary.projectionBytes) !== sha256(renditions[0].projectionBytes)
+    || sha256(primary.terminalCaptureBytes) !== sha256(renditions[0].terminalCaptureBytes)
+  ) fail('primary rendition does not match the explicit primary inputs');
+  return { bytes, schema: value.schema, renditions };
+}
+
+async function renderFrameSet({ scene, projection, transcriptLines, terminalCapture, frames }) {
   const visualScale = scene.width / RESPONSIVE_WIDTH;
   const px = (value) => `${Number((value * visualScale).toFixed(4))}px`;
-
-  const outputMetadata = fs.lstatSync(options.outputPath);
-  if (outputMetadata.isSymbolicLink() || !outputMetadata.isDirectory()) fail('output must be a non-symlink directory');
-  if (fs.readdirSync(options.outputPath).length !== 0) fail('output directory must be initially empty');
-
-  const normalizedTranscript = `${transcript.replace(/\n*$/, '')}\n`;
-  writeFile(options.outputPath, 'complete-transcript.txt', normalizedTranscript);
-  writeFile(options.outputPath, 'scene.json', stableJson(scene));
-  writeFile(options.outputPath, 'public-projection.json', stableJson(projection));
-
-  const frames = fs.mkdtempSync(path.join(os.tmpdir(), 'demo-renderer-frames-'));
+  const terminal = terminalCapture
+    ? new Terminal({
+      cols: terminalCapture.dimensions.columns,
+      rows: terminalCapture.dimensions.rows,
+      scrollback: 0,
+      convertEol: false,
+      cursorBlink: false,
+      disableStdin: true,
+      logLevel: 'off',
+      allowProposedApi: true,
+    })
+    : null;
+  let terminalEventIndex = 0;
+  const browser = await chromium.launch({
+    headless: true,
+    args: ['--disable-gpu', '--font-render-hinting=none', '--force-color-profile=srgb'],
+  });
   try {
-    const terminal = terminalCapture
-      ? new Terminal({
-        cols: terminalCapture.dimensions.columns,
-        rows: terminalCapture.dimensions.rows,
-        scrollback: 0,
-        convertEol: false,
-        cursorBlink: false,
-        disableStdin: true,
-        logLevel: 'off',
-        allowProposedApi: true,
-      })
-      : null;
-    let terminalEventIndex = 0;
-    const browser = await chromium.launch({
-      headless: true,
-      args: ['--disable-gpu', '--font-render-hinting=none', '--force-color-profile=srgb'],
-    });
     const page = await browser.newPage({
       viewport: { width: scene.width, height: scene.height },
       deviceScaleFactor: 1,
@@ -589,8 +646,8 @@ pre{font:${px(14)}/1.52 "DejaVu Sans Mono",monospace;white-space:pre-wrap;word-b
 .annotation{margin-top:auto;border-top:${px(1)} solid #283446;padding-top:${px(11)};color:#9facbf;font:${px(12)}/1.4 system-ui,sans-serif;min-height:${px(48)}}
 .cursor{display:inline-block;width:${px(8)};height:${px(15)};background:${scene.accent};vertical-align:${px(-2)};margin-left:${px(3)};opacity:.9}
 </style></head><body>
-<section class="window"><header class="bar"><i class="dot"></i><i class="dot"></i><i class="dot"></i><span class="title"></span><span class="badge">presentation, not screen capture</span></header>
-<main class="terminal"><div class="command"></div><div class="runtime-label">traceable runtime transcript</div><pre></pre><div class="annotation"><div class="annotation-label">presentation annotation</div><span></span><i class="cursor"></i></div></main></section>
+<section class="window"><header class="bar"><i class="dot"></i><i class="dot"></i><i class="dot"></i><span class="title"></span><span class="badge"></span></header>
+<main class="terminal"><div class="command"></div><div class="runtime-label"></div><pre></pre><div class="annotation"><div class="annotation-label"></div><span></span><i class="cursor"></i></div></main></section>
 </body></html>`);
     const frameCount = Math.ceil((scene.durationMs / 1000) * scene.fps);
     for (let frame = 0; frame < frameCount; frame += 1) {
@@ -599,20 +656,13 @@ pre{font:${px(14)}/1.52 "DejaVu Sans Mono",monospace;white-space:pre-wrap;word-b
         ?? projection.cues.filter((cue) => cue.startMs <= atMs).at(-1)
         ?? projection.cues[0];
       if (terminalCapture && terminal) {
-        while (
-          terminalEventIndex < terminalCapture.events.length
-          && terminalCapture.events[terminalEventIndex].atMs <= atMs
-        ) {
+        while (terminalEventIndex < terminalCapture.events.length && terminalCapture.events[terminalEventIndex].atMs <= atMs) {
           await writeTerminal(terminal, terminalCapture.events[terminalEventIndex].data);
           terminalEventIndex += 1;
         }
       }
       const runtime = terminal && terminalCapture
-        ? terminalScreen(
-          terminal,
-          terminalCapture.dimensions.rows,
-          terminalCapture.dimensions.columns,
-        )
+        ? terminalScreen(terminal, terminalCapture.dimensions.rows, terminalCapture.dimensions.columns)
         : active.transcriptLines.map((line) => transcriptLines[line - 1]).join('\n');
       const annotation = terminalCapture
         ? `${terminalCapture.dimensions.columns}x${terminalCapture.dimensions.rows} bounded PTY replay · captured bytes grant no authority`
@@ -635,31 +685,14 @@ pre{font:${px(14)}/1.52 "DejaVu Sans Mono",monospace;white-space:pre-wrap;word-b
               if (lineIndex < runtime.length - 1) fragment.append('\n');
             });
             pre.replaceChildren(fragment);
-          } else {
-            pre.textContent = runtime;
-          }
+          } else pre.textContent = runtime;
           document.querySelector('.annotation span').textContent = annotation;
-          document.querySelector('.runtime-label').textContent = captureMode
-            ? 'exact bounded terminal capture'
-            : 'traceable runtime transcript';
-          document.querySelector('.annotation-label').textContent = captureMode
-            ? 'authority boundary'
-            : 'presentation annotation';
-          document.querySelector('.badge').textContent = captureMode
-            ? 'captured PTY replay'
-            : 'presentation, not screen capture';
-          document.querySelector('.cursor').style.opacity = captureMode
-            ? '0'
-            : frame % 2 === 0 ? '0.9' : '0.25';
+          document.querySelector('.runtime-label').textContent = captureMode ? 'exact bounded terminal capture' : 'traceable runtime transcript';
+          document.querySelector('.annotation-label').textContent = captureMode ? 'authority boundary' : 'presentation annotation';
+          document.querySelector('.badge').textContent = captureMode ? 'captured PTY replay' : 'presentation, not screen capture';
+          document.querySelector('.cursor').style.opacity = captureMode ? '0' : frame % 2 === 0 ? '0.9' : '0.25';
         },
-        {
-          title: scene.title,
-          commandLabel: scene.commandLabel,
-          runtime,
-          annotation,
-          frame,
-          captureMode: Boolean(terminalCapture),
-        },
+        { title: scene.title, commandLabel: scene.commandLabel, runtime, annotation, frame, captureMode: Boolean(terminalCapture) },
       );
       await page.screenshot({
         path: path.join(frames, `frame-${String(frame + 1).padStart(6, '0')}.png`),
@@ -667,58 +700,138 @@ pre{font:${px(14)}/1.52 "DejaVu Sans Mono",monospace;white-space:pre-wrap;word-b
         caret: 'hide',
       });
     }
+    return frameCount;
+  } finally {
     await browser.close();
     terminal?.dispose();
+  }
+}
 
+function encodeNativeFrames({ frames, scene, output, mp4, webm, gif = '' }) {
+  const input = path.join(frames, 'frame-%06d.png');
+  run('ffmpeg', [
+    '-hide_banner', '-loglevel', 'error', '-y', '-framerate', String(scene.fps), '-i', input,
+    '-an', '-c:v', 'libx264', '-preset', 'medium', '-crf', '20', '-pix_fmt', 'yuv420p',
+    '-movflags', '+faststart', '-map_metadata', '-1', '-fflags', '+bitexact', '-flags:v', '+bitexact',
+    '-threads', '1', path.join(output, mp4),
+  ], `${mp4} native encoding`);
+  run('ffmpeg', [
+    '-hide_banner', '-loglevel', 'error', '-y', '-framerate', String(scene.fps), '-i', input,
+    '-an', '-c:v', 'libvpx-vp9', '-deadline', 'good', '-cpu-used', '2', '-crf', '32', '-b:v', '0',
+    '-pix_fmt', 'yuv420p', '-row-mt', '0', '-map_metadata', '-1', '-fflags', '+bitexact',
+    '-threads', '1', path.join(output, webm),
+  ], `${webm} native encoding`);
+  if (gif) {
+    run('ffmpeg', [
+      '-hide_banner', '-loglevel', 'error', '-y', '-framerate', String(scene.fps), '-i', input,
+      '-filter_complex', `fps=${Math.min(scene.fps, 12)},split[s0][s1];[s0]palettegen=stats_mode=diff[p];[s1][p]paletteuse=dither=bayer:bayer_scale=3`,
+      '-loop', '0', '-map_metadata', '-1', '-threads', '1', path.join(output, gif),
+    ], `${gif} native encoding`);
+  }
+}
+
+async function render(options) {
+  const sceneBytes = readRegularFile(options.scenePath, 'scene');
+  const primaryTranscript = transcriptInput(options.transcriptPath, 'transcript');
+  const transcriptBytes = primaryTranscript.bytes;
+  const projectionBytes = readRegularFile(options.projectionPath, 'projection');
+  const transcript = primaryTranscript.transcript;
+  const transcriptLines = primaryTranscript.lines;
+  const scene = validateScene(parseJson(sceneBytes, 'scene'));
+  if (scene.width < RESPONSIVE_WIDTH || scene.height < RESPONSIVE_HEIGHT) {
+    fail(`scene dimensions must be at least ${RESPONSIVE_WIDTH}x${RESPONSIVE_HEIGHT}`);
+  }
+  if (scene.width * RESPONSIVE_HEIGHT !== scene.height * RESPONSIVE_WIDTH) {
+    fail('scene dimensions must preserve the 16:9 responsive rendition aspect ratio');
+  }
+  const projection = validateProjection(parseJson(projectionBytes, 'projection'), scene, transcriptLines);
+  const terminalCaptureBytes = options.terminalCapturePath
+    ? readRegularFile(options.terminalCapturePath, 'terminal capture')
+    : null;
+  const terminalCapture = terminalCaptureBytes
+    ? validateTerminalCapture(parseJson(terminalCaptureBytes, 'terminal capture'), scene)
+    : null;
+  const renditionSet = loadRenditionSet(options.renditionSetPath, {
+    sceneBytes,
+    transcriptBytes,
+    projectionBytes,
+    terminalCaptureBytes,
+  });
+  if (renditionSet && !terminalCapture) fail('rendition set requires an explicit primary terminal capture');
+
+  const outputMetadata = fs.lstatSync(options.outputPath);
+  if (outputMetadata.isSymbolicLink() || !outputMetadata.isDirectory()) fail('output must be a non-symlink directory');
+  if (fs.readdirSync(options.outputPath).length !== 0) fail('output directory must be initially empty');
+
+  const normalizedTranscript = `${transcript.replace(/\n*$/, '')}\n`;
+  writeFile(options.outputPath, 'complete-transcript.txt', normalizedTranscript);
+  writeFile(options.outputPath, 'scene.json', stableJson(scene));
+  writeFile(options.outputPath, 'public-projection.json', stableJson(projection));
+
+  const frames = fs.mkdtempSync(path.join(os.tmpdir(), 'demo-renderer-frames-'));
+  try {
+    const primaryFrames = path.join(frames, '1080p');
+    fs.mkdirSync(primaryFrames);
+    const primaryFrameCount = await renderFrameSet({
+      scene,
+      projection,
+      transcriptLines,
+      terminalCapture,
+      frames: primaryFrames,
+    });
     const posterFrame = terminalCapture
-      ? Math.min(frameCount, Math.max(1, Math.floor(frameCount * 0.55)))
+      ? Math.min(primaryFrameCount, Math.max(1, Math.floor(primaryFrameCount * 0.55)))
       : 1;
     fs.copyFileSync(
-      path.join(frames, `frame-${String(posterFrame).padStart(6, '0')}.png`),
+      path.join(primaryFrames, `frame-${String(posterFrame).padStart(6, '0')}.png`),
       path.join(options.outputPath, 'poster.png'),
     );
-    const input = path.join(frames, 'frame-%06d.png');
-    run(
-      'ffmpeg',
-      ['-hide_banner', '-loglevel', 'error', '-y', '-framerate', String(scene.fps), '-i', input,
-        '-an', '-c:v', 'libx264', '-preset', 'medium', '-crf', '20', '-pix_fmt', 'yuv420p',
-        '-movflags', '+faststart', '-map_metadata', '-1', '-fflags', '+bitexact', '-flags:v', '+bitexact',
-        '-threads', '1', path.join(options.outputPath, 'demo.mp4')],
-      'MP4 encoding',
-    );
-    run(
-      'ffmpeg',
-      ['-hide_banner', '-loglevel', 'error', '-y', '-framerate', String(scene.fps), '-i', input,
-        '-an', '-c:v', 'libvpx-vp9', '-deadline', 'good', '-cpu-used', '2', '-crf', '32', '-b:v', '0',
-        '-pix_fmt', 'yuv420p', '-row-mt', '0', '-map_metadata', '-1', '-fflags', '+bitexact',
-        '-threads', '1', path.join(options.outputPath, 'demo.webm')],
-      'WebM encoding',
-    );
-    run(
-      'ffmpeg',
-      ['-hide_banner', '-loglevel', 'error', '-y', '-framerate', String(scene.fps), '-i', input,
-        '-an', '-vf', `scale=${RESPONSIVE_WIDTH}:${RESPONSIVE_HEIGHT}:flags=lanczos`,
-        '-c:v', 'libx264', '-preset', 'medium', '-crf', '20', '-pix_fmt', 'yuv420p',
-        '-movflags', '+faststart', '-map_metadata', '-1', '-fflags', '+bitexact', '-flags:v', '+bitexact',
-        '-threads', '1', path.join(options.outputPath, 'demo-720p.mp4')],
-      'responsive MP4 encoding',
-    );
-    run(
-      'ffmpeg',
-      ['-hide_banner', '-loglevel', 'error', '-y', '-framerate', String(scene.fps), '-i', input,
-        '-an', '-vf', `scale=${RESPONSIVE_WIDTH}:${RESPONSIVE_HEIGHT}:flags=lanczos`,
-        '-c:v', 'libvpx-vp9', '-deadline', 'good', '-cpu-used', '2', '-crf', '32', '-b:v', '0',
-        '-pix_fmt', 'yuv420p', '-row-mt', '0', '-map_metadata', '-1', '-fflags', '+bitexact',
-        '-threads', '1', path.join(options.outputPath, 'demo-720p.webm')],
-      'responsive WebM encoding',
-    );
-    run(
-      'ffmpeg',
-      ['-hide_banner', '-loglevel', 'error', '-y', '-framerate', String(scene.fps), '-i', input,
+    encodeNativeFrames({
+      frames: primaryFrames,
+      scene,
+      output: options.outputPath,
+      mp4: 'demo.mp4',
+      webm: 'demo.webm',
+    });
+    if (renditionSet) {
+      const responsive = renditionSet.renditions[1];
+      const responsiveFrames = path.join(frames, '720p');
+      fs.mkdirSync(responsiveFrames);
+      await renderFrameSet({
+        scene: responsive.scene,
+        projection: responsive.projection,
+        transcriptLines: responsive.transcriptLines,
+        terminalCapture: responsive.terminalCapture,
+        frames: responsiveFrames,
+      });
+      encodeNativeFrames({
+        frames: responsiveFrames,
+        scene: responsive.scene,
+        output: options.outputPath,
+        mp4: 'demo-720p.mp4',
+        webm: 'demo-720p.webm',
+        gif: 'demo.gif',
+      });
+    } else {
+      run('ffmpeg', [
+        '-hide_banner', '-loglevel', 'error', '-y', '-i', path.join(options.outputPath, 'demo.mp4'),
+        '-vf', `scale=${RESPONSIVE_WIDTH}:${RESPONSIVE_HEIGHT}:flags=lanczos`, '-an', '-c:v', 'libx264',
+        '-preset', 'medium', '-crf', '20', '-pix_fmt', 'yuv420p', '-movflags', '+faststart',
+        '-map_metadata', '-1', '-threads', '1', path.join(options.outputPath, 'demo-720p.mp4'),
+      ], 'legacy responsive MP4 encoding');
+      run('ffmpeg', [
+        '-hide_banner', '-loglevel', 'error', '-y', '-i', path.join(options.outputPath, 'demo.webm'),
+        '-vf', `scale=${RESPONSIVE_WIDTH}:${RESPONSIVE_HEIGHT}:flags=lanczos`, '-an', '-c:v', 'libvpx-vp9',
+        '-deadline', 'good', '-cpu-used', '2', '-crf', '32', '-b:v', '0', '-pix_fmt', 'yuv420p',
+        '-map_metadata', '-1', '-threads', '1', path.join(options.outputPath, 'demo-720p.webm'),
+      ], 'legacy responsive WebM encoding');
+      run('ffmpeg', [
+        '-hide_banner', '-loglevel', 'error', '-y', '-framerate', String(scene.fps),
+        '-i', path.join(primaryFrames, 'frame-%06d.png'),
         '-filter_complex', `fps=${Math.min(scene.fps, 12)},scale=${RESPONSIVE_WIDTH}:${RESPONSIVE_HEIGHT}:flags=lanczos,split[s0][s1];[s0]palettegen=stats_mode=diff[p];[s1][p]paletteuse=dither=bayer:bayer_scale=3`,
-        '-loop', '0', '-map_metadata', '-1', '-threads', '1', path.join(options.outputPath, 'demo.gif')],
-      'GIF encoding',
-    );
+        '-loop', '0', '-map_metadata', '-1', '-threads', '1', path.join(options.outputPath, 'demo.gif'),
+      ], 'legacy responsive GIF encoding');
+    }
   } finally {
     fs.rmSync(frames, { recursive: true, force: true });
   }
@@ -778,7 +891,9 @@ pre{font:${px(14)}/1.52 "DejaVu Sans Mono",monospace;white-space:pre-wrap;word-b
       timezone: 'UTC',
       sourceDateEpoch: '0',
       network: 'caller-disabled-and-browser-requests-blocked',
-      runtimeTextAuthority: terminalCapture ? 'terminal-capture.json' : 'complete-transcript.txt',
+      runtimeTextAuthority: renditionSet
+        ? 'rendition-set.json'
+        : terminalCapture ? 'terminal-capture.json' : 'complete-transcript.txt',
       visualClassification: terminalCapture ? 'bounded-pty-replay' : 'styled-presentation-not-literal-screen-capture',
       evidenceClass: projection.evidenceClass,
       claimBoundary: projection.claimBoundary,
@@ -807,6 +922,31 @@ pre{font:${px(14)}/1.52 "DejaVu Sans Mono",monospace;white-space:pre-wrap;word-b
           },
         }
         : {}),
+      ...(renditionSet
+        ? {
+          renditionSet: {
+            path: 'rendition-set.json',
+            root: sha256(renditionSet.bytes),
+            schema: renditionSet.schema,
+          },
+          renditions: renditionSet.renditions.map((rendition) => ({
+            id: rendition.id,
+            role: rendition.role,
+            transcript: { path: rendition.transcript, root: sha256(rendition.transcriptBytes) },
+            projection: { path: rendition.projection, root: sha256(rendition.projectionBytes) },
+            scene: { path: rendition.scene, root: sha256(rendition.sceneBytes) },
+            terminalCapture: {
+              path: rendition.terminalCapture,
+              root: sha256(rendition.terminalCaptureBytes),
+              schema: rendition.terminalCapture.schema,
+              events: rendition.terminalCapture.events.length,
+              bytes: rendition.terminalCapture.totalBytes,
+              dimensions: rendition.terminalCapture.dimensions,
+              durationMs: rendition.terminalCapture.durationMs,
+            },
+          })),
+        }
+        : {}),
     },
     traceability: projection.cues.map((cue) => ({
       startMs: cue.startMs,
@@ -815,14 +955,31 @@ pre{font:${px(14)}/1.52 "DejaVu Sans Mono",monospace;white-space:pre-wrap;word-b
       visualAnnotation: cue.annotation,
     })),
     derivation: {
-      authority: terminalCapture ? 'terminal-capture.json' : 'complete-transcript.txt',
+      authority: renditionSet
+        ? 'rendition-set.json'
+        : terminalCapture ? 'terminal-capture.json' : 'complete-transcript.txt',
       sourceFrames: {
         width: scene.width,
         height: scene.height,
         fps: scene.fps,
         durationMs: scene.durationMs,
       },
-      policy: 'single-frame-set-deterministic-renditions/v1',
+      ...(renditionSet
+        ? {
+          sourceFrameSets: renditionSet.renditions.map((rendition) => ({
+            id: rendition.id,
+            role: rendition.role,
+            width: rendition.scene.width,
+            height: rendition.scene.height,
+            fps: rendition.scene.fps,
+            durationMs: rendition.scene.durationMs,
+            captureRoot: rendition.captureRoot,
+          })),
+        }
+        : {}),
+      policy: renditionSet
+        ? 'independent-native-frame-sets/v1'
+        : 'single-frame-set-deterministic-renditions/v1',
       renditions: Object.fromEntries(MEDIA.map((name) => {
         const responsive = name === 'demo-720p.mp4'
           || name === 'demo-720p.webm'
@@ -832,7 +989,9 @@ pre{font:${px(14)}/1.52 "DejaVu Sans Mono",monospace;white-space:pre-wrap;word-b
           {
             width: responsive ? RESPONSIVE_WIDTH : scene.width,
             height: responsive ? RESPONSIVE_HEIGHT : scene.height,
-            operation: responsive ? 'lanczos-downscale-from-source-frames' : 'source-frame-encode',
+            operation: renditionSet
+              ? 'native-frame-set-encode'
+              : responsive ? 'lanczos-downscale-from-source-frames' : 'source-frame-encode',
           },
         ];
       })),

@@ -1,0 +1,4 @@
+$ fixture command
+compact mobile layout at 100 columns
+evidence root: sha256:fixture
+exit status: 0

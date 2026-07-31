@@ -1,0 +1,12 @@
+{
+  "schema": "build-images.demo-scene/v1",
+  "id": "renderer-smoke-720p",
+  "width": 1280,
+  "height": 720,
+  "fps": 2,
+  "durationMs": 2000,
+  "title": "Kungfu auditable demo renderer",
+  "commandLabel": "fixture command",
+  "background": "#10151f",
+  "accent": "#67e8a5"
+}
