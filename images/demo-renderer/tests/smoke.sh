@@ -41,6 +41,8 @@ for member in \
   poster.png \
   demo.mp4 \
   demo.webm \
+  demo-720p.mp4 \
+  demo-720p.webm \
   demo.gif \
   media-probe.json \
   manifest.json \
@@ -63,7 +65,7 @@ python3 - "$scratch/capture-poster.rgb" <<'PY'
 import pathlib, sys
 
 pixels = pathlib.Path(sys.argv[1]).read_bytes()
-assert len(pixels) == 640 * 360 * 3
+assert len(pixels) == 1920 * 1080 * 3
 
 def nearby(target, tolerance=8):
     return sum(
@@ -83,10 +85,21 @@ import json, sys
 probe = json.load(open(sys.argv[1], encoding="utf-8"))
 assert probe["schema"] == "build-images.demo-media-probe/v1"
 assert probe["passed"] is True
-assert {item["name"] for item in probe["media"]} == {"demo.mp4", "demo.webm", "demo.gif", "poster.png"}
+assert {item["name"] for item in probe["media"]} == {
+    "demo.mp4",
+    "demo.webm",
+    "demo-720p.mp4",
+    "demo-720p.webm",
+    "demo.gif",
+    "poster.png",
+}
 for item in probe["media"]:
-    assert item["width"] == 640
-    assert item["height"] == 360
+    if item["name"] in {"demo-720p.mp4", "demo-720p.webm", "demo.gif"}:
+        assert item["width"] == 1280
+        assert item["height"] == 720
+    else:
+        assert item["width"] == 1920
+        assert item["height"] == 1080
     assert item["bytes"] > 0
 PY
 
@@ -103,7 +116,16 @@ assert manifest["renderer"]["terminal"]["engine"] == "@xterm/headless"
 assert manifest["renderer"]["terminal"]["version"] == "5.5.0"
 assert manifest["renderer"]["terminal"]["inventoryRoot"].startswith("sha256:")
 assert manifest["renderer"]["terminal"]["styleModel"] == "ansi16-xterm256-rgb/v1"
-assert manifest["renderer"]["contractVersion"] == "1.2.0"
+assert manifest["renderer"]["contractVersion"] == "1.3.0"
+assert manifest["derivation"]["policy"] == "single-frame-set-deterministic-renditions/v1"
+assert manifest["derivation"]["sourceFrames"]["width"] == 1920
+assert manifest["derivation"]["sourceFrames"]["height"] == 1080
+assert manifest["derivation"]["renditions"]["demo.mp4"]["operation"] == "source-frame-encode"
+assert manifest["derivation"]["renditions"]["demo-720p.mp4"] == {
+    "height": 720,
+    "operation": "lanczos-downscale-from-source-frames",
+    "width": 1280,
+}
 assert "terminal-capture.json" not in manifest["outputs"]
 PY
 

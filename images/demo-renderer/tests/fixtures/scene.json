@@ -1,8 +1,8 @@
 {
   "schema": "build-images.demo-scene/v1",
   "id": "renderer-smoke",
-  "width": 640,
-  "height": 360,
+  "width": 1920,
+  "height": 1080,
   "fps": 2,
   "durationMs": 2000,
   "title": "Kungfu auditable demo renderer",

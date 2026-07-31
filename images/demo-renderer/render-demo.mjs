@@ -11,9 +11,18 @@ import xtermHeadless from '@xterm/headless';
 
 const { Terminal } = xtermHeadless;
 
-const VERSION = '1.2.0';
+const VERSION = '1.3.0';
 const TERMINAL_STYLE_MODEL = 'ansi16-xterm256-rgb/v1';
-const MEDIA = ['demo.mp4', 'demo.webm', 'demo.gif', 'poster.png'];
+const RESPONSIVE_WIDTH = 1280;
+const RESPONSIVE_HEIGHT = 720;
+const MEDIA = [
+  'demo.mp4',
+  'demo.webm',
+  'demo-720p.mp4',
+  'demo-720p.webm',
+  'demo.gif',
+  'poster.png',
+];
 const UTF8 = new TextDecoder('utf-8', { fatal: true });
 const DIGEST_PATTERN = /^sha256:[0-9a-f]{64}$/;
 const MAX_CAPTURE_BYTES = 4 * 1024 * 1024;
@@ -473,7 +482,14 @@ function probeMedia(output, scene) {
   });
   const errors = [];
   for (const item of media) {
-    if (item.width !== scene.width || item.height !== scene.height) errors.push(`${item.name} dimensions drifted`);
+    const responsive = item.name === 'demo-720p.mp4'
+      || item.name === 'demo-720p.webm'
+      || item.name === 'demo.gif';
+    const expectedWidth = responsive ? RESPONSIVE_WIDTH : scene.width;
+    const expectedHeight = responsive ? RESPONSIVE_HEIGHT : scene.height;
+    if (item.width !== expectedWidth || item.height !== expectedHeight) {
+      errors.push(`${item.name} dimensions drifted`);
+    }
     if (item.bytes < 100) errors.push(`${item.name} is unexpectedly small`);
     if ('durationMs' in item && Math.abs(item.durationMs - scene.durationMs) > 600) {
       errors.push(`${item.name} duration drifted`);
@@ -506,6 +522,12 @@ async function render(options) {
     ? transcript.slice(0, -1).split('\n')
     : transcript.split('\n');
   const scene = validateScene(parseJson(sceneBytes, 'scene'));
+  if (scene.width < RESPONSIVE_WIDTH || scene.height < RESPONSIVE_HEIGHT) {
+    fail(`scene dimensions must be at least ${RESPONSIVE_WIDTH}x${RESPONSIVE_HEIGHT}`);
+  }
+  if (scene.width * RESPONSIVE_HEIGHT !== scene.height * RESPONSIVE_WIDTH) {
+    fail('scene dimensions must preserve the 16:9 responsive rendition aspect ratio');
+  }
   const projection = validateProjection(parseJson(projectionBytes, 'projection'), scene, transcriptLines);
   const terminalCaptureBytes = options.terminalCapturePath
     ? readRegularFile(options.terminalCapturePath, 'terminal capture')
@@ -673,7 +695,25 @@ pre{font:14px/1.52 "DejaVu Sans Mono",monospace;white-space:pre-wrap;word-break:
     run(
       'ffmpeg',
       ['-hide_banner', '-loglevel', 'error', '-y', '-framerate', String(scene.fps), '-i', input,
-        '-filter_complex', `fps=${Math.min(scene.fps, 12)},scale=${scene.width}:${scene.height}:flags=lanczos,split[s0][s1];[s0]palettegen=stats_mode=diff[p];[s1][p]paletteuse=dither=bayer:bayer_scale=3`,
+        '-an', '-vf', `scale=${RESPONSIVE_WIDTH}:${RESPONSIVE_HEIGHT}:flags=lanczos`,
+        '-c:v', 'libx264', '-preset', 'medium', '-crf', '20', '-pix_fmt', 'yuv420p',
+        '-movflags', '+faststart', '-map_metadata', '-1', '-fflags', '+bitexact', '-flags:v', '+bitexact',
+        '-threads', '1', path.join(options.outputPath, 'demo-720p.mp4')],
+      'responsive MP4 encoding',
+    );
+    run(
+      'ffmpeg',
+      ['-hide_banner', '-loglevel', 'error', '-y', '-framerate', String(scene.fps), '-i', input,
+        '-an', '-vf', `scale=${RESPONSIVE_WIDTH}:${RESPONSIVE_HEIGHT}:flags=lanczos`,
+        '-c:v', 'libvpx-vp9', '-deadline', 'good', '-cpu-used', '2', '-crf', '32', '-b:v', '0',
+        '-pix_fmt', 'yuv420p', '-row-mt', '0', '-map_metadata', '-1', '-fflags', '+bitexact',
+        '-threads', '1', path.join(options.outputPath, 'demo-720p.webm')],
+      'responsive WebM encoding',
+    );
+    run(
+      'ffmpeg',
+      ['-hide_banner', '-loglevel', 'error', '-y', '-framerate', String(scene.fps), '-i', input,
+        '-filter_complex', `fps=${Math.min(scene.fps, 12)},scale=${RESPONSIVE_WIDTH}:${RESPONSIVE_HEIGHT}:flags=lanczos,split[s0][s1];[s0]palettegen=stats_mode=diff[p];[s1][p]paletteuse=dither=bayer:bayer_scale=3`,
         '-loop', '0', '-map_metadata', '-1', '-threads', '1', path.join(options.outputPath, 'demo.gif')],
       'GIF encoding',
     );
@@ -772,6 +812,29 @@ pre{font:14px/1.52 "DejaVu Sans Mono",monospace;white-space:pre-wrap;word-break:
       transcriptLines: cue.transcriptLines,
       visualAnnotation: cue.annotation,
     })),
+    derivation: {
+      authority: terminalCapture ? 'terminal-capture.json' : 'complete-transcript.txt',
+      sourceFrames: {
+        width: scene.width,
+        height: scene.height,
+        fps: scene.fps,
+        durationMs: scene.durationMs,
+      },
+      policy: 'single-frame-set-deterministic-renditions/v1',
+      renditions: Object.fromEntries(MEDIA.map((name) => {
+        const responsive = name === 'demo-720p.mp4'
+          || name === 'demo-720p.webm'
+          || name === 'demo.gif';
+        return [
+          name,
+          {
+            width: responsive ? RESPONSIVE_WIDTH : scene.width,
+            height: responsive ? RESPONSIVE_HEIGHT : scene.height,
+            operation: responsive ? 'lanczos-downscale-from-source-frames' : 'source-frame-encode',
+          },
+        ];
+      })),
+    },
     outputs: Object.fromEntries(
       [...MEDIA, 'media-probe.json'].sort().map((name) => [
         name,
