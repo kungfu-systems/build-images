@@ -74,10 +74,22 @@ def nearby(target, tolerance=8):
         if all(abs(pixels[index + channel] - target[channel]) <= tolerance for channel in range(3))
     )
 
+def nearby_at(target, x_min, y_min, tolerance=8):
+    for y in range(y_min, 1080):
+        for x in range(x_min, 1920):
+            index = (y * 1920 + x) * 3
+            if all(abs(pixels[index + channel] - target[channel]) <= tolerance for channel in range(3)):
+                return True
+    return False
+
 # xterm 256-color background 17 and the explicit RGB foreground are both
 # present in the poster. A text-only replay or a one-color CSS fallback fails.
 assert nearby((0, 0, 95), tolerance=2) > 100
 assert nearby((103, 232, 165)) > 5
+# The capture fixture writes one explicit RGB cell at PTY row 36, column 150.
+# It must land near the lower-right of the 1080p terminal. This prevents a
+# 720p-sized terminal grid from being embedded inside a 1080p frame.
+assert nearby_at((103, 232, 165), x_min=1700, y_min=780)
 PY
 
 python3 - "$scratch/first/media-probe.json" <<'PY'
