@@ -2,8 +2,8 @@
   "schema": "kungfu.terminal-capture/v1",
   "command": "kungfu agent-work-lab autoplay",
   "dimensions": {
-    "columns": 80,
-    "rows": 24
+    "columns": 150,
+    "rows": 36
   },
   "durationMs": 1000,
   "encoding": "base64",
@@ -14,7 +14,7 @@
     },
     {
       "atMs": 500,
-      "data": "G1tIG1sySkFnZW50IFdvcmsgTGFiDQobWzE7MzZtU1lTVEVNG1swbSAbWzMybXJlYWR5G1swbQ0KG1s0ODs1OzE3OzM4OzU7MjE0bVdPUksbWzBtIBtbMzg7MjsxMDM7MjMyOzE2NW1xdWFsaWZpZWQbWzBtDQobWzQ7MzVtUEFTU1BPUlQbWzBtIGV4YWN0DQo="
+      "data": "G1tIG1sySkFnZW50IFdvcmsgTGFiDQobWzE7MzZtU1lTVEVNG1swbSAbWzMybXJlYWR5G1swbQ0KG1s0ODs1OzE3OzM4OzU7MjE0bVdPUksbWzBtIBtbMzg7MjsxMDM7MjMyOzE2NW1xdWFsaWZpZWQbWzBtDQobWzQ7MzVtUEFTU1BPUlQbWzBtIGV4YWN0DQobWzM2OzE1MEgbWzM4OzI7MTAzOzIzMjsxNjVtIxtbMG0="
     }
   ],
   "completion": {
