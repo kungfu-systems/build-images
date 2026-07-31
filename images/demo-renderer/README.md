@@ -38,6 +38,12 @@ manifest, and checksums into an initially empty output directory. Every media
 member is encoded from the same deterministic frame set; the 720p members do
 not execute or recapture the product command.
 
+Terminal chrome and PTY cells scale with the source scene. A 1920x1080 source
+therefore uses the same composition as the 1280x720 responsive rendition
+instead of embedding a 720p-sized terminal inside the larger frame. The smoke
+fixture places a colored cell at PTY row 36, column 150 and verifies that it
+reaches the lower-right region of the 1080p poster.
+
 ```bash
 docker run --rm --network none --read-only \
   --user 1001:1001 \

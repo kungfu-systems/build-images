@@ -535,6 +535,8 @@ async function render(options) {
   const terminalCapture = terminalCaptureBytes
     ? validateTerminalCapture(parseJson(terminalCaptureBytes, 'terminal capture'), scene)
     : null;
+  const visualScale = scene.width / RESPONSIVE_WIDTH;
+  const px = (value) => `${Number((value * visualScale).toFixed(4))}px`;
 
   const outputMetadata = fs.lstatSync(options.outputPath);
   if (outputMetadata.isSymbolicLink() || !outputMetadata.isDirectory()) fail('output must be a non-symlink directory');
@@ -574,18 +576,18 @@ async function render(options) {
     await page.setContent(`<!doctype html>
 <html><head><meta charset="utf-8"><style>
 *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden}
-body{background:${scene.background};color:#e8edf5;font-family:"DejaVu Sans Mono",monospace;padding:24px}
-.window{height:100%;border:1px solid #344154;border-radius:14px;background:#0b1018;box-shadow:0 22px 70px #0008;overflow:hidden}
-.bar{height:48px;border-bottom:1px solid #283446;display:flex;align-items:center;padding:0 16px;gap:8px;background:#121a26}
-.dot{width:11px;height:11px;border-radius:50%;background:#65738a}.title{font:600 14px system-ui,sans-serif;margin-left:8px;color:#cbd5e1}
-.badge{margin-left:auto;font:600 11px system-ui,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:${scene.accent};border:1px solid ${scene.accent}66;border-radius:999px;padding:5px 9px}
-.terminal{height:calc(100% - 48px);padding:18px 22px;display:flex;flex-direction:column}
-.command{color:${scene.accent};font-size:14px;min-height:22px}.runtime-label,.annotation-label{font:600 10px system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#8290a6;margin:14px 0 8px}
-pre{font:14px/1.52 "DejaVu Sans Mono",monospace;white-space:pre-wrap;word-break:break-word;margin:0;color:#e5edf7}
-.capture pre{font:13px/1.06 "DejaVu Sans Mono",monospace;white-space:pre;word-break:normal}
-.capture .runtime-label{margin-top:7px}.capture .annotation{min-height:38px;padding-top:8px}
-.annotation{margin-top:auto;border-top:1px solid #283446;padding-top:11px;color:#9facbf;font:12px/1.4 system-ui,sans-serif;min-height:48px}
-.cursor{display:inline-block;width:8px;height:15px;background:${scene.accent};vertical-align:-2px;margin-left:3px;opacity:.9}
+body{background:${scene.background};color:#e8edf5;font-family:"DejaVu Sans Mono",monospace;padding:${px(24)}}
+.window{height:100%;border:${px(1)} solid #344154;border-radius:${px(14)};background:#0b1018;box-shadow:0 ${px(22)} ${px(70)} #0008;overflow:hidden}
+.bar{height:${px(48)};border-bottom:${px(1)} solid #283446;display:flex;align-items:center;padding:0 ${px(16)};gap:${px(8)};background:#121a26}
+.dot{width:${px(11)};height:${px(11)};border-radius:50%;background:#65738a}.title{font:600 ${px(14)} system-ui,sans-serif;margin-left:${px(8)};color:#cbd5e1}
+.badge{margin-left:auto;font:600 ${px(11)} system-ui,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:${scene.accent};border:${px(1)} solid ${scene.accent}66;border-radius:${px(999)};padding:${px(5)} ${px(9)}}
+.terminal{height:calc(100% - ${px(48)});padding:${px(18)} ${px(22)};display:flex;flex-direction:column}
+.command{color:${scene.accent};font-size:${px(14)};min-height:${px(22)}}.runtime-label,.annotation-label{font:600 ${px(10)} system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#8290a6;margin:${px(14)} 0 ${px(8)}}
+pre{font:${px(14)}/1.52 "DejaVu Sans Mono",monospace;white-space:pre-wrap;word-break:break-word;margin:0;color:#e5edf7}
+.capture pre{font:${px(13)}/1.06 "DejaVu Sans Mono",monospace;white-space:pre;word-break:normal}
+.capture .runtime-label{margin-top:${px(7)}}.capture .annotation{min-height:${px(38)};padding-top:${px(8)}}
+.annotation{margin-top:auto;border-top:${px(1)} solid #283446;padding-top:${px(11)};color:#9facbf;font:${px(12)}/1.4 system-ui,sans-serif;min-height:${px(48)}}
+.cursor{display:inline-block;width:${px(8)};height:${px(15)};background:${scene.accent};vertical-align:${px(-2)};margin-left:${px(3)};opacity:.9}
 </style></head><body>
 <section class="window"><header class="bar"><i class="dot"></i><i class="dot"></i><i class="dot"></i><span class="title"></span><span class="badge">presentation, not screen capture</span></header>
 <main class="terminal"><div class="command"></div><div class="runtime-label">traceable runtime transcript</div><pre></pre><div class="annotation"><div class="annotation-label">presentation annotation</div><span></span><i class="cursor"></i></div></main></section>
