@@ -1,5 +1,8 @@
 \documentclass{article}
 \usepackage[T1]{fontenc}
+\usepackage{tgpagella}
+\usepackage[scale=0.94]{tgheros}
+\usepackage[scale=0.90]{tgcursor}
 \usepackage[expansion=true]{microtype}
 \usepackage{amsmath}
 \microtypesetup{activate=true, expansion=true}
@@ -13,7 +16,9 @@
 
 This fixture proves that the image can build a publication-style PDF through a
 pnpm-managed command. Scalable T1 fonts keep automatic microtype expansion
-enabled throughout the document.
+enabled throughout the document. It also proves the publication font triad:
+TeX Gyre Pagella for body text, {\sffamily Heros for interface-like labels},
+and {\ttfamily Cursor for machine-readable evidence}.
 
 \[
   E = mc^2
