@@ -13,6 +13,7 @@ RUN if [ -n "${APT_HTTP_PROXY}" ]; then \
     && apt-get install -y --no-install-recommends \
       biber \
       cm-super \
+      fonts-texgyre \
       ghostscript \
       latexmk \
       lmodern \
@@ -23,6 +24,7 @@ RUN if [ -n "${APT_HTTP_PROXY}" ]; then \
       texlive-latex-extra \
       texlive-latex-recommended \
       texlive-science \
+      tex-gyre \
     && rm -f /etc/apt/apt.conf.d/01kungfu-build-cache \
     && rm -rf /var/lib/apt/lists/*
 
