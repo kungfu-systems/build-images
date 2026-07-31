@@ -814,16 +814,20 @@ async function render(options) {
       });
     } else {
       run('ffmpeg', [
-        '-hide_banner', '-loglevel', 'error', '-y', '-i', path.join(options.outputPath, 'demo.mp4'),
+        '-hide_banner', '-loglevel', 'error', '-y', '-framerate', String(scene.fps),
+        '-i', path.join(primaryFrames, 'frame-%06d.png'),
         '-vf', `scale=${RESPONSIVE_WIDTH}:${RESPONSIVE_HEIGHT}:flags=lanczos`, '-an', '-c:v', 'libx264',
         '-preset', 'medium', '-crf', '20', '-pix_fmt', 'yuv420p', '-movflags', '+faststart',
-        '-map_metadata', '-1', '-threads', '1', path.join(options.outputPath, 'demo-720p.mp4'),
+        '-map_metadata', '-1', '-fflags', '+bitexact', '-flags:v', '+bitexact', '-threads', '1',
+        path.join(options.outputPath, 'demo-720p.mp4'),
       ], 'legacy responsive MP4 encoding');
       run('ffmpeg', [
-        '-hide_banner', '-loglevel', 'error', '-y', '-i', path.join(options.outputPath, 'demo.webm'),
+        '-hide_banner', '-loglevel', 'error', '-y', '-framerate', String(scene.fps),
+        '-i', path.join(primaryFrames, 'frame-%06d.png'),
         '-vf', `scale=${RESPONSIVE_WIDTH}:${RESPONSIVE_HEIGHT}:flags=lanczos`, '-an', '-c:v', 'libvpx-vp9',
         '-deadline', 'good', '-cpu-used', '2', '-crf', '32', '-b:v', '0', '-pix_fmt', 'yuv420p',
-        '-map_metadata', '-1', '-threads', '1', path.join(options.outputPath, 'demo-720p.webm'),
+        '-row-mt', '0', '-map_metadata', '-1', '-fflags', '+bitexact', '-threads', '1',
+        path.join(options.outputPath, 'demo-720p.webm'),
       ], 'legacy responsive WebM encoding');
       run('ffmpeg', [
         '-hide_banner', '-loglevel', 'error', '-y', '-framerate', String(scene.fps),
