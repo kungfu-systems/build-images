@@ -1,0 +1,39 @@
+{
+  "schema": "kungfu.auditable-demo.rendition-set/v1",
+  "renditions": [
+    {
+      "id": "1080p",
+      "role": "primary",
+      "transcript": "complete-transcript.txt",
+      "projection": "public-projection.json",
+      "scene": "scene.json",
+      "terminalCapture": "terminal-capture.json",
+      "captureRoot": "sha256:09c2b98b55f3a2013116badffedd8b8e5c0db9f6c9f0acd821b0503bd0a705e7"
+    },
+    {
+      "id": "720p",
+      "role": "responsive",
+      "transcript": "complete-transcript-720p.txt",
+      "projection": "public-projection-720p.json",
+      "scene": "scene-720p.json",
+      "terminalCapture": "terminal-capture-720p.json",
+      "captureRoot": "sha256:a7e871d5dde807c4686c211ceaac7419602b2259b268c3a08472c133d58aadfa"
+    }
+  ],
+  "authority": {
+    "classification": "capture-routing-metadata",
+    "grants": [],
+    "nonAuthorities": [
+      "publication-authority",
+      "runtime-authority",
+      "first-party-identity",
+      "system-identity",
+      "kfd-compliance",
+      "product-system-metadata",
+      "package-metadata",
+      "registry-history",
+      "scan-output",
+      "standalone-generation"
+    ]
+  }
+}

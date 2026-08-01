@@ -1,0 +1,32 @@
+{
+  "schema": "kungfu.terminal-capture/v1",
+  "command": "kungfu agent-work-lab autoplay",
+  "dimensions": { "columns": 100, "rows": 28 },
+  "durationMs": 1000,
+  "encoding": "base64",
+  "events": [
+    { "atMs": 0, "data": "G1syShtbSEFnZW50IFdvcmsgTGFiIGNvbXBhY3QgMTAweDI4DQobWzM4OzI7MTAzOzIzMjsxNjVtTU9CSUxFG1swbQ0K" },
+    { "atMs": 500, "data": "G1tIG1sySkNvbXBhY3QgbGF5b3V0DQobWzMybXF1YWxpZmllZBtbMG0NCg==" }
+  ],
+  "completion": {
+    "schema": "kungfu.agent-work-lab.tui-autoplay/v1",
+    "status": "qualified",
+    "reportRoot": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "eventCount": 4
+  },
+  "exitCode": 0,
+  "authority": {
+    "classification": "volatile-terminal-observation",
+    "grants": [],
+    "nonAuthorities": [
+      "first-party-identity",
+      "system-identity",
+      "kfd-compliance",
+      "product-system-metadata",
+      "package-metadata",
+      "registry-history",
+      "scan-output",
+      "standalone-generation"
+    ]
+  }
+}

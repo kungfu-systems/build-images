@@ -1,0 +1,4 @@
+$ fixture command
+discovered local collaboration surface
+evidence root: sha256:fixture
+exit status: 0
