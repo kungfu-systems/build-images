@@ -24,6 +24,14 @@ strikethrough, overline, and invisible-cell state are replayed through a fixed
 renderer-owned style model; raw SGR bytes never enter the page as markup. It
 does not copy raw capture bytes into the media output.
 
+For native responsive media, callers stage a
+`kungfu.auditable-demo.rendition-set/v1` plus two independently recorded
+captures: a 1920x1080 primary scene with its own PTY dimensions and a 1280x720
+responsive scene with different PTY dimensions. The renderer validates every
+declared root, replays each capture into a separate Chromium viewport and
+frame directory, and records both frame-set identities in the render manifest.
+The responsive outputs are never derived by scaling the primary frames.
+
 The capture schema requires an empty authority-grant list. First-party or
 System identity, KFD compliance, Product System metadata, package metadata,
 scan output, registry history, or standalone generation cannot authorize the
@@ -35,8 +43,9 @@ The command writes a complete transcript, normalized scene and projection,
 source-resolution MP4/WebM/poster media, 1280x720 MP4/WebM responsive
 renditions, a 1280x720 README-compatible GIF, a media probe, a content
 manifest, and checksums into an initially empty output directory. Every media
-member is encoded from the same deterministic frame set; the 720p members do
-not execute or recapture the product command.
+member is encoded from its declared deterministic frame set. With a rendition
+set, the 1080p and 720p members contain different terminal layouts because the
+product was executed independently under different PTY dimensions.
 
 Terminal chrome and PTY cells scale with the source scene. A 1920x1080 source
 therefore uses the same composition as the 1280x720 responsive rendition
@@ -56,6 +65,7 @@ docker run --rm --network none --read-only \
     --transcript /input/complete-transcript.txt \
     --projection /input/public-projection.json \
     --terminal-capture /input/terminal-capture.json \
+    --rendition-set /input/rendition-set.json \
     --output /output \
     --renderer-image ghcr.io/kungfu-systems/build-images/demo-renderer@sha256:<accepted-digest>
 ```
@@ -66,10 +76,10 @@ Docker socket, host Home, signing material, credentials, or writable source
 checkout. Only the declared read-only inputs and bounded output/tmpfs mounts
 are needed.
 
-The source scene must be 16:9 and at least 1280x720. The renderer fixes locale,
-timezone, viewport, frame rate, font family, terminal emulator version,
-single-thread codec settings, Lanczos downscale policy, volatile media
-metadata, and output ordering.
+The primary scene must be 1920x1080 and the responsive scene must be 1280x720
+when a rendition set is supplied. The renderer fixes locale, timezone,
+viewport, frame rate, font family, terminal emulator version, single-thread
+codec settings, volatile media metadata, and output ordering.
 Its smoke renders the same ANSI-colored fixture twice, requires byte-identical
 outputs, and checks the poster pixels for the fixed palette and RGB colors.
 Consumers still bind the exact image digest and architecture in their own gate

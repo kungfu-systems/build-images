@@ -1,0 +1,9 @@
+{
+  "schema": "build-images.demo-projection/v1",
+  "evidenceClass": "deterministic-renderer-smoke",
+  "claimBoundary": "This fixture proves the renderer contract only; it is not product runtime evidence.",
+  "cues": [
+    { "startMs": 0, "endMs": 1000, "transcriptLines": [1, 2], "annotation": "compact presentation timing" },
+    { "startMs": 1000, "endMs": 2000, "transcriptLines": [1, 2, 3, 4], "annotation": "compact presentation timing" }
+  ]
+}
