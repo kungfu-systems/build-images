@@ -24,6 +24,10 @@ strikethrough, overline, and invisible-cell state are replayed through a fixed
 renderer-owned style model; raw SGR bytes never enter the page as markup. It
 does not copy raw capture bytes into the media output.
 
+The completion sentinel accepts any bounded, versioned result schema with a
+`qualified` status and exact report root. Product-specific identity does not
+grant renderer authority and is not hard-coded into this image.
+
 For native responsive media, callers stage a
 `kungfu.auditable-demo.rendition-set/v1` plus two independently recorded
 captures: a 1920x1080 primary scene with its own PTY dimensions and a 1280x720
