@@ -8,7 +8,7 @@
       "projection": "public-projection.json",
       "scene": "scene.json",
       "terminalCapture": "terminal-capture.json",
-      "captureRoot": "sha256:09c2b98b55f3a2013116badffedd8b8e5c0db9f6c9f0acd821b0503bd0a705e7"
+      "captureRoot": "sha256:8c9910c67475511e4d8a6c18f2c3c6ac3266020075feb1076e3ee0c4e429aace"
     },
     {
       "id": "720p",
