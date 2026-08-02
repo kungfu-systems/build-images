@@ -11,7 +11,7 @@ import xtermHeadless from '@xterm/headless';
 
 const { Terminal } = xtermHeadless;
 
-const VERSION = '1.3.0';
+const VERSION = '1.3.1';
 const TERMINAL_STYLE_MODEL = 'ansi16-xterm256-rgb/v1';
 const RESPONSIVE_WIDTH = 1280;
 const RESPONSIVE_HEIGHT = 720;
@@ -28,6 +28,10 @@ const DIGEST_PATTERN = /^sha256:[0-9a-f]{64}$/;
 const RESULT_SCHEMA_PATTERN = /^[a-z0-9][a-z0-9._/-]*\/v[1-9][0-9]*$/;
 const MAX_CAPTURE_BYTES = 4 * 1024 * 1024;
 const MAX_CAPTURE_EVENTS = 10_000;
+const STANDARD_MAX_DURATION_MS = 60_000;
+const LONG_FORM_MAX_DURATION_MS = 180_000;
+const LONG_FORM_MAX_FPS = 10;
+const MAX_RENDER_FRAMES = 1_800;
 const TERMINAL_DEFAULT_FOREGROUND = '#e5edf7';
 const TERMINAL_DEFAULT_BACKGROUND = '#0b1018';
 const ANSI_COLORS = [
@@ -71,11 +75,11 @@ function parseArguments(argv) {
   }
   if (argv.length === 1 && argv[0] === '--help') {
     process.stdout.write(
-      'Usage: demo-renderer --scene FILE --transcript FILE --projection FILE [--terminal-capture FILE] [--rendition-set FILE] --output DIR --renderer-image IMAGE@sha256:DIGEST\n',
+      'Usage: demo-renderer [--validate-only] --scene FILE --transcript FILE --projection FILE [--terminal-capture FILE] [--rendition-set FILE] [--output DIR --renderer-image IMAGE@sha256:DIGEST]\n',
     );
     process.exit(0);
   }
-  const allowed = new Set([
+  const valueFlags = new Set([
     '--scene',
     '--transcript',
     '--projection',
@@ -85,20 +89,38 @@ function parseArguments(argv) {
     '--rendition-set',
   ]);
   const values = {};
-  for (let index = 0; index < argv.length; index += 2) {
+  let validateOnly = false;
+  for (let index = 0; index < argv.length;) {
     const flag = argv[index];
+    if (flag === '--validate-only') {
+      if (validateOnly) fail('duplicate argument: --validate-only');
+      validateOnly = true;
+      index += 1;
+      continue;
+    }
     const value = argv[index + 1];
-    if (!allowed.has(flag) || !value) fail(`unknown or incomplete argument: ${flag || '<empty>'}`);
+    if (!valueFlags.has(flag) || !value) fail(`unknown or incomplete argument: ${flag || '<empty>'}`);
     if (values[flag]) fail(`duplicate argument: ${flag}`);
     values[flag] = value;
+    index += 2;
   }
-  for (const flag of ['--scene', '--transcript', '--projection', '--output', '--renderer-image']) {
+  for (const flag of ['--scene', '--transcript', '--projection']) {
     if (!values[flag]) fail(`${flag} is required`);
   }
-  if (!/@sha256:[0-9a-f]{64}$/.test(values['--renderer-image'])) {
-    fail('--renderer-image must be an immutable image@sha256:digest coordinate');
+  if (validateOnly) {
+    if (values['--output'] || values['--renderer-image']) {
+      fail('--validate-only does not accept output or renderer identity');
+    }
+  } else {
+    for (const flag of ['--output', '--renderer-image']) {
+      if (!values[flag]) fail(`${flag} is required`);
+    }
+    if (!/@sha256:[0-9a-f]{64}$/.test(values['--renderer-image'])) {
+      fail('--renderer-image must be an immutable image@sha256:digest coordinate');
+    }
   }
   return {
+    validateOnly,
     scenePath: values['--scene'],
     transcriptPath: values['--transcript'],
     projectionPath: values['--projection'],
@@ -166,20 +188,34 @@ function validateScene(value) {
   exactKeys(
     value,
     ['schema', 'id', 'width', 'height', 'fps', 'durationMs', 'title'],
-    ['commandLabel', 'background', 'accent'],
+    ['durationClass', 'commandLabel', 'background', 'accent'],
     'scene',
   );
   if (value.schema !== 'build-images.demo-scene/v1') fail('unsupported scene schema');
   if (typeof value.id !== 'string' || !/^[a-z0-9][a-z0-9._-]{0,63}$/.test(value.id)) {
     fail('scene.id must be a stable lowercase identifier');
   }
+  const durationClass = value.durationClass ?? 'standard';
+  if (!['standard', 'long-form'].includes(durationClass)) {
+    fail('scene.durationClass must be standard or long-form');
+  }
+  const maximumDurationMs = durationClass === 'long-form'
+    ? LONG_FORM_MAX_DURATION_MS
+    : STANDARD_MAX_DURATION_MS;
+  const maximumFps = durationClass === 'long-form' ? LONG_FORM_MAX_FPS : 30;
+  const fps = integer(value.fps, 1, maximumFps, 'scene.fps');
+  const durationMs = integer(value.durationMs, 500, maximumDurationMs, 'scene.durationMs');
+  if (Math.ceil((durationMs / 1000) * fps) > MAX_RENDER_FRAMES) {
+    fail(`scene must not exceed ${MAX_RENDER_FRAMES} deterministic source frames`);
+  }
   return {
     schema: value.schema,
     id: value.id,
     width: integer(value.width, 640, 1920, 'scene.width'),
     height: integer(value.height, 360, 1080, 'scene.height'),
-    fps: integer(value.fps, 1, 30, 'scene.fps'),
-    durationMs: integer(value.durationMs, 500, 60000, 'scene.durationMs'),
+    fps,
+    ...(value.durationClass === undefined ? {} : { durationClass }),
+    durationMs,
     title: text(value.title, 1, 120, 'scene.title'),
     commandLabel: text(value.commandLabel ?? '', 0, 160, 'scene.commandLabel'),
     background: color(value.background, '#10151f', 'scene.background'),
@@ -263,7 +299,10 @@ function validateTerminalCapture(value, scene) {
     columns: integer(value.dimensions.columns, 80, 200, 'terminalCapture.dimensions.columns'),
     rows: integer(value.dimensions.rows, 24, 80, 'terminalCapture.dimensions.rows'),
   };
-  const durationMs = integer(value.durationMs, 500, 60_000, 'terminalCapture.durationMs');
+  const maximumDurationMs = scene.durationClass === 'long-form'
+    ? LONG_FORM_MAX_DURATION_MS
+    : STANDARD_MAX_DURATION_MS;
+  const durationMs = integer(value.durationMs, 500, maximumDurationMs, 'terminalCapture.durationMs');
   if (durationMs > scene.durationMs || scene.durationMs - durationMs > 2_000) {
     fail('terminal capture duration must end within two seconds of the scene');
   }
@@ -759,6 +798,24 @@ async function render(options) {
     terminalCaptureBytes,
   });
   if (renditionSet && !terminalCapture) fail('rendition set requires an explicit primary terminal capture');
+  if (options.validateOnly) {
+    process.stdout.write(stableJson({
+      schema: 'build-images.demo-renderer-validation/v1',
+      qualified: true,
+      scene: {
+        id: scene.id,
+        durationClass: scene.durationClass ?? 'standard',
+        durationMs: scene.durationMs,
+        fps: scene.fps,
+      },
+      terminalCapture: terminalCapture
+        ? { durationMs: terminalCapture.durationMs, events: terminalCapture.events.length }
+        : null,
+      nativeRenditions: renditionSet ? renditionSet.renditions.length : 0,
+      authorityGrants: [],
+    }));
+    return;
+  }
 
   const outputMetadata = fs.lstatSync(options.outputPath);
   if (outputMetadata.isSymbolicLink() || !outputMetadata.isDirectory()) fail('output must be a non-symlink directory');

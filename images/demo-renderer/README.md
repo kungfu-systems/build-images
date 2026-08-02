@@ -15,14 +15,22 @@ the public image by immutable OCI digest and stage three read-only inputs:
 
 Callers may additionally stage one `kungfu.terminal-capture/v1` file and pass
 `--terminal-capture /input/terminal-capture.json`. The capture is a bounded,
-content-addressed PTY observation: fixed dimensions, at most 60 seconds,
-10,000 events, and 4 MiB of canonical base64 terminal bytes. The renderer
+content-addressed PTY observation: fixed dimensions, at most 60 seconds by
+default, 10,000 events, and 4 MiB of canonical base64 terminal bytes. The renderer
 replays those bytes through the pinned `@xterm/headless` state machine and
 binds the capture root in its manifest. ANSI 16-color, xterm 256-color, RGB
 foreground/background colors, inverse video, bold, dim, italic, underline,
 strikethrough, overline, and invisible-cell state are replayed through a fixed
 renderer-owned style model; raw SGR bytes never enter the page as markup. It
 does not copy raw capture bytes into the media output.
+
+Long demonstrations require the scene to declare `durationClass: long-form`.
+That explicit class raises only that scene and its matching terminal capture to
+a 180-second ceiling, lowers the frame-rate ceiling to 10 fps, and preserves the
+1,800-frame bound that already limits a 60-second standard scene at 30 fps.
+Omitting the class remains `standard`; it does not inherit long-form authority.
+`demo-renderer --validate-only` exercises the same admission logic without
+creating media and emits an observation-only validation result with no grants.
 
 The completion sentinel accepts any bounded, versioned result schema with a
 `qualified` status and exact report root. Product-specific identity does not

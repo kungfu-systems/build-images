@@ -11,10 +11,28 @@
     "width": { "type": "integer", "minimum": 640, "maximum": 1920 },
     "height": { "type": "integer", "minimum": 360, "maximum": 1080 },
     "fps": { "type": "integer", "minimum": 1, "maximum": 30 },
-    "durationMs": { "type": "integer", "minimum": 500, "maximum": 60000 },
+    "durationClass": { "type": "string", "enum": ["standard", "long-form"] },
+    "durationMs": { "type": "integer", "minimum": 500 },
     "title": { "type": "string", "minLength": 1, "maxLength": 120 },
     "commandLabel": { "type": "string", "maxLength": 160 },
     "background": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
     "accent": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "required": ["durationClass"],
+        "properties": { "durationClass": { "const": "long-form" } }
+      },
+      "then": {
+        "properties": {
+          "durationMs": { "maximum": 180000 },
+          "fps": { "maximum": 10 }
+        }
+      },
+      "else": {
+        "properties": { "durationMs": { "maximum": 60000 } }
+      }
+    }
+  ]
 }
