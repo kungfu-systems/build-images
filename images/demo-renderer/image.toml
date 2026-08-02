@@ -13,7 +13,7 @@ context = "."
 dockerfile = "Dockerfile"
 test_commands = [
   "test \"$(node --version)\" = \"v24.0.0\"",
-  "test \"$(demo-renderer --version)\" = \"1.3.0\"",
+  "test \"$(demo-renderer --version)\" = \"1.3.1\"",
   "test \"$(node -p 'require(\"/opt/kungfu/demo-renderer/node_modules/@xterm/headless/package.json\").version')\" = \"5.5.0\"",
   "ffmpeg -hide_banner -version | grep -F 'ffmpeg version'",
   "ffprobe -hide_banner -version | grep -F 'ffprobe version'",

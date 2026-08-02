@@ -49,6 +49,82 @@ render_capture "$scratch/capture-second" "$fixture_root/terminal-capture.json"
 render_native "$scratch/native-first"
 render_native "$scratch/native-second"
 
+node - \
+  "$fixture_root/scene.json" \
+  "$fixture_root/terminal-capture.json" \
+  "$scratch" <<'JS'
+const fs = require('node:fs');
+const path = require('node:path');
+const scene = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+const capture = JSON.parse(fs.readFileSync(process.argv[3], 'utf8'));
+const output = process.argv[4];
+
+const longScene = {
+  ...scene,
+  durationClass: 'long-form',
+  durationMs: 61_000,
+  fps: 10,
+};
+const longCapture = { ...capture, durationMs: 60_001 };
+fs.writeFileSync(path.join(output, 'long-scene.json'), `${JSON.stringify(longScene, null, 2)}\n`);
+fs.writeFileSync(path.join(output, 'long-capture.json'), `${JSON.stringify(longCapture, null, 2)}\n`);
+fs.writeFileSync(
+  path.join(output, 'standard-overrun-scene.json'),
+  `${JSON.stringify({ ...longScene, durationClass: 'standard' }, null, 2)}\n`,
+);
+fs.writeFileSync(
+  path.join(output, 'long-overrun-scene.json'),
+  `${JSON.stringify({ ...longScene, durationMs: 180_001, fps: 1 }, null, 2)}\n`,
+);
+fs.writeFileSync(
+  path.join(output, 'long-fast-scene.json'),
+  `${JSON.stringify({ ...longScene, fps: 11 }, null, 2)}\n`,
+);
+JS
+
+demo-renderer \
+  --validate-only \
+  --scene "$scratch/long-scene.json" \
+  --transcript "$fixture_root/transcript.txt" \
+  --projection "$fixture_root/projection.json" \
+  --terminal-capture "$scratch/long-capture.json" \
+  > "$scratch/long-form-validation.json"
+
+python3 - "$scratch/long-form-validation.json" <<'PY'
+import json, sys
+receipt = json.load(open(sys.argv[1], encoding="utf-8"))
+assert receipt == {
+    "authorityGrants": [],
+    "nativeRenditions": 0,
+    "qualified": True,
+    "scene": {
+        "durationClass": "long-form",
+        "durationMs": 61000,
+        "fps": 10,
+        "id": "renderer-smoke",
+    },
+    "schema": "build-images.demo-renderer-validation/v1",
+    "terminalCapture": {"durationMs": 60001, "events": 2},
+}
+PY
+
+for rejected_scene in \
+  "$scratch/standard-overrun-scene.json" \
+  "$scratch/long-overrun-scene.json" \
+  "$scratch/long-fast-scene.json"
+do
+  if demo-renderer \
+    --validate-only \
+    --scene "$rejected_scene" \
+    --transcript "$fixture_root/transcript.txt" \
+    --projection "$fixture_root/projection.json" \
+    >/dev/null 2>&1
+  then
+    echo "duration policy admitted rejected scene: $rejected_scene" >&2
+    exit 1
+  fi
+done
+
 for member in \
   complete-transcript.txt \
   public-projection.json \
@@ -145,7 +221,7 @@ assert manifest["renderer"]["terminal"]["engine"] == "@xterm/headless"
 assert manifest["renderer"]["terminal"]["version"] == "5.5.0"
 assert manifest["renderer"]["terminal"]["inventoryRoot"].startswith("sha256:")
 assert manifest["renderer"]["terminal"]["styleModel"] == "ansi16-xterm256-rgb/v1"
-assert manifest["renderer"]["contractVersion"] == "1.3.0"
+assert manifest["renderer"]["contractVersion"] == "1.3.1"
 assert manifest["derivation"]["policy"] == "single-frame-set-deterministic-renditions/v1"
 assert manifest["derivation"]["sourceFrames"]["width"] == 1920
 assert manifest["derivation"]["sourceFrames"]["height"] == 1080
