@@ -25,6 +25,7 @@ const MEDIA = [
 ];
 const UTF8 = new TextDecoder('utf-8', { fatal: true });
 const DIGEST_PATTERN = /^sha256:[0-9a-f]{64}$/;
+const RESULT_SCHEMA_PATTERN = /^[a-z0-9][a-z0-9._/-]*\/v[1-9][0-9]*$/;
 const MAX_CAPTURE_BYTES = 4 * 1024 * 1024;
 const MAX_CAPTURE_EVENTS = 10_000;
 const TERMINAL_DEFAULT_FOREGROUND = '#e5edf7';
@@ -290,11 +291,11 @@ function validateTerminalCapture(value, scene) {
     'terminalCapture.completion',
   );
   if (
-    value.completion.schema !== 'kungfu.agent-work-lab.tui-autoplay/v1'
+    !RESULT_SCHEMA_PATTERN.test(value.completion.schema)
     || value.completion.status !== 'qualified'
     || !DIGEST_PATTERN.test(value.completion.reportRoot)
   ) {
-    fail('terminal capture completion sentinel is not a qualified Agent Work Lab autoplay');
+    fail('terminal capture completion sentinel is not a qualified versioned result');
   }
   integer(value.completion.eventCount, 1, 100_000, 'terminalCapture.completion.eventCount');
   if (value.exitCode !== 0) fail('terminal capture exitCode must be zero');
