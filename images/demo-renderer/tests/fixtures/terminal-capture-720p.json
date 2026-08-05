@@ -6,7 +6,7 @@
   "encoding": "base64",
   "events": [
     { "atMs": 0, "data": "G1syShtbSEFnZW50IFdvcmsgTGFiIGNvbXBhY3QgMTAweDI4DQobWzM4OzI7MTAzOzIzMjsxNjVtTU9CSUxFG1swbQ0K" },
-    { "atMs": 500, "data": "G1tIG1sySkNvbXBhY3QgbGF5b3V0DQobWzMybXF1YWxpZmllZBtbMG0NCg==" }
+    { "atMs": 500, "data": "G1tIG1sySkNvbXBhY3QgbGF5b3V0DQobWzMybXF1YWxpZmllZBtbMG0NChtbMTsxSBtbNDg7MjsyNTU7MDswbSAbWzBtG1sxOzEwMEgbWzQ4OzI7MDsyNTU7MG0gG1swbRtbMjg7MUgbWzQ4OzI7MDswOzI1NW0gG1swbRtbMjg7MTAwSBtbNDg7MjsyNTU7MDsyNTVtIBtbMG0=" }
   ],
   "completion": {
     "schema": "kungfu.agent-work-lab.tui-autoplay/v1",

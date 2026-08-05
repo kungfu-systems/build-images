@@ -32,6 +32,13 @@ Omitting the class remains `standard`; it does not inherit long-form authority.
 `demo-renderer --validate-only` exercises the same admission logic without
 creating media and emits an observation-only validation result with no grants.
 
+Scenes may explicitly select `compositionMode: terminal-fill` for terminal-first
+demonstrations. That mode requires a terminal capture, removes renderer-owned
+window chrome and annotations from the pixels, and maps the declared PTY grid
+to the complete scene viewport. The default remains
+`presentation-framed`, preserving the existing presentation composition and a
+reversible consumer migration path.
+
 The completion sentinel accepts any bounded, versioned result schema with a
 `qualified` status and exact report root. Product-specific identity does not
 grant renderer authority and is not hard-coded into this image.
@@ -59,11 +66,13 @@ member is encoded from its declared deterministic frame set. With a rendition
 set, the 1080p and 720p members contain different terminal layouts because the
 product was executed independently under different PTY dimensions.
 
-Terminal chrome and PTY cells scale with the source scene. A 1920x1080 source
-therefore uses the same composition as the 1280x720 responsive rendition
-instead of embedding a 720p-sized terminal inside the larger frame. The smoke
-fixture places a colored cell at PTY row 36, column 150 and verifies that it
-reaches the lower-right region of the 1080p poster.
+The render manifest records each frame set's composition mode, exact content
+viewport, PTY rows and columns, and deterministic cell geometry. In
+`terminal-fill`, the viewport must equal the complete declared frame and the
+cell grid must resolve back to its exact pixel dimensions. The smoke fixture
+places independently colored cells at all four PTY corners and verifies that
+they reach all four frame boundaries; it also retains a framed-mode render to
+prove compatibility.
 
 ```bash
 docker run --rm --network none --read-only \
