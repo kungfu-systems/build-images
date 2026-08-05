@@ -9,7 +9,7 @@ render() {
   output="$1"
   mkdir "$output"
   demo-renderer \
-    --scene "$fixture_root/scene.json" \
+    --scene "$fixture_root/framed-scene.json" \
     --transcript "$fixture_root/transcript.txt" \
     --projection "$fixture_root/projection.json" \
     --output "$output" \
@@ -21,7 +21,7 @@ render_capture() {
   capture="$2"
   mkdir "$output"
   demo-renderer \
-    --scene "$fixture_root/scene.json" \
+    --scene "$fixture_root/framed-scene.json" \
     --transcript "$fixture_root/transcript.txt" \
     --projection "$fixture_root/projection.json" \
     --terminal-capture "$capture" \
@@ -98,6 +98,7 @@ assert receipt == {
     "nativeRenditions": 0,
     "qualified": True,
     "scene": {
+        "compositionMode": "terminal-fill",
         "durationClass": "long-form",
         "durationMs": 61000,
         "fps": 10,
@@ -150,7 +151,7 @@ diff -u "$scratch/native-first/checksums.sha256" "$scratch/native-second/checksu
 cmp "$scratch/native-first/manifest.json" "$scratch/native-second/manifest.json"
 
 ffmpeg -hide_banner -loglevel error \
-  -i "$scratch/capture-first/poster.png" \
+  -i "$scratch/native-first/poster.png" \
   -f rawvideo -pix_fmt rgb24 \
   "$scratch/capture-poster.rgb"
 
@@ -167,9 +168,9 @@ def nearby(target, tolerance=8):
         if all(abs(pixels[index + channel] - target[channel]) <= tolerance for channel in range(3))
     )
 
-def nearby_at(target, x_min, y_min, tolerance=8):
-    for y in range(y_min, 1080):
-        for x in range(x_min, 1920):
+def nearby_in(target, x_min, y_min, x_max, y_max, tolerance=8):
+    for y in range(y_min, y_max):
+        for x in range(x_min, x_max):
             index = (y * 1920 + x) * 3
             if all(abs(pixels[index + channel] - target[channel]) <= tolerance for channel in range(3)):
                 return True
@@ -179,10 +180,42 @@ def nearby_at(target, x_min, y_min, tolerance=8):
 # present in the poster. A text-only replay or a one-color CSS fallback fails.
 assert nearby((0, 0, 95), tolerance=2) > 100
 assert nearby((103, 232, 165)) > 5
-# The capture fixture writes one explicit RGB cell at PTY row 36, column 150.
-# It must land near the lower-right of the 1080p terminal. This prevents a
-# 720p-sized terminal grid from being embedded inside a 1080p frame.
-assert nearby_at((103, 232, 165), x_min=1700, y_min=780)
+# Four independent background cells prove the exact terminal grid reaches every
+# frame boundary instead of merely living inside a correctly sized video.
+assert nearby_in((255, 0, 0), 0, 0, 16, 32, tolerance=2)
+assert nearby_in((0, 255, 0), 1904, 0, 1920, 32, tolerance=2)
+assert nearby_in((0, 0, 255), 0, 1048, 16, 1080, tolerance=2)
+assert nearby_in((255, 0, 255), 1904, 1048, 1920, 1080, tolerance=2)
+PY
+
+ffmpeg -hide_banner -loglevel error \
+  -ss 0.6 \
+  -i "$scratch/native-first/demo-720p.mp4" \
+  -frames:v 1 \
+  -f rawvideo -pix_fmt rgb24 \
+  "$scratch/capture-responsive.rgb"
+
+python3 - "$scratch/capture-responsive.rgb" <<'PY'
+import pathlib, sys
+
+pixels = pathlib.Path(sys.argv[1]).read_bytes()
+width, height = 1280, 720
+assert len(pixels) == width * height * 3
+
+def nearby_in(target, x_min, y_min, x_max, y_max, tolerance=24):
+    for y in range(y_min, y_max):
+        for x in range(x_min, x_max):
+            index = (y * width + x) * 3
+            if all(abs(pixels[index + channel] - target[channel]) <= tolerance for channel in range(3)):
+                return True
+    return False
+
+# The independently captured responsive PTY must reach all four 1280x720
+# boundaries as pixels too; its manifest geometry alone is not sufficient.
+assert nearby_in((255, 0, 0), 0, 0, 16, 28)
+assert nearby_in((0, 255, 0), 1264, 0, 1280, 28)
+assert nearby_in((0, 0, 255), 0, 692, 16, 720)
+assert nearby_in((255, 0, 255), 1264, 692, 1280, 720)
 PY
 
 python3 - "$scratch/first/media-probe.json" <<'PY'
@@ -221,7 +254,11 @@ assert manifest["renderer"]["terminal"]["engine"] == "@xterm/headless"
 assert manifest["renderer"]["terminal"]["version"] == "5.5.0"
 assert manifest["renderer"]["terminal"]["inventoryRoot"].startswith("sha256:")
 assert manifest["renderer"]["terminal"]["styleModel"] == "ansi16-xterm256-rgb/v1"
-assert manifest["renderer"]["contractVersion"] == "1.3.1"
+assert manifest["renderer"]["contractVersion"] == "1.4.0"
+assert manifest["policy"]["compositionMode"] == "presentation-framed"
+framed = manifest["derivation"]["sourceFrames"]["composition"]
+assert framed["mode"] == "presentation-framed"
+assert framed["contentViewport"]["fillRatio"] < 1
 assert manifest["derivation"]["policy"] == "single-frame-set-deterministic-renditions/v1"
 assert manifest["derivation"]["sourceFrames"]["width"] == 1920
 assert manifest["derivation"]["sourceFrames"]["height"] == 1080
@@ -245,6 +282,20 @@ assert [(item["role"], item["width"], item["height"]) for item in sets] == [
     ("responsive", 1280, 720),
 ]
 assert sets[0]["captureRoot"] != sets[1]["captureRoot"]
+for item in sets:
+    composition = item["composition"]
+    assert composition["mode"] == "terminal-fill"
+    assert composition["contentViewport"] == {
+        "fillRatio": 1,
+        "height": item["height"],
+        "width": item["width"],
+        "x": 0,
+        "y": 0,
+    }
+    geometry = composition["terminalGeometry"]
+    assert geometry["layout"] == "exact-grid"
+    assert abs(geometry["cellWidth"] * geometry["columns"] - item["width"]) < 0.001
+    assert abs(geometry["cellHeight"] * geometry["rows"] - item["height"]) < 0.001
 assert manifest["inputs"]["renditions"][0]["terminalCapture"]["dimensions"] == {
     "columns": 150,
     "rows": 36,

@@ -11,8 +11,10 @@ import xtermHeadless from '@xterm/headless';
 
 const { Terminal } = xtermHeadless;
 
-const VERSION = '1.3.1';
+const VERSION = '1.4.0';
 const TERMINAL_STYLE_MODEL = 'ansi16-xterm256-rgb/v1';
+const PRESENTATION_FRAMED = 'presentation-framed';
+const TERMINAL_FILL = 'terminal-fill';
 const RESPONSIVE_WIDTH = 1280;
 const RESPONSIVE_HEIGHT = 720;
 const MEDIA = [
@@ -188,7 +190,7 @@ function validateScene(value) {
   exactKeys(
     value,
     ['schema', 'id', 'width', 'height', 'fps', 'durationMs', 'title'],
-    ['durationClass', 'commandLabel', 'background', 'accent'],
+    ['durationClass', 'compositionMode', 'commandLabel', 'background', 'accent'],
     'scene',
   );
   if (value.schema !== 'build-images.demo-scene/v1') fail('unsupported scene schema');
@@ -198,6 +200,10 @@ function validateScene(value) {
   const durationClass = value.durationClass ?? 'standard';
   if (!['standard', 'long-form'].includes(durationClass)) {
     fail('scene.durationClass must be standard or long-form');
+  }
+  const compositionMode = value.compositionMode ?? PRESENTATION_FRAMED;
+  if (![PRESENTATION_FRAMED, TERMINAL_FILL].includes(compositionMode)) {
+    fail('scene.compositionMode must be presentation-framed or terminal-fill');
   }
   const maximumDurationMs = durationClass === 'long-form'
     ? LONG_FORM_MAX_DURATION_MS
@@ -215,6 +221,7 @@ function validateScene(value) {
     height: integer(value.height, 360, 1080, 'scene.height'),
     fps,
     ...(value.durationClass === undefined ? {} : { durationClass }),
+    ...(value.compositionMode === undefined ? {} : { compositionMode }),
     durationMs,
     title: text(value.title, 1, 120, 'scene.title'),
     commandLabel: text(value.commandLabel ?? '', 0, 160, 'scene.commandLabel'),
@@ -421,7 +428,7 @@ function terminalCellStyle(cell) {
   };
 }
 
-function terminalScreen(terminal, rows, columns) {
+function terminalScreen(terminal, rows, columns, preserveRows = false) {
   const lines = [];
   for (let row = 0; row < rows; row += 1) {
     const line = terminal.buffer.active.getLine(row);
@@ -431,27 +438,41 @@ function terminalScreen(terminal, rows, columns) {
       if (!cell || cell.getWidth() === 0) continue;
       const text = cell.getChars() || ' ';
       const style = terminalCellStyle(cell);
-      cells.push({ text, style, styleKey: JSON.stringify(style) });
+      cells.push({ text, columns: cell.getWidth(), style, styleKey: JSON.stringify(style) });
     }
-    while (
-      cells.length
-      && cells.at(-1).text === ' '
-      && Object.keys(cells.at(-1).style).length === 0
-    ) {
-      cells.pop();
+    if (!preserveRows) {
+      while (
+        cells.length
+        && cells.at(-1).text === ' '
+        && Object.keys(cells.at(-1).style).length === 0
+      ) {
+        cells.pop();
+      }
     }
     const runs = [];
     for (const cell of cells) {
       const previous = runs.at(-1);
       if (previous?.styleKey === cell.styleKey) {
         previous.text += cell.text;
+        previous.columns += cell.columns;
       } else {
-        runs.push({ text: cell.text, style: cell.style, styleKey: cell.styleKey });
+        runs.push({
+          text: cell.text,
+          columns: cell.columns,
+          style: cell.style,
+          styleKey: cell.styleKey,
+        });
       }
     }
-    lines.push(runs.map(({ text, style }) => ({ text, style })));
+    lines.push(runs.map(({ text, columns: runColumns, style }) => ({
+      text,
+      columns: runColumns,
+      style,
+    })));
   }
-  while (lines.length > 1 && lines.at(-1).length === 0) lines.pop();
+  if (!preserveRows) {
+    while (lines.length > 1 && lines.at(-1).length === 0) lines.pop();
+  }
   return lines;
 }
 
@@ -633,6 +654,12 @@ function loadRenditionSet(filePath, primary) {
     || JSON.stringify(renditions[0].terminalCapture.dimensions)
       === JSON.stringify(renditions[1].terminalCapture.dimensions)
   ) fail('native rendition captures must have distinct roots and PTY dimensions');
+  if (renditions.some(
+    (rendition) => (rendition.scene.compositionMode ?? PRESENTATION_FRAMED)
+      !== (renditions[0].scene.compositionMode ?? PRESENTATION_FRAMED),
+  )) {
+    fail('native rendition scenes must use the same composition mode');
+  }
   if (
     sha256(primary.sceneBytes) !== sha256(renditions[0].sceneBytes)
     || sha256(primary.transcriptBytes) !== sha256(renditions[0].transcriptBytes)
@@ -645,6 +672,18 @@ function loadRenditionSet(filePath, primary) {
 async function renderFrameSet({ scene, projection, transcriptLines, terminalCapture, frames }) {
   const visualScale = scene.width / RESPONSIVE_WIDTH;
   const px = (value) => `${Number((value * visualScale).toFixed(4))}px`;
+  const compositionMode = scene.compositionMode ?? PRESENTATION_FRAMED;
+  const terminalFill = compositionMode === TERMINAL_FILL;
+  const terminalCellWidth = terminalCapture
+    ? scene.width / terminalCapture.dimensions.columns
+    : 0;
+  const terminalCellHeight = terminalCapture
+    ? scene.height / terminalCapture.dimensions.rows
+    : 0;
+  const terminalFontSize = terminalCapture
+    ? Math.min(terminalCellWidth * 1.6, terminalCellHeight * 0.8)
+    : 0;
+  const exactPx = (value) => `${Number(value.toFixed(6))}px`;
   const terminal = terminalCapture
     ? new Terminal({
       cols: terminalCapture.dimensions.columns,
@@ -685,10 +724,77 @@ pre{font:${px(14)}/1.52 "DejaVu Sans Mono",monospace;white-space:pre-wrap;word-b
 .capture .runtime-label{margin-top:${px(7)}}.capture .annotation{min-height:${px(38)};padding-top:${px(8)}}
 .annotation{margin-top:auto;border-top:${px(1)} solid #283446;padding-top:${px(11)};color:#9facbf;font:${px(12)}/1.4 system-ui,sans-serif;min-height:${px(48)}}
 .cursor{display:inline-block;width:${px(8)};height:${px(15)};background:${scene.accent};vertical-align:${px(-2)};margin-left:${px(3)};opacity:.9}
+.terminal-fill{padding:0;background:${TERMINAL_DEFAULT_BACKGROUND}}
+.terminal-fill .window{border:0;border-radius:0;box-shadow:none;background:${TERMINAL_DEFAULT_BACKGROUND}}
+.terminal-fill .bar,.terminal-fill .command,.terminal-fill .runtime-label,.terminal-fill .annotation{display:none}
+.terminal-fill .terminal{height:100%;padding:0;display:block}
+.terminal-fill .capture pre{display:block;width:100%;height:100%;overflow:hidden;font:${exactPx(terminalFontSize)}/${exactPx(terminalCellHeight)} "DejaVu Sans Mono",monospace}
+.terminal-fill .terminal-line{display:block;width:100%;height:${exactPx(terminalCellHeight)};line-height:${exactPx(terminalCellHeight)};overflow:hidden;white-space:pre}
+.terminal-fill .terminal-run{display:inline-block;height:${exactPx(terminalCellHeight)};line-height:${exactPx(terminalCellHeight)};overflow:hidden;vertical-align:top;white-space:pre}
 </style></head><body>
 <section class="window"><header class="bar"><i class="dot"></i><i class="dot"></i><i class="dot"></i><span class="title"></span><span class="badge"></span></header>
 <main class="terminal"><div class="command"></div><div class="runtime-label"></div><pre></pre><div class="annotation"><div class="annotation-label"></div><span></span><i class="cursor"></i></div></main></section>
 </body></html>`);
+    await page.evaluate(
+      ({ fill, capture }) => {
+        document.body.classList.toggle('terminal-fill', fill);
+        document.querySelector('.window').classList.toggle('capture', capture);
+      },
+      { fill: terminalFill, capture: Boolean(terminalCapture) },
+    );
+    const composition = await page.evaluate(
+      ({ mode, columns, rows, exactCellWidth, exactCellHeight, exactFontSize }) => {
+        const round = (value) => Number(value.toFixed(6));
+        const viewportRect = document.querySelector('.terminal').getBoundingClientRect();
+        const pre = document.querySelector('pre');
+        const computed = getComputedStyle(pre);
+        const probe = document.createElement('span');
+        probe.textContent = 'M'.repeat(100);
+        Object.assign(probe.style, {
+          position: 'absolute',
+          visibility: 'hidden',
+          whiteSpace: 'pre',
+          fontFamily: computed.fontFamily,
+          fontSize: computed.fontSize,
+          fontWeight: computed.fontWeight,
+          fontStyle: computed.fontStyle,
+          letterSpacing: computed.letterSpacing,
+        });
+        document.body.append(probe);
+        const measuredCellWidth = probe.getBoundingClientRect().width / 100;
+        probe.remove();
+        const contentViewport = {
+          x: round(viewportRect.x),
+          y: round(viewportRect.y),
+          width: round(viewportRect.width),
+          height: round(viewportRect.height),
+          fillRatio: round((viewportRect.width * viewportRect.height) / (innerWidth * innerHeight)),
+        };
+        return {
+          mode,
+          contentViewport,
+          terminalGeometry: columns && rows
+            ? {
+              columns,
+              rows,
+              cellWidth: round(mode === 'terminal-fill' ? exactCellWidth : measuredCellWidth),
+              cellHeight: round(mode === 'terminal-fill' ? exactCellHeight : parseFloat(computed.lineHeight)),
+              fontSize: round(mode === 'terminal-fill' ? exactFontSize : parseFloat(computed.fontSize)),
+              lineHeight: round(mode === 'terminal-fill' ? exactCellHeight : parseFloat(computed.lineHeight)),
+              layout: mode === 'terminal-fill' ? 'exact-grid' : 'presentation-flow',
+            }
+            : null,
+        };
+      },
+      {
+        mode: compositionMode,
+        columns: terminalCapture?.dimensions.columns ?? 0,
+        rows: terminalCapture?.dimensions.rows ?? 0,
+        exactCellWidth: terminalCellWidth,
+        exactCellHeight: terminalCellHeight,
+        exactFontSize: terminalFontSize,
+      },
+    );
     const frameCount = Math.ceil((scene.durationMs / 1000) * scene.fps);
     for (let frame = 0; frame < frameCount; frame += 1) {
       const atMs = Math.floor((frame * 1000) / scene.fps);
@@ -702,13 +808,18 @@ pre{font:${px(14)}/1.52 "DejaVu Sans Mono",monospace;white-space:pre-wrap;word-b
         }
       }
       const runtime = terminal && terminalCapture
-        ? terminalScreen(terminal, terminalCapture.dimensions.rows, terminalCapture.dimensions.columns)
+        ? terminalScreen(
+          terminal,
+          terminalCapture.dimensions.rows,
+          terminalCapture.dimensions.columns,
+          terminalFill,
+        )
         : active.transcriptLines.map((line) => transcriptLines[line - 1]).join('\n');
       const annotation = terminalCapture
         ? `${terminalCapture.dimensions.columns}x${terminalCapture.dimensions.rows} bounded PTY replay · captured bytes grant no authority`
         : active.annotation;
       await page.evaluate(
-        ({ title, commandLabel, runtime, annotation, frame, captureMode }) => {
+        ({ title, commandLabel, runtime, annotation, frame, captureMode, fillMode, cellWidth }) => {
           document.querySelector('.window').classList.toggle('capture', captureMode);
           document.querySelector('.title').textContent = title;
           document.querySelector('.command').textContent = commandLabel;
@@ -716,13 +827,20 @@ pre{font:${px(14)}/1.52 "DejaVu Sans Mono",monospace;white-space:pre-wrap;word-b
           if (captureMode) {
             const fragment = document.createDocumentFragment();
             runtime.forEach((line, lineIndex) => {
+              const lineParent = fillMode ? document.createElement('div') : fragment;
+              if (fillMode) lineParent.className = 'terminal-line';
               line.forEach((run) => {
                 const span = document.createElement('span');
+                if (fillMode) {
+                  span.className = 'terminal-run';
+                  span.style.width = `${run.columns * cellWidth}px`;
+                }
                 span.textContent = run.text;
                 Object.assign(span.style, run.style);
-                fragment.append(span);
+                lineParent.append(span);
               });
-              if (lineIndex < runtime.length - 1) fragment.append('\n');
+              if (fillMode) fragment.append(lineParent);
+              else if (lineIndex < runtime.length - 1) fragment.append('\n');
             });
             pre.replaceChildren(fragment);
           } else pre.textContent = runtime;
@@ -732,7 +850,16 @@ pre{font:${px(14)}/1.52 "DejaVu Sans Mono",monospace;white-space:pre-wrap;word-b
           document.querySelector('.badge').textContent = captureMode ? 'captured PTY replay' : 'presentation, not screen capture';
           document.querySelector('.cursor').style.opacity = captureMode ? '0' : frame % 2 === 0 ? '0.9' : '0.25';
         },
-        { title: scene.title, commandLabel: scene.commandLabel, runtime, annotation, frame, captureMode: Boolean(terminalCapture) },
+        {
+          title: scene.title,
+          commandLabel: scene.commandLabel,
+          runtime,
+          annotation,
+          frame,
+          captureMode: Boolean(terminalCapture),
+          fillMode: terminalFill,
+          cellWidth: terminalCellWidth,
+        },
       );
       await page.screenshot({
         path: path.join(frames, `frame-${String(frame + 1).padStart(6, '0')}.png`),
@@ -740,7 +867,7 @@ pre{font:${px(14)}/1.52 "DejaVu Sans Mono",monospace;white-space:pre-wrap;word-b
         caret: 'hide',
       });
     }
-    return frameCount;
+    return { frameCount, composition };
   } finally {
     await browser.close();
     terminal?.dispose();
@@ -791,6 +918,9 @@ async function render(options) {
   const terminalCapture = terminalCaptureBytes
     ? validateTerminalCapture(parseJson(terminalCaptureBytes, 'terminal capture'), scene)
     : null;
+  if ((scene.compositionMode ?? PRESENTATION_FRAMED) === TERMINAL_FILL && !terminalCapture) {
+    fail('terminal-fill composition requires an explicit terminal capture');
+  }
   const renditionSet = loadRenditionSet(options.renditionSetPath, {
     sceneBytes,
     transcriptBytes,
@@ -804,6 +934,7 @@ async function render(options) {
       qualified: true,
       scene: {
         id: scene.id,
+        compositionMode: scene.compositionMode ?? PRESENTATION_FRAMED,
         durationClass: scene.durationClass ?? 'standard',
         durationMs: scene.durationMs,
         fps: scene.fps,
@@ -827,18 +958,20 @@ async function render(options) {
   writeFile(options.outputPath, 'public-projection.json', stableJson(projection));
 
   const frames = fs.mkdtempSync(path.join(os.tmpdir(), 'demo-renderer-frames-'));
+  const renderingEvidence = [];
   try {
     const primaryFrames = path.join(frames, '1080p');
     fs.mkdirSync(primaryFrames);
-    const primaryFrameCount = await renderFrameSet({
+    const primaryRender = await renderFrameSet({
       scene,
       projection,
       transcriptLines,
       terminalCapture,
       frames: primaryFrames,
     });
+    renderingEvidence.push(primaryRender.composition);
     const posterFrame = terminalCapture
-      ? Math.min(primaryFrameCount, Math.max(1, Math.floor(primaryFrameCount * 0.55)))
+      ? Math.min(primaryRender.frameCount, Math.max(1, Math.floor(primaryRender.frameCount * 0.55)))
       : 1;
     fs.copyFileSync(
       path.join(primaryFrames, `frame-${String(posterFrame).padStart(6, '0')}.png`),
@@ -855,13 +988,14 @@ async function render(options) {
       const responsive = renditionSet.renditions[1];
       const responsiveFrames = path.join(frames, '720p');
       fs.mkdirSync(responsiveFrames);
-      await renderFrameSet({
+      const responsiveRender = await renderFrameSet({
         scene: responsive.scene,
         projection: responsive.projection,
         transcriptLines: responsive.transcriptLines,
         terminalCapture: responsive.terminalCapture,
         frames: responsiveFrames,
       });
+      renderingEvidence.push(responsiveRender.composition);
       encodeNativeFrames({
         frames: responsiveFrames,
         scene: responsive.scene,
@@ -953,6 +1087,7 @@ async function render(options) {
       timezone: 'UTC',
       sourceDateEpoch: '0',
       network: 'caller-disabled-and-browser-requests-blocked',
+      compositionMode: scene.compositionMode ?? PRESENTATION_FRAMED,
       runtimeTextAuthority: renditionSet
         ? 'rendition-set.json'
         : terminalCapture ? 'terminal-capture.json' : 'complete-transcript.txt',
@@ -1025,10 +1160,11 @@ async function render(options) {
         height: scene.height,
         fps: scene.fps,
         durationMs: scene.durationMs,
+        composition: renderingEvidence[0],
       },
       ...(renditionSet
         ? {
-          sourceFrameSets: renditionSet.renditions.map((rendition) => ({
+          sourceFrameSets: renditionSet.renditions.map((rendition, index) => ({
             id: rendition.id,
             role: rendition.role,
             width: rendition.scene.width,
@@ -1036,6 +1172,7 @@ async function render(options) {
             fps: rendition.scene.fps,
             durationMs: rendition.scene.durationMs,
             captureRoot: rendition.captureRoot,
+            composition: renderingEvidence[index],
           })),
         }
         : {}),

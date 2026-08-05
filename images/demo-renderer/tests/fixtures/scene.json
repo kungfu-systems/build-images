@@ -5,6 +5,7 @@
   "height": 1080,
   "fps": 2,
   "durationMs": 2000,
+  "compositionMode": "terminal-fill",
   "title": "Kungfu auditable demo renderer",
   "commandLabel": "fixture command",
   "background": "#10151f",
