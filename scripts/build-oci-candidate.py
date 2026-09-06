@@ -20,6 +20,12 @@ def sha(data):
     return "sha256:" + hashlib.sha256(data).hexdigest()
 
 
+def validate_plan(plan):
+    for image in plan["images"]:
+        if image["platform"] not in {"linux/amd64", "linux/arm64"}:
+            raise ValueError(f'unsupported OCI plan platform: {image["platform"]}')
+
+
 def main():
     source = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
     version = json.loads((ROOT / "package.json").read_text())["version"]
@@ -34,9 +40,9 @@ def main():
     run("python3", str(ROOT / "scripts/plan-image-publish.py"), "--current-source", source,
         "--baseline-lock", str(ROOT / "images.lock.json"), "--fetch-history", "--output", str(plan_path))
     plan = json.loads(plan_path.read_text())
+    validate_plan(plan)
     descriptors, family, digests, local_refs = [], [], {}, {}
     for image in plan["images"]:
-        image["platform"] = {"linux-x64": "linux/amd64", "linux-arm64": "linux/arm64"}[image["platform"]]
         name = image["name"]
         repository = f"ghcr.io/kungfu-systems/build-images/{name}"
         local_ref = f"buildchain-candidate/{name}:{source}"
@@ -64,7 +70,6 @@ def main():
                 args += ["--build-arg", f"BASE_IMAGE={local_refs[parent]}",
                          "--label", f"io.kungfu.image.parent-digest={digests[parent]}"]
             run(*args, "-t", local_ref, str(ROOT / image["path"]))
-            transport = f"docker-daemon:{local_ref}"
             content = {"sourceSha": source, "version": version, "materialSha": source}
         else:
             raise RuntimeError(f"unsupported image action: {action}")
@@ -79,13 +84,16 @@ def main():
         smoke_path = OUTPUT / f"{name}-smoke.json"
         smoke_path.write_text(json.dumps(smoke, indent=2) + "\n")
         with tempfile.TemporaryDirectory(prefix="buildchain-image-") as scratch:
+            directory = Path(scratch) / "export"
             args = ["skopeo", "copy"]
             if action == "reused":
                 args += ["--preserve-digests"]
             else:
+                archive = Path(scratch) / "image.tar"
+                run("docker", "image", "save", "--output", str(archive), local_ref)
+                transport = f"docker-archive:{archive}"
                 args += ["--dest-compress"]
-            run(*args, transport, f"dir:{scratch}")
-            directory = Path(scratch)
+            run(*args, transport, f"dir:{directory}")
             raw = (directory / "manifest.json").read_bytes()
             document = json.loads(raw)
             digest = sha(raw)

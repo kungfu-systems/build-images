@@ -8,14 +8,14 @@
     "cwd": "",
     "sourceSha": "",
     "registryPath": ".buildchain/kfd/kfd-3/surfaces.json",
-    "registryDigest": "sha256:932945b24f374c04f46ec3bf90c3e154b4f3de7a4f0593151b134cc49e63f703"
+    "registryDigest": "sha256:42e298db626a2da8936c5c1846f0c3cd66e786af71e81f464dbde46ee8f6d2c4"
   },
   "sourceRegistry": {
     "id": "Kungfu Build Images",
     "path": ".buildchain/kfd/kfd-3/surfaces.json",
-    "sha256": "22185b3dc1fb31e218df9e107f1b17af16f9bb9e37a7013ecc7239fb22b450a5"
+    "sha256": "41361f979138ed9472c7f9e610ab3cf7fbbb8331571e7b6129202e088abd791d"
   },
-  "collaborationInterfaceDigest": "sha256:9715746c089af6c985a16401cf28e7fcee3e0471ccae6eaa9e1b17e96496c951",
+  "collaborationInterfaceDigest": "sha256:cc64a3033a87144ac8e489dac2cde8d29987b4856c8e7f46fa9570b0242f707b",
   "collaborationInterface": {
     "schemaVersion": 1,
     "contract": "kungfu-buildchain-kfd-3-surface-registry",
@@ -42,6 +42,24 @@
         "declaration": {
           "owner": "product",
           "source": "buildchain kfd 3 register"
+        },
+        "distribution": {
+          "registrar": "buildchain-oci",
+          "tasks": [
+            "build:oci"
+          ],
+          "artifacts": [
+            {
+              "kind": "binary",
+              "platform": "linux/amd64",
+              "pathGlob": "build/oci-candidate/oci/oci-layout"
+            },
+            {
+              "kind": "binary",
+              "platform": "linux/amd64",
+              "pathGlob": "build/oci-candidate/oci/blobs/sha256/????????????????????????????????????????????????????????????????"
+            }
+          ]
         },
         "availability": "shipped"
       },
@@ -311,6 +329,24 @@
             "declaration": {
               "owner": "product",
               "source": "buildchain kfd 3 register"
+            },
+            "distribution": {
+              "registrar": "buildchain-oci",
+              "tasks": [
+                "build:oci"
+              ],
+              "artifacts": [
+                {
+                  "kind": "binary",
+                  "platform": "linux/amd64",
+                  "pathGlob": "build/oci-candidate/oci/oci-layout"
+                },
+                {
+                  "kind": "binary",
+                  "platform": "linux/amd64",
+                  "pathGlob": "build/oci-candidate/oci/blobs/sha256/????????????????????????????????????????????????????????????????"
+                }
+              ]
             }
           },
           {
@@ -480,6 +516,24 @@
             "declaration": {
               "owner": "product",
               "source": "buildchain kfd 3 register"
+            },
+            "distribution": {
+              "registrar": "buildchain-oci",
+              "tasks": [
+                "build:oci"
+              ],
+              "artifacts": [
+                {
+                  "kind": "binary",
+                  "platform": "linux/amd64",
+                  "pathGlob": "build/oci-candidate/oci/oci-layout"
+                },
+                {
+                  "kind": "binary",
+                  "platform": "linux/amd64",
+                  "pathGlob": "build/oci-candidate/oci/blobs/sha256/????????????????????????????????????????????????????????????????"
+                }
+              ]
             }
           },
           {
