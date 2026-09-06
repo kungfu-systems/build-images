@@ -20,6 +20,12 @@ def sha(data):
     return "sha256:" + hashlib.sha256(data).hexdigest()
 
 
+def validate_plan(plan):
+    for image in plan["images"]:
+        if image["platform"] not in {"linux/amd64", "linux/arm64"}:
+            raise ValueError(f'unsupported OCI plan platform: {image["platform"]}')
+
+
 def main():
     source = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
     version = json.loads((ROOT / "package.json").read_text())["version"]
@@ -34,9 +40,9 @@ def main():
     run("python3", str(ROOT / "scripts/plan-image-publish.py"), "--current-source", source,
         "--baseline-lock", str(ROOT / "images.lock.json"), "--fetch-history", "--output", str(plan_path))
     plan = json.loads(plan_path.read_text())
+    validate_plan(plan)
     descriptors, family, digests, local_refs = [], [], {}, {}
     for image in plan["images"]:
-        image["platform"] = {"linux-x64": "linux/amd64", "linux-arm64": "linux/arm64"}[image["platform"]]
         name = image["name"]
         repository = f"ghcr.io/kungfu-systems/build-images/{name}"
         local_ref = f"buildchain-candidate/{name}:{source}"

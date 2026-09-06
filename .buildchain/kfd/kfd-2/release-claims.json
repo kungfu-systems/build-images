@@ -43,7 +43,7 @@
     {
       "id": "kfd-1-contract-world-witness",
       "path": ".buildchain/kfd/kfd-1/build-images-contract-world.witness.json",
-      "sha256": "2ad834234eb7d3dd23bc34fd4bad0210d04cfb743a9e15af75b5438ce1dfc95e",
+      "sha256": "cb89bb6742f18237f9c957048ee99287e990bdc8acf5c696a5d07236f81de075",
       "contract": "kfd-1",
       "status": "passed"
     },
@@ -63,10 +63,10 @@
     }
   ],
   "hashes": {
-    "kfd1WitnessSha256": "b25542770a2c38c3b1f7b61f1116240b208bae083c02313e0940afc6660bfc02",
+    "kfd1WitnessSha256": "82f04c285c8c1d24c9a6ff48918f61cccd88ed4b6fd1240b303abd9145148726",
     "upstreamAggregateSha256": "385ee908d20c5b3efe248888a39725357aaf33db3771241f7ccc616666f10be4",
     "sourceBindingsSha256": "c7ce02842f2832295091878b2e7634e7a4a3d93fd74001c6499d36e1e4a66134",
-    "machineEvidenceSha256": "543ded17501fc641ef381e9360617d27c309c71b66f71a455b62c27dcb551a70"
+    "machineEvidenceSha256": "e3cda3e9cf4832fc3501f417ea246dd2964b434ffefbb6c564beea1e17cf5891"
   },
   "artifacts": [
     {
@@ -82,7 +82,7 @@
     {
       "id": "oci-candidate-builder",
       "path": "scripts/build-oci-candidate.py",
-      "sha256": "5bdd670479e017018d2e4d39acfa425375174735680ff336d1e641b28e1e758f"
+      "sha256": "bbe1f5e87bebebfcaf5b047c02eee7a9900c741b3675965dd69df334e8895b0d"
     },
     {
       "id": "oci-candidate-sealer",
