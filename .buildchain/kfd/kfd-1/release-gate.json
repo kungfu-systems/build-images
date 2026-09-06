@@ -106,13 +106,13 @@
       "standard": "KFD-1",
       "standardKey": "kfd-1",
       "result": "passed",
-      "preBuildWitnessSha256": "056ef2f39c03fcf006b444466908aa65e93555fb40565be5c2a0600cac38e30b",
+      "preBuildWitnessSha256": "4261d8667665edb8d978fd34b3cc89a633632fedadfd3b30fd8c228a1657aa4b",
       "sourceHashes": {
-        "sha256": "7adfa31f2c31c864df1ee1e071e8358f1ccad15e888eb9ae336e5f48c9bfa214",
+        "sha256": "d3270d7c0e8d50c165697eaa2db18aea33c985fb71d795df9048c8c13480cc51",
         "surfaceCount": 9
       },
       "artifactHashes": {
-        "sha256": "31d8b18f144a8e861c6d2707b7bfcf3c7e071e4361c37a3e2706d3bb29b2bb90",
+        "sha256": "eaa1e684f84b050edef58dcf743db4430eba10d5149db48388290e7e2ac3ed1b",
         "surfaceCount": 9
       },
       "witness": {
@@ -127,14 +127,14 @@
         },
         "contractWorld": {
           "schemaId": "https://kfd.libkungfu.dev/schemas/kfd-1/contract-world.schema.json",
-          "digest": "sha256:4d59d5626494ca86c36ed60ff8c9ec6381224f5ff5e20cd929ba2b94c4bb33c7"
+          "digest": "sha256:b8fb980ad88783d61e7daf668b78881ff330078df9b2ad3830c0ee6695bad20f"
         },
         "standardContract": {
           "id": "",
           "schemaId": "https://kfd.libkungfu.dev/schemas/kfd-1/contract-world.schema.json",
           "path": "",
           "sha256": "",
-          "digest": "sha256:4d59d5626494ca86c36ed60ff8c9ec6381224f5ff5e20cd929ba2b94c4bb33c7"
+          "digest": "sha256:b8fb980ad88783d61e7daf668b78881ff330078df9b2ad3830c0ee6695bad20f"
         },
         "selfHostingBoundary": {
           "mode": "external-contract-world",
@@ -209,9 +209,9 @@
           {
             "name": "oci-candidate-builder",
             "sourcePath": "scripts/build-oci-candidate.py",
-            "sourceSha256": "bbe1f5e87bebebfcaf5b047c02eee7a9900c741b3675965dd69df334e8895b0d",
+            "sourceSha256": "994945f422244426c66c09a5949b799933600ee8a419bead32a344d182a3bd34",
             "artifactPath": "scripts/build-oci-candidate.py",
-            "expectedSha256": "bbe1f5e87bebebfcaf5b047c02eee7a9900c741b3675965dd69df334e8895b0d",
+            "expectedSha256": "994945f422244426c66c09a5949b799933600ee8a419bead32a344d182a3bd34",
             "byteForByte": true
           },
           {
@@ -306,7 +306,7 @@
         "schemaId": "https://kfd.libkungfu.dev/schemas/kfd-1/contract-world.schema.json",
         "path": "",
         "sha256": "",
-        "digest": "sha256:4d59d5626494ca86c36ed60ff8c9ec6381224f5ff5e20cd929ba2b94c4bb33c7"
+        "digest": "sha256:b8fb980ad88783d61e7daf668b78881ff330078df9b2ad3830c0ee6695bad20f"
       },
       "selfHostingBoundary": {
         "mode": "external-contract-world",
@@ -376,8 +376,8 @@
           {
             "name": "oci-candidate-builder",
             "sourcePath": "scripts/build-oci-candidate.py",
-            "expectedSha256": "bbe1f5e87bebebfcaf5b047c02eee7a9900c741b3675965dd69df334e8895b0d",
-            "actualSha256": "bbe1f5e87bebebfcaf5b047c02eee7a9900c741b3675965dd69df334e8895b0d",
+            "expectedSha256": "994945f422244426c66c09a5949b799933600ee8a419bead32a344d182a3bd34",
+            "actualSha256": "994945f422244426c66c09a5949b799933600ee8a419bead32a344d182a3bd34",
             "status": "passed",
             "reason": ""
           },
@@ -472,10 +472,10 @@
           {
             "name": "oci-candidate-builder",
             "sourcePath": "scripts/build-oci-candidate.py",
-            "sourceSha256": "bbe1f5e87bebebfcaf5b047c02eee7a9900c741b3675965dd69df334e8895b0d",
+            "sourceSha256": "994945f422244426c66c09a5949b799933600ee8a419bead32a344d182a3bd34",
             "artifactPath": "scripts/build-oci-candidate.py",
-            "expectedSha256": "bbe1f5e87bebebfcaf5b047c02eee7a9900c741b3675965dd69df334e8895b0d",
-            "actualSha256": "bbe1f5e87bebebfcaf5b047c02eee7a9900c741b3675965dd69df334e8895b0d",
+            "expectedSha256": "994945f422244426c66c09a5949b799933600ee8a419bead32a344d182a3bd34",
+            "actualSha256": "994945f422244426c66c09a5949b799933600ee8a419bead32a344d182a3bd34",
             "byteForByte": true,
             "status": "passed",
             "reason": ""

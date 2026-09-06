@@ -7,7 +7,7 @@
   },
   "contractWorld": {
     "schemaId": "https://kfd.libkungfu.dev/schemas/kfd-1/contract-world.schema.json",
-    "digest": "sha256:4d59d5626494ca86c36ed60ff8c9ec6381224f5ff5e20cd929ba2b94c4bb33c7"
+    "digest": "sha256:b8fb980ad88783d61e7daf668b78881ff330078df9b2ad3830c0ee6695bad20f"
   },
   "canonicalPolicy": {
     "path": "docs/release-and-tags.md",
@@ -69,9 +69,9 @@
     {
       "name": "oci-candidate-builder",
       "sourcePath": "scripts/build-oci-candidate.py",
-      "sourceSha256": "bbe1f5e87bebebfcaf5b047c02eee7a9900c741b3675965dd69df334e8895b0d",
+      "sourceSha256": "994945f422244426c66c09a5949b799933600ee8a419bead32a344d182a3bd34",
       "artifactPath": "scripts/build-oci-candidate.py",
-      "expectedSha256": "bbe1f5e87bebebfcaf5b047c02eee7a9900c741b3675965dd69df334e8895b0d",
+      "expectedSha256": "994945f422244426c66c09a5949b799933600ee8a419bead32a344d182a3bd34",
       "byteForByte": true
     },
     {

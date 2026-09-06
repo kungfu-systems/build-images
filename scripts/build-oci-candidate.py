@@ -70,7 +70,6 @@ def main():
                 args += ["--build-arg", f"BASE_IMAGE={local_refs[parent]}",
                          "--label", f"io.kungfu.image.parent-digest={digests[parent]}"]
             run(*args, "-t", local_ref, str(ROOT / image["path"]))
-            transport = f"docker-daemon:{local_ref}"
             content = {"sourceSha": source, "version": version, "materialSha": source}
         else:
             raise RuntimeError(f"unsupported image action: {action}")
@@ -85,13 +84,16 @@ def main():
         smoke_path = OUTPUT / f"{name}-smoke.json"
         smoke_path.write_text(json.dumps(smoke, indent=2) + "\n")
         with tempfile.TemporaryDirectory(prefix="buildchain-image-") as scratch:
+            directory = Path(scratch) / "export"
             args = ["skopeo", "copy"]
             if action == "reused":
                 args += ["--preserve-digests"]
             else:
+                archive = Path(scratch) / "image.tar"
+                run("docker", "image", "save", "--output", str(archive), local_ref)
+                transport = f"docker-archive:{archive}"
                 args += ["--dest-compress"]
-            run(*args, transport, f"dir:{scratch}")
-            directory = Path(scratch)
+            run(*args, transport, f"dir:{directory}")
             raw = (directory / "manifest.json").read_bytes()
             document = json.loads(raw)
             digest = sha(raw)
