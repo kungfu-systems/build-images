@@ -1,0 +1,47 @@
+name: Build
+
+on:
+  pull_request:
+    branches: ["alpha/v1/v1.3"]
+  workflow_dispatch:
+    inputs:
+      buildchain-ref:
+        description: Temporary trusted runtime train
+        required: false
+        default: ""
+
+permissions:
+  actions: read
+  contents: read
+  issues: write
+  id-token: write
+
+jobs:
+  images:
+    uses: kungfu-systems/buildchain/.github/workflows/build.yml@v4-alpha
+    secrets: inherit
+    with:
+      buildchain-ref: ${{ inputs.buildchain-ref || '' }}
+      checkout-history-mode: full
+      runner-preset: custom
+      platforms-json: '[{"id":"linux-x64","name":"Linux x64","runner":"[\"ubuntu-24.04\"]"}]'
+      setup-node: true
+      node-version: "24"
+      install-command: corepack enable && pnpm install --frozen-lockfile && sudo apt-get update && sudo apt-get install -y skopeo
+      build-command: pnpm run build:oci
+      verify-command: pnpm run check
+      require-install: true
+      require-build: true
+      require-verify: true
+      lifecycle-timeout-minutes: 180
+      artifact-name: build-images
+      artifact-compression-level: 0
+      artifact-name-template: "{artifact}-{platform}-{shortSha}"
+      artifact-paths: |
+        build/oci-candidate
+        .buildchain/kfd
+        .buildchain/buildchain.toml
+        .buildchain/release-impact.json
+        package.json
+      release-candidate: true
+      publish-channel: ${{ startsWith(github.base_ref, 'alpha/') && 'alpha' || 'none' }}

@@ -41,7 +41,7 @@
       "policy": {},
       "facts": {
         "path": "docs/release-and-tags.md",
-        "sha256": "09141122e4ab8cc044cdcee2678aeec016706156aa197c794070b420ebe5e200"
+        "sha256": "b0c76ea6c44c8bf2299ed314459a12a48f7fb7ad21478ec6542f7a09e4f744bc"
       },
       "declaration": {
         "owner": "product",
@@ -62,7 +62,7 @@
       "policy": {},
       "facts": {
         "path": "docs/runner-boundary.md",
-        "sha256": "fb91b534ef1f7c4d516fd0d81be15f61619a13f8aacd58788289da7285df0eca"
+        "sha256": "adfb83355a40b8a57725fc0c49430ae3a069786db7b1a0e01b7f1159fbc88f23"
       },
       "declaration": {
         "owner": "product",
@@ -83,7 +83,7 @@
       "policy": {},
       "facts": {
         "path": "README.md",
-        "sha256": "a4fc0b80195f5ac88464da983610e32e85daab8708d868d94750430cf201e219"
+        "sha256": "55d33639b779005473488a521b06176eff4560c3fadaea6cd1af488946d8e768"
       },
       "declaration": {
         "owner": "product",

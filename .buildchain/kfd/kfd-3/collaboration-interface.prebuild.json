@@ -8,14 +8,14 @@
     "cwd": "",
     "sourceSha": "",
     "registryPath": ".buildchain/kfd/kfd-3/surfaces.json",
-    "registryDigest": "sha256:0dcef81dc424aa6d8f4bb82baa0de1f7d2826658f25837ea6e68deab77afc8e7"
+    "registryDigest": "sha256:b87f446a89a219dfb8d25852591c323a82fb5924db39c37fd984f84fc9ad7177"
   },
   "sourceRegistry": {
     "id": "Kungfu Build Images",
     "path": ".buildchain/kfd/kfd-3/surfaces.json",
-    "sha256": "7e3cee9ef60784e95273639e9f6c9437aab90a487df4ecc3e16ade95d17d3cee"
+    "sha256": "4c4fe1a2407f46392754114110b72fdcc8f5f58279840a2f4b83ae10cf346926"
   },
-  "collaborationInterfaceDigest": "sha256:896dddc0db66bee073a16afaefdeaf5e76e777f85659e08096ac8926d32585cf",
+  "collaborationInterfaceDigest": "sha256:23110a4838b7959a19a628c4e8961476a61752af3e60c04a1de1b05f076a4555",
   "collaborationInterface": {
     "schemaVersion": 1,
     "contract": "kungfu-buildchain-kfd-3-surface-registry",
@@ -59,7 +59,7 @@
         "policy": {},
         "facts": {
           "path": "docs/release-and-tags.md",
-          "sha256": "09141122e4ab8cc044cdcee2678aeec016706156aa197c794070b420ebe5e200"
+          "sha256": "b0c76ea6c44c8bf2299ed314459a12a48f7fb7ad21478ec6542f7a09e4f744bc"
         },
         "declaration": {
           "owner": "product",
@@ -81,7 +81,7 @@
         "policy": {},
         "facts": {
           "path": "docs/runner-boundary.md",
-          "sha256": "fb91b534ef1f7c4d516fd0d81be15f61619a13f8aacd58788289da7285df0eca"
+          "sha256": "adfb83355a40b8a57725fc0c49430ae3a069786db7b1a0e01b7f1159fbc88f23"
         },
         "declaration": {
           "owner": "product",
@@ -103,7 +103,7 @@
         "policy": {},
         "facts": {
           "path": "README.md",
-          "sha256": "a4fc0b80195f5ac88464da983610e32e85daab8708d868d94750430cf201e219"
+          "sha256": "55d33639b779005473488a521b06176eff4560c3fadaea6cd1af488946d8e768"
         },
         "declaration": {
           "owner": "product",
@@ -144,7 +144,7 @@
         "policy": {},
         "facts": {
           "path": "docs/release-and-tags.md",
-          "sha256": "09141122e4ab8cc044cdcee2678aeec016706156aa197c794070b420ebe5e200"
+          "sha256": "b0c76ea6c44c8bf2299ed314459a12a48f7fb7ad21478ec6542f7a09e4f744bc"
         }
       },
       {
@@ -161,7 +161,7 @@
         "policy": {},
         "facts": {
           "path": "docs/runner-boundary.md",
-          "sha256": "fb91b534ef1f7c4d516fd0d81be15f61619a13f8aacd58788289da7285df0eca"
+          "sha256": "adfb83355a40b8a57725fc0c49430ae3a069786db7b1a0e01b7f1159fbc88f23"
         }
       },
       {
@@ -178,7 +178,7 @@
         "policy": {},
         "facts": {
           "path": "README.md",
-          "sha256": "a4fc0b80195f5ac88464da983610e32e85daab8708d868d94750430cf201e219"
+          "sha256": "55d33639b779005473488a521b06176eff4560c3fadaea6cd1af488946d8e768"
         }
       }
     ],
@@ -245,7 +245,7 @@
             "policy": {},
             "facts": {
               "path": "docs/release-and-tags.md",
-              "sha256": "09141122e4ab8cc044cdcee2678aeec016706156aa197c794070b420ebe5e200"
+              "sha256": "b0c76ea6c44c8bf2299ed314459a12a48f7fb7ad21478ec6542f7a09e4f744bc"
             }
           },
           {
@@ -262,7 +262,7 @@
             "policy": {},
             "facts": {
               "path": "docs/runner-boundary.md",
-              "sha256": "fb91b534ef1f7c4d516fd0d81be15f61619a13f8aacd58788289da7285df0eca"
+              "sha256": "adfb83355a40b8a57725fc0c49430ae3a069786db7b1a0e01b7f1159fbc88f23"
             }
           },
           {
@@ -279,7 +279,7 @@
             "policy": {},
             "facts": {
               "path": "README.md",
-              "sha256": "a4fc0b80195f5ac88464da983610e32e85daab8708d868d94750430cf201e219"
+              "sha256": "55d33639b779005473488a521b06176eff4560c3fadaea6cd1af488946d8e768"
             }
           }
         ]
@@ -327,7 +327,7 @@
             "policy": {},
             "facts": {
               "path": "docs/release-and-tags.md",
-              "sha256": "09141122e4ab8cc044cdcee2678aeec016706156aa197c794070b420ebe5e200"
+              "sha256": "b0c76ea6c44c8bf2299ed314459a12a48f7fb7ad21478ec6542f7a09e4f744bc"
             },
             "declaration": {
               "owner": "product",
@@ -348,7 +348,7 @@
             "policy": {},
             "facts": {
               "path": "docs/runner-boundary.md",
-              "sha256": "fb91b534ef1f7c4d516fd0d81be15f61619a13f8aacd58788289da7285df0eca"
+              "sha256": "adfb83355a40b8a57725fc0c49430ae3a069786db7b1a0e01b7f1159fbc88f23"
             },
             "declaration": {
               "owner": "product",
@@ -369,7 +369,7 @@
             "policy": {},
             "facts": {
               "path": "README.md",
-              "sha256": "a4fc0b80195f5ac88464da983610e32e85daab8708d868d94750430cf201e219"
+              "sha256": "55d33639b779005473488a521b06176eff4560c3fadaea6cd1af488946d8e768"
             },
             "declaration": {
               "owner": "product",
@@ -422,7 +422,7 @@
             "policy": {},
             "facts": {
               "path": "docs/release-and-tags.md",
-              "sha256": "09141122e4ab8cc044cdcee2678aeec016706156aa197c794070b420ebe5e200"
+              "sha256": "b0c76ea6c44c8bf2299ed314459a12a48f7fb7ad21478ec6542f7a09e4f744bc"
             }
           },
           {
@@ -439,7 +439,7 @@
             "policy": {},
             "facts": {
               "path": "docs/runner-boundary.md",
-              "sha256": "fb91b534ef1f7c4d516fd0d81be15f61619a13f8aacd58788289da7285df0eca"
+              "sha256": "adfb83355a40b8a57725fc0c49430ae3a069786db7b1a0e01b7f1159fbc88f23"
             }
           },
           {
@@ -456,7 +456,7 @@
             "policy": {},
             "facts": {
               "path": "README.md",
-              "sha256": "a4fc0b80195f5ac88464da983610e32e85daab8708d868d94750430cf201e219"
+              "sha256": "55d33639b779005473488a521b06176eff4560c3fadaea6cd1af488946d8e768"
             }
           }
         ],
@@ -496,7 +496,7 @@
             "policy": {},
             "facts": {
               "path": "docs/release-and-tags.md",
-              "sha256": "09141122e4ab8cc044cdcee2678aeec016706156aa197c794070b420ebe5e200"
+              "sha256": "b0c76ea6c44c8bf2299ed314459a12a48f7fb7ad21478ec6542f7a09e4f744bc"
             },
             "declaration": {
               "owner": "product",
@@ -517,7 +517,7 @@
             "policy": {},
             "facts": {
               "path": "docs/runner-boundary.md",
-              "sha256": "fb91b534ef1f7c4d516fd0d81be15f61619a13f8aacd58788289da7285df0eca"
+              "sha256": "adfb83355a40b8a57725fc0c49430ae3a069786db7b1a0e01b7f1159fbc88f23"
             },
             "declaration": {
               "owner": "product",
@@ -538,7 +538,7 @@
             "policy": {},
             "facts": {
               "path": "README.md",
-              "sha256": "a4fc0b80195f5ac88464da983610e32e85daab8708d868d94750430cf201e219"
+              "sha256": "55d33639b779005473488a521b06176eff4560c3fadaea6cd1af488946d8e768"
             },
             "declaration": {
               "owner": "product",
@@ -546,11 +546,13 @@
             }
           }
         ],
-        "enforced": []
+        "enforced": [],
+        "distributionBindings": []
       },
       "comparison": {
         "detectedButUnregistered": [],
-        "declaredButMissing": []
+        "declaredButMissing": [],
+        "distributionBindings": []
       },
       "issues": []
     }

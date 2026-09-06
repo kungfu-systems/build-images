@@ -53,7 +53,7 @@ jobs:
         run: bash images/opencode-ci/tests/integration.sh
 
   buildchain:
-    uses: kungfu-systems/buildchain/.github/workflows/build.yml@v2
+    uses: kungfu-systems/buildchain/.github/workflows/build.yml@v4-alpha
     permissions:
       actions: read
       contents: read

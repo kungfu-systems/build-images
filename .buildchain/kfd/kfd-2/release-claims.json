@@ -6,7 +6,7 @@
     {
       "id": "readme",
       "path": "README.md",
-      "sha256": "a4fc0b80195f5ac88464da983610e32e85daab8708d868d94750430cf201e219"
+      "sha256": "55d33639b779005473488a521b06176eff4560c3fadaea6cd1af488946d8e768"
     },
     {
       "id": "image-contract",
@@ -16,7 +16,7 @@
     {
       "id": "release-and-tags",
       "path": "docs/release-and-tags.md",
-      "sha256": "09141122e4ab8cc044cdcee2678aeec016706156aa197c794070b420ebe5e200"
+      "sha256": "b0c76ea6c44c8bf2299ed314459a12a48f7fb7ad21478ec6542f7a09e4f744bc"
     },
     {
       "id": "image-lock",
@@ -26,47 +26,47 @@
     {
       "id": "buildchain-config",
       "path": ".buildchain/buildchain.toml",
-      "sha256": "4fafeffe319a23b6771c35ef133eb9ac9cde7750c0cca33059499d66c072cfa7"
+      "sha256": "ba57d0b82c87bf5542de205caac9b057d33b9f3a2f48c0b55ec736126b897eaa"
     },
     {
       "id": "alpha-contract-lock",
       "path": ".buildchain/alpha-contract-lock.json",
-      "sha256": "a0c38f2f18cd5d8860e2cb86e7d75d120859996f9503033b067c42f19f57d420"
+      "sha256": "0f8616f04a94c9156f113c36def49ee1fb6452adf155a871520ab10c3627cb3e"
     },
     {
       "id": "stable-contract-lock",
       "path": ".buildchain/contract-lock.json",
-      "sha256": "6858b98da190935c507433d97df31f60f981aec75746b578a2af519f81495833"
+      "sha256": "8b1852b1463bb56a124897f126aab4dc63075fe6453e17f254844b9646148e4d"
     }
   ],
   "machineEvidence": [
     {
       "id": "kfd-1-contract-world-witness",
       "path": ".buildchain/kfd/kfd-1/build-images-contract-world.witness.json",
-      "sha256": "a11a4a1ee761416d8ed6f8a162ae67f0c7ee17adc84ce2eb406f15728e5266cb",
+      "sha256": "c562d288267858bdafe3eb1bd112ab19982ea83e0395eabed17295c20c517994",
       "contract": "kfd-1",
       "status": "passed"
     },
     {
       "id": "kfd-upstream-aggregate",
       "path": ".buildchain/kfd/kfd-2/kfd-upstream-aggregate.json",
-      "sha256": "18b3c39bc2f384831ffbb4f993698235add6af61d5d3aa158cea568a5135e0ad",
+      "sha256": "a7687344ccacfd526ed64ea670920f1a4b8b22c9e46eae5b7093a544530f45d0",
       "contract": "kungfu-buildchain-kfd-upstream-aggregate",
       "status": "passed"
     },
     {
       "id": "kfd-3-surface-registry",
       "path": ".buildchain/kfd/kfd-3/surfaces.json",
-      "sha256": "7e3cee9ef60784e95273639e9f6c9437aab90a487df4ecc3e16ade95d17d3cee",
+      "sha256": "4c4fe1a2407f46392754114110b72fdcc8f5f58279840a2f4b83ae10cf346926",
       "contract": "kungfu-buildchain-kfd-3-surface-registry",
       "status": "passed"
     }
   ],
   "hashes": {
-    "kfd1WitnessSha256": "81c51cb1f16a57b46a9ea698854867ef6964273f157e1aa57a69e95e5b028c35",
-    "upstreamAggregateSha256": "ed66976ace03e2492ba4cadcd9d1caf25db32b5634957dee9bcae3582b8dfcdd",
-    "sourceBindingsSha256": "2285d70ac1bc0d45f3ddbb718d875fb05dc177c11a2a3dd06e7035b11011033d",
-    "machineEvidenceSha256": "0d0869ced65eeb4a49c627d73aeb8a10daf96806e4c3a5fd87ce8eb3a168c42c"
+    "kfd1WitnessSha256": "89c773fbee718ea46ea1515c0dfbc79bb268babec4135bf801d1300dad1dc338",
+    "upstreamAggregateSha256": "f1a74f1bf6d862b0ca8302e40c5225a942ff4a461b046ca02ee70314cfe05bfe",
+    "sourceBindingsSha256": "a8ac58376beb4ed78b2216e290b04fc2c2f22a1984d8a6edcd22e8d87be3b040",
+    "machineEvidenceSha256": "2b8e5c17cdee85ff3301d7f8e7c4a7887a5204107ba255eda884fcecbe0226b2"
   },
   "artifacts": [
     {
@@ -78,6 +78,21 @@
       "id": "publish-evidence-writer",
       "path": "scripts/write-publish-evidence.py",
       "sha256": "5a83822e234e8e7bf453b5e4a40b3c621e3f401b9ef956fda353cccfcee48272"
+    },
+    {
+      "id": "oci-candidate-builder",
+      "path": "scripts/build-oci-candidate.py",
+      "sha256": "5bdd670479e017018d2e4d39acfa425375174735680ff336d1e641b28e1e758f"
+    },
+    {
+      "id": "oci-candidate-sealer",
+      "path": "scripts/seal-oci-candidate.mjs",
+      "sha256": "5789e9067d709c57283475d11a77b53d92d287f5ede3a610f68f9afb9a5ad53f"
+    },
+    {
+      "id": "oci-evidence-projection",
+      "path": "scripts/project-oci-evidence.py",
+      "sha256": "526eb50b1fcf72412b8e1a098ff4a2ea22f5465ecb175f27ccd12942a5411173"
     }
   ],
   "verification": {
@@ -86,7 +101,7 @@
   },
   "auditBoundary": {
     "mode": "machine-bound-release-contract",
-    "scope": "Build Images repository config, declared public surfaces, image lock, alpha/stable Buildchain runtime contract locks, and publish evidence writer."
+    "scope": "Build Images repository config, declared public surfaces, image lock, alpha/stable Buildchain runtime contract locks, OCI candidate construction and sealing, and publication evidence projection."
   },
   "responsibility": {
     "owner": "Kungfu Build Images maintainers",

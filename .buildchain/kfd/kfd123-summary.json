@@ -4,18 +4,18 @@
   "status": "passed",
   "buildchain": {
     "configPath": ".buildchain/buildchain.toml",
-    "alphaContractLockRef": "v2-alpha",
+    "alphaContractLockRef": "v4-alpha",
     "alphaContractLockStatus": "unchanged",
     "alphaContractDrift": false,
-    "alphaContractDigest": "sha256:9d5bef7245674767352cc2746d507d556a11d685502120c00176f1a15bade2ba",
-    "stableContractLockRef": "v2",
+    "alphaContractDigest": "sha256:70f8351149acd14eaa4a3d49d64f2da41588a3bfef22a5f898ff828e1cf53f6a",
+    "stableContractLockRef": "v4",
     "stableContractLockStatus": "unchanged",
     "stableContractDrift": false,
-    "stableContractDigest": "sha256:81c0ed79269d4b0c2f94c11cc316069db7b4264814f3170b3877a9f960ac0320"
+    "stableContractDigest": "sha256:766fa56a71450d75897ca1040098b5acce8851cb3f1ab76dadc7abc2364bd763"
   },
   "kfd1": {
     "witness": ".buildchain/kfd/kfd-1/build-images-contract-world.witness.json",
-    "surfaceCount": 6
+    "surfaceCount": 9
   },
   "kfd2": {
     "claim": ".buildchain/kfd/kfd-2/release-claims.json",
