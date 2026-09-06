@@ -19,6 +19,24 @@ on:
         description: Inspect the promotion without publishing
         required: true
         default: "true"
+      resume-candidate-run-id:
+        description: Original successful Build run; required for manual recovery apply
+        default: ""
+      resume-expected-source-tree:
+        description: Exact source tree from the original candidate Passport
+        default: ""
+      resume-expected-candidate-root:
+        description: Optional original candidate root for an additional identity check
+        default: ""
+      resume-expected-candidate-runtime-sha:
+        description: Exact runtime recorded by the original candidate
+        default: ""
+      resume-buildchain-runtime-sha:
+        description: Exact approved repair runtime, used only for this recovery attempt
+        default: ""
+      resume-transaction-id:
+        description: Optional existing durable transaction identity
+        default: ""
 
 permissions:
   actions: write
@@ -37,23 +55,23 @@ concurrency:
 
 jobs:
   reject-manual-apply:
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs['dry-run'] != 'true' }}
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs['dry-run'] != 'true' && inputs['resume-candidate-run-id'] == '' }}
     runs-on: ubuntu-24.04
     steps:
       - run: |
-          echo "::error::Publication requires a successful protected alpha Verify push."
+          echo "::error::Fresh publication requires a successful protected alpha Verify push; manual apply requires a verified original candidate run."
           exit 1
 
   promote:
     if: >-
-      ${{ (github.event_name == 'workflow_dispatch' && inputs['dry-run'] == 'true') ||
+      ${{ (github.event_name == 'workflow_dispatch' && (inputs['dry-run'] == 'true' || inputs['resume-candidate-run-id'] != '')) ||
           (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push') }}
     uses: kungfu-systems/buildchain/.github/workflows/release-candidate-promote.yml@v4-alpha
     secrets:
       BUILDCHAIN_PROMOTION_TOKEN: ${{ secrets.BUILDCHAIN_PROMOTION_TOKEN }}
       KUNGFU_GOVERNANCE_AUDITOR_APP_PRIVATE_KEY: ${{ secrets.KUNGFU_GOVERNANCE_AUDITOR_APP_PRIVATE_KEY }}
     with:
-      buildchain-ref: v4-alpha
+      buildchain-ref: ${{ inputs['resume-buildchain-runtime-sha'] || 'v4-alpha' }}
       buildchain-contract-lock-path: .buildchain/alpha-contract-lock.json
       target-ref: ${{ github.event.workflow_run.head_branch || inputs['target-ref'] }}
       target-sha: ${{ github.event.workflow_run.head_sha || inputs.sha || github.sha }}
@@ -62,6 +80,16 @@ jobs:
       artifact-patterns: build-images-linux-x64-*
       release-candidate-workflow-file: build.yml
       release-candidate-workflow-name: Build
+      resume-candidate-repository: ${{ inputs['resume-candidate-run-id'] != '' && github.repository || '' }}
+      resume-candidate-run-id: ${{ inputs['resume-candidate-run-id'] || '' }}
+      resume-expected-workflow-file: build.yml
+      resume-expected-workflow-name: Build
+      resume-expected-source-tree: ${{ inputs['resume-expected-source-tree'] || '' }}
+      resume-expected-candidate-root: ${{ inputs['resume-expected-candidate-root'] || '' }}
+      resume-expected-candidate-runtime-sha: ${{ inputs['resume-expected-candidate-runtime-sha'] || '' }}
+      resume-buildchain-runtime-sha: ${{ inputs['resume-buildchain-runtime-sha'] || '' }}
+      resume-transaction-id: ${{ inputs['resume-transaction-id'] || '' }}
+      publish-transaction-override: ${{ inputs['resume-candidate-run-id'] != '' }}
       required-status-check: check
       required-artifact-count: 1
       publish-artifact-kind: oci
@@ -85,4 +113,4 @@ jobs:
         oci-family.json
         *-smoke.json
         image-publish-plan.json
-      dry-run: ${{ github.event_name == 'workflow_dispatch' }}
+      dry-run: ${{ github.event_name == 'workflow_dispatch' && inputs['dry-run'] != 'false' }}

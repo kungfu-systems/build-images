@@ -59,7 +59,7 @@
       "policy": {},
       "facts": {
         "path": "docs/release-and-tags.md",
-        "sha256": "6dce3801fcf55fe541b06676b398b5afdcd618e87f57e8529a177068a3579a2a"
+        "sha256": "cb3a90b981711f7f10eb9ea399f00a831283fe8f83e6c7994168a7a96aae4d03"
       },
       "declaration": {
         "owner": "product",
