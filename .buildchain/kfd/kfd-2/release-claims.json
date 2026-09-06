@@ -16,7 +16,7 @@
     {
       "id": "release-and-tags",
       "path": "docs/release-and-tags.md",
-      "sha256": "6dce3801fcf55fe541b06676b398b5afdcd618e87f57e8529a177068a3579a2a"
+      "sha256": "cb3a90b981711f7f10eb9ea399f00a831283fe8f83e6c7994168a7a96aae4d03"
     },
     {
       "id": "image-lock",
@@ -31,7 +31,7 @@
     {
       "id": "alpha-contract-lock",
       "path": ".buildchain/alpha-contract-lock.json",
-      "sha256": "e2cf55bdc348c06048832d7eeccf209ea958b93ad7673a1cbc3c91df7c5ed35c"
+      "sha256": "3046f223a41a15ad7d962f18111e3c1cec61269ead21cfcc6745b4d32bd0e791"
     },
     {
       "id": "stable-contract-lock",
@@ -43,30 +43,30 @@
     {
       "id": "kfd-1-contract-world-witness",
       "path": ".buildchain/kfd/kfd-1/build-images-contract-world.witness.json",
-      "sha256": "271309fe911ab60ddea0d9245208fe2cf914d26853e7ea0cdf297183a7524505",
+      "sha256": "8ae95e4d9f7bc9289860c74b1fa70015610aacd698cdf33e7b9ba5e93a55d119",
       "contract": "kfd-1",
       "status": "passed"
     },
     {
       "id": "kfd-upstream-aggregate",
       "path": ".buildchain/kfd/kfd-2/kfd-upstream-aggregate.json",
-      "sha256": "5bec5ee632deb654755ecde3ee62f0a47b7245a447913f0610650c80e36ce1e5",
+      "sha256": "d35a636948679c99043b7cfe2ed403af5ad72d3e2d3ba275f7aba22c29440504",
       "contract": "kungfu-buildchain-kfd-upstream-aggregate",
       "status": "passed"
     },
     {
       "id": "kfd-3-surface-registry",
       "path": ".buildchain/kfd/kfd-3/surfaces.json",
-      "sha256": "41361f979138ed9472c7f9e610ab3cf7fbbb8331571e7b6129202e088abd791d",
+      "sha256": "4bb79ae4377b96cceb90d5768127da7bfdc8bcd6db611ce35db7aa4e4d0242d5",
       "contract": "kungfu-buildchain-kfd-3-surface-registry",
       "status": "passed"
     }
   ],
   "hashes": {
-    "kfd1WitnessSha256": "a3c3355380e693f6c8c3920a623a742a4d6e686116140d20b3016930007df5b6",
-    "upstreamAggregateSha256": "385ee908d20c5b3efe248888a39725357aaf33db3771241f7ccc616666f10be4",
-    "sourceBindingsSha256": "c7ce02842f2832295091878b2e7634e7a4a3d93fd74001c6499d36e1e4a66134",
-    "machineEvidenceSha256": "0ec4eafb5fc94ba6608c7004636a8b96ce19b460eb30200e13f33ba45bb3e64b"
+    "kfd1WitnessSha256": "d0b4ab06eb353617e6406a2d47348c0205a1ba970a3e9bf5a3b92a2e0e28069d",
+    "upstreamAggregateSha256": "a171ebdaad7a4a58a8206e4a5d0416e4d857007cfac8f5adc648ccc1b315082a",
+    "sourceBindingsSha256": "5be2d01881510a5dc5cdd68e27cbdeafbdbfb37e3a3f4a6a414280cb4d4e2b6b",
+    "machineEvidenceSha256": "27935d7ba2302910c2fbf0d1f9407c2bcc4f6e37a310ab41d0b00e80f024bcaa"
   },
   "artifacts": [
     {

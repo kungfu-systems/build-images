@@ -8,11 +8,11 @@ confidence: high
 sensitivity: public
 evidence_grade: B
 review_state: unreviewed
-last_reviewed: 2026-09-06
+last_reviewed: 2026-09-07
 ai_provenance:
   model_family: GPT-6
   product: Codex
-  generated_at: 2026-09-06
+  generated_at: 2026-09-07
   invisible_context_boundary: Describes tracked publication contracts; does not assert a completed release.
 ---
 
@@ -52,11 +52,32 @@ After protected alpha Verify succeeds, the built-in v4 OCI provider checks the
 complete family, publishes only missing exact tags, and anonymously reads back
 every digest. A conflicting tag fails closed. Only complete public readback
 allows release Git refs and GitHub Release evidence to converge. No consumer
-publish shell hook is configured. Manual promotion is dry-run only.
+publish shell hook is configured. Fresh manual promotion is dry-run only.
 
 The promotion caller explicitly grants `packages: write`; candidate builds do
 not. Existing GHCR packages must allow repository-token writes and public pulls.
 The provider records public readback without changing package visibility.
+
+## Recover a qualified candidate
+
+The same promotion caller supports the public Buildchain candidate-run recovery
+contract. Supply the original successful `Build` run, its source tree and runtime,
+the exact protected alpha target SHA, and the approved repair runtime SHA as
+dispatch inputs. The optional candidate root adds another identity check; an
+optional transaction ID must identify an already durable transaction.
+
+Start with `dry-run=true`. After the recovery proof passes, repeat the same inputs
+with `dry-run=false`. Manual apply without an original candidate run remains
+rejected. Buildchain independently verifies the merged PR, target ancestry,
+workflow identity, Passport, archive digests and every payload byte before
+publication. Missing or inconsistent recovery inputs fail before mutation.
+
+The repair runtime is transient run data. Tracked callers remain on `@v4-alpha`
+with dual public channel locks, and the original candidate's runtime and content
+identity remain unchanged. Recovery reuses the sealed OCI layouts and smoke
+evidence; it may regenerate only publication and Buildchain-owned evidence.
+Complete anonymous digest readback is still required before accepting a new
+`images.lock.json`.
 
 ## Exact Tags
 
