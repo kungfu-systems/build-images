@@ -15,7 +15,7 @@
   },
   "registry": {
     "path": ".buildchain/kfd/kfd-3/surfaces.json",
-    "sha256": "22185b3dc1fb31e218df9e107f1b17af16f9bb9e37a7013ecc7239fb22b450a5"
+    "sha256": "41361f979138ed9472c7f9e610ab3cf7fbbb8331571e7b6129202e088abd791d"
   },
   "surfaces": [
     {

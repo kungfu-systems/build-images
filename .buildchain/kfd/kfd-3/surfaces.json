@@ -25,6 +25,24 @@
       "declaration": {
         "owner": "product",
         "source": "buildchain kfd 3 register"
+      },
+      "distribution": {
+        "registrar": "buildchain-oci",
+        "tasks": [
+          "build:oci"
+        ],
+        "artifacts": [
+          {
+            "kind": "binary",
+            "platform": "linux/amd64",
+            "pathGlob": "build/oci-candidate/oci/oci-layout"
+          },
+          {
+            "kind": "binary",
+            "platform": "linux/amd64",
+            "pathGlob": "build/oci-candidate/oci/blobs/sha256/????????????????????????????????????????????????????????????????"
+          }
+        ]
       }
     },
     {
