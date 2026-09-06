@@ -3,7 +3,7 @@
   "contract": "kungfu-buildchain-dev-delivery-warrant-queue",
   "repository": "kungfu-systems/build-images",
   "protectedBase": "dev/v1/v1.3",
-  "generation": 7,
+  "generation": 8,
   "fencingCounter": 2,
   "policy": {
     "agingSeconds": 900,
@@ -149,8 +149,46 @@
         "pnpm-lock.yaml"
       ],
       "shardEvidenceRoots": []
+    },
+    {
+      "repository": "kungfu-systems/build-images",
+      "protectedBase": "dev/v1/v1.3",
+      "pullRequestNumber": 371,
+      "sourceRoot": "sha256:3e5ce13d6a091baa232581c6f1c1d1151ca52b4262be96f152a62d8b25ed29b6",
+      "sourceIdentityRoot": "sha256:2b9bd2c5c54fa387921d516782b6e656c1a007a1dfab314ff15bab69d1938e34",
+      "deliveryClass": "non-native-fast",
+      "candidateId": "sha256:45c93eb81e01ea2bf6af15ea5c6b66d4c4b130b5f1a030f8461498372f923e15",
+      "sourceHead": "594a168063907384b502ffcfc16f7291746d6b7a",
+      "sourcePatchRoot": "sha256:7bdb023c9caf2907319898d5648d97837d5aab0cfd097c8461511c870e587969",
+      "sourceProofRoot": "sha256:d454c912804c6c3878882174b70bbf2483987e62c51217f5a181b741ff4912df",
+      "planRoot": "sha256:5ea1acb9c1fa406877e286573a0826591e85ac8e0bb9a18e07fbd973681c7bb6",
+      "closureRoot": "sha256:c19a00d25876ebfffdd269f983ac9a4711a4d44e2c176d748453b8ed070b5f9c",
+      "dependencyRoot": "sha256:4fa26c1295c249b5bd8206b1b3da2cc59e4bc72c14f713b791e30c4e23f1305a",
+      "toolchainRoot": "sha256:0414258db187cf3aa22fb11fda13b8bd7f58148091f462f891350cade9a51693",
+      "sourceWorkflowRunId": 34049288144,
+      "priority": "ordinary",
+      "enqueuedAt": "2026-09-06T17:54:57.845Z",
+      "updatedAt": "2026-09-06T17:54:57.845Z",
+      "attempts": 1,
+      "recoveries": 0,
+      "status": "queued",
+      "terminal": null,
+      "affectedPaths": [
+        ".buildchain/kfd/kfd-1/build-images-contract-world.witness.json",
+        ".buildchain/kfd/kfd-1/release-gate.json",
+        ".buildchain/kfd/kfd-2/release-claims.json",
+        ".buildchain/kfd/kfd-3/collaboration-interface.artifact.json",
+        ".buildchain/kfd/kfd-3/collaboration-interface.prebuild.json",
+        ".buildchain/kfd/kfd-3/release-gate.json",
+        ".buildchain/kfd/kfd-3/surfaces.json",
+        "package.json",
+        "scripts/build-oci-candidate.py",
+        "scripts/test-oci-candidate-plan.py",
+        "scripts/test-oci-surface-boundary.mjs"
+      ],
+      "shardEvidenceRoots": []
     }
   ],
-  "updatedAt": "2026-09-06T16:59:32.651Z",
-  "stateRoot": "sha256:a0edad8e5a5cbf6b76d72db8093a8501a680b7f29315b1476098a509b6092ecb"
+  "updatedAt": "2026-09-06T17:54:57.845Z",
+  "stateRoot": "sha256:cc53bd4f03095a2c01fbbf2755776a2193af316d12ca915a3b8f558ff3538bdd"
 }
