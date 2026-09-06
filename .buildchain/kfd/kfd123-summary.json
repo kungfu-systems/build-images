@@ -7,11 +7,11 @@
     "alphaContractLockRef": "v4-alpha",
     "alphaContractLockStatus": "unchanged",
     "alphaContractDrift": false,
-    "alphaContractDigest": "sha256:70f8351149acd14eaa4a3d49d64f2da41588a3bfef22a5f898ff828e1cf53f6a",
+    "alphaContractDigest": "sha256:68f2ed0bc5c8d331b906971449a072870308bfd92ee26081cbf6f5a617f46850",
     "stableContractLockRef": "v4",
     "stableContractLockStatus": "unchanged",
     "stableContractDrift": false,
-    "stableContractDigest": "sha256:766fa56a71450d75897ca1040098b5acce8851cb3f1ab76dadc7abc2364bd763"
+    "stableContractDigest": "sha256:3ff4d0a46c909ad17c7c91718c5440580e0a43e137a8b7fec767ca5e23b70768"
   },
   "kfd1": {
     "witness": ".buildchain/kfd/kfd-1/build-images-contract-world.witness.json",
