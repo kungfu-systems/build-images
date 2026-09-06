@@ -3,7 +3,7 @@
   "contract": "kungfu-buildchain-dev-delivery-warrant-queue",
   "repository": "kungfu-systems/build-images",
   "protectedBase": "dev/v1/v1.3",
-  "generation": 9,
+  "generation": 10,
   "fencingCounter": 3,
   "policy": {
     "agingSeconds": 900,
@@ -12,45 +12,7 @@
     "emergencyPolicy": "reviewed-explicit-only",
     "minimumWriterProtocolRoot": "sha256:54a203cadf0b14d4e3c198a3cc3c177c42813aa1c0cca03e900df714b6ae5563"
   },
-  "activeWarrant": {
-    "schema": "kungfu.buildchain.dev-delivery-warrant/v1",
-    "repository": "kungfu-systems/build-images",
-    "protectedBase": "dev/v1/v1.3",
-    "candidateId": "sha256:45c93eb81e01ea2bf6af15ea5c6b66d4c4b130b5f1a030f8461498372f923e15",
-    "pullRequestNumber": 371,
-    "sourceHead": "594a168063907384b502ffcfc16f7291746d6b7a",
-    "sourceRoot": "sha256:3e5ce13d6a091baa232581c6f1c1d1151ca52b4262be96f152a62d8b25ed29b6",
-    "sourceIdentityRoot": "sha256:2b9bd2c5c54fa387921d516782b6e656c1a007a1dfab314ff15bab69d1938e34",
-    "sourcePatchRoot": "sha256:7bdb023c9caf2907319898d5648d97837d5aab0cfd097c8461511c870e587969",
-    "sourceProofRoot": "sha256:d454c912804c6c3878882174b70bbf2483987e62c51217f5a181b741ff4912df",
-    "planRoot": "sha256:5ea1acb9c1fa406877e286573a0826591e85ac8e0bb9a18e07fbd973681c7bb6",
-    "closureRoot": "sha256:c19a00d25876ebfffdd269f983ac9a4711a4d44e2c176d748453b8ed070b5f9c",
-    "dependencyRoot": "sha256:4fa26c1295c249b5bd8206b1b3da2cc59e4bc72c14f713b791e30c4e23f1305a",
-    "toolchainRoot": "sha256:0414258db187cf3aa22fb11fda13b8bd7f58148091f462f891350cade9a51693",
-    "affectedPaths": [
-      ".buildchain/kfd/kfd-1/build-images-contract-world.witness.json",
-      ".buildchain/kfd/kfd-1/release-gate.json",
-      ".buildchain/kfd/kfd-2/release-claims.json",
-      ".buildchain/kfd/kfd-3/collaboration-interface.artifact.json",
-      ".buildchain/kfd/kfd-3/collaboration-interface.prebuild.json",
-      ".buildchain/kfd/kfd-3/release-gate.json",
-      ".buildchain/kfd/kfd-3/surfaces.json",
-      "package.json",
-      "scripts/build-oci-candidate.py",
-      "scripts/test-oci-candidate-plan.py",
-      "scripts/test-oci-surface-boundary.mjs"
-    ],
-    "shardEvidenceRoots": [],
-    "sourceWorkflowRunId": 34049288144,
-    "deliveryClass": "non-native-fast",
-    "priority": "ordinary",
-    "generation": 3,
-    "expectedOldStateRoot": "sha256:cc53bd4f03095a2c01fbbf2755776a2193af316d12ca915a3b8f558ff3538bdd",
-    "issuedAt": "2026-09-06T17:55:00.943Z",
-    "expiresAt": "2026-09-06T18:55:00.943Z",
-    "fencingToken": "sha256:c1a5724f8d39266569ab64f1b6264f180c45f3964d63b8689ef74b10758fcbab",
-    "nextAction": "Replay on the exact current dev base, prove required checks, then enqueue the unchanged PR head."
-  },
+  "activeWarrant": null,
   "candidates": [
     {
       "repository": "kungfu-systems/build-images",
@@ -206,11 +168,19 @@
       "sourceWorkflowRunId": 34049288144,
       "priority": "ordinary",
       "enqueuedAt": "2026-09-06T17:54:57.845Z",
-      "updatedAt": "2026-09-06T17:55:00.943Z",
+      "updatedAt": "2026-09-06T17:56:59.019Z",
       "attempts": 1,
       "recoveries": 0,
-      "status": "selected",
-      "terminal": null,
+      "status": "merged",
+      "terminal": {
+        "outcome": "merged",
+        "reason": "Verified protected merge 335a8c4 and successful hosted delivery run 34050055235",
+        "evidenceRoot": "sha256:ab39068415947a6eac1014dcb96f4b9b13d1325fd0c8a612fbeef09a1cc9faa2",
+        "closedAt": "2026-09-06T17:56:59.019Z",
+        "fencingToken": "sha256:c1a5724f8d39266569ab64f1b6264f180c45f3964d63b8689ef74b10758fcbab",
+        "leaseGeneration": 3,
+        "successorWake": null
+      },
       "affectedPaths": [
         ".buildchain/kfd/kfd-1/build-images-contract-world.witness.json",
         ".buildchain/kfd/kfd-1/release-gate.json",
@@ -227,6 +197,6 @@
       "shardEvidenceRoots": []
     }
   ],
-  "updatedAt": "2026-09-06T17:55:00.943Z",
-  "stateRoot": "sha256:a3d8c424a675815450ed8400b3b2d4bee9732243fa88dcf5265ddb90fc1912d4"
+  "updatedAt": "2026-09-06T17:56:59.019Z",
+  "stateRoot": "sha256:808671dd1f084f844e0cff97a5659a1b79d3515e89ed25711535b77535ffa2d6"
 }
