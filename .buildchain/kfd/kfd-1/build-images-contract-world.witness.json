@@ -7,15 +7,15 @@
   },
   "contractWorld": {
     "schemaId": "https://kfd.libkungfu.dev/schemas/kfd-1/contract-world.schema.json",
-    "digest": "sha256:b81487ea72c27ef201f8dc6fc3290c11e6bd67cbbf152e8270e46c5d77601dc1"
+    "digest": "sha256:d0e692c34c89f60640b2149b961357c62d976ed318fba4ad4abff8521523af31"
   },
   "canonicalPolicy": {
     "path": "docs/release-and-tags.md",
-    "sha256": "cb3a90b981711f7f10eb9ea399f00a831283fe8f83e6c7994168a7a96aae4d03"
+    "sha256": "edb466dc1bf0b61d8f3bb155f142c8b1e4fbb2ecf81a56bceb363e459cf0108e"
   },
   "registry": {
     "path": ".buildchain/kfd/kfd-3/surfaces.json",
-    "sha256": "4bb79ae4377b96cceb90d5768127da7bfdc8bcd6db611ce35db7aa4e4d0242d5"
+    "sha256": "3b587efcb8be71bba5e3acf2f465ec49ddf7e951b9e8d166193d1edf3a0ce179"
   },
   "surfaces": [
     {
@@ -37,9 +37,9 @@
     {
       "name": "release-and-tags",
       "sourcePath": "docs/release-and-tags.md",
-      "sourceSha256": "cb3a90b981711f7f10eb9ea399f00a831283fe8f83e6c7994168a7a96aae4d03",
+      "sourceSha256": "edb466dc1bf0b61d8f3bb155f142c8b1e4fbb2ecf81a56bceb363e459cf0108e",
       "artifactPath": "docs/release-and-tags.md",
-      "expectedSha256": "cb3a90b981711f7f10eb9ea399f00a831283fe8f83e6c7994168a7a96aae4d03",
+      "expectedSha256": "edb466dc1bf0b61d8f3bb155f142c8b1e4fbb2ecf81a56bceb363e459cf0108e",
       "byteForByte": true
     },
     {
@@ -53,9 +53,9 @@
     {
       "name": "image-lock",
       "sourcePath": "images.lock.json",
-      "sourceSha256": "e497fdc11be4457f35deb8a44a6708a68e5b6d4174df73f1b7cda204aedb31df",
+      "sourceSha256": "026edc6b2d27fbb964f017ffe5adc6bd4a4d17c8a83d223e7ca1bee56a1dce99",
       "artifactPath": "images.lock.json",
-      "expectedSha256": "e497fdc11be4457f35deb8a44a6708a68e5b6d4174df73f1b7cda204aedb31df",
+      "expectedSha256": "026edc6b2d27fbb964f017ffe5adc6bd4a4d17c8a83d223e7ca1bee56a1dce99",
       "byteForByte": true
     },
     {

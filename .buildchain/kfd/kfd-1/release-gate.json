@@ -106,13 +106,13 @@
       "standard": "KFD-1",
       "standardKey": "kfd-1",
       "result": "passed",
-      "preBuildWitnessSha256": "0526509668f02b0d5f796489ca365e6e19712cbb6c8f8c30ad21b82a942d611b",
+      "preBuildWitnessSha256": "18e0897d9fb3e79cc760e7a74c73c045fdef4087008fec766beccfdefcad1a1a",
       "sourceHashes": {
-        "sha256": "63cc5c4e2a3862379bdef29c7cf6a783ad57da92a679644af6dfbcd7a5ff6fa1",
+        "sha256": "73606b84e7d28fa16b20e58ab5e29fe40456484107f2904909a9435a2a157f7a",
         "surfaceCount": 9
       },
       "artifactHashes": {
-        "sha256": "b88a8bc6359762e7c93550b77f4bf8eeb5b31358ef29ffe60b9c6af03f871aaa",
+        "sha256": "69dda3329fb24a0c255753f189484d983cdc87043f1da5f2035f7411bd8219e2",
         "surfaceCount": 9
       },
       "witness": {
@@ -127,14 +127,14 @@
         },
         "contractWorld": {
           "schemaId": "https://kfd.libkungfu.dev/schemas/kfd-1/contract-world.schema.json",
-          "digest": "sha256:b81487ea72c27ef201f8dc6fc3290c11e6bd67cbbf152e8270e46c5d77601dc1"
+          "digest": "sha256:d0e692c34c89f60640b2149b961357c62d976ed318fba4ad4abff8521523af31"
         },
         "standardContract": {
           "id": "",
           "schemaId": "https://kfd.libkungfu.dev/schemas/kfd-1/contract-world.schema.json",
           "path": "",
           "sha256": "",
-          "digest": "sha256:b81487ea72c27ef201f8dc6fc3290c11e6bd67cbbf152e8270e46c5d77601dc1"
+          "digest": "sha256:d0e692c34c89f60640b2149b961357c62d976ed318fba4ad4abff8521523af31"
         },
         "selfHostingBoundary": {
           "mode": "external-contract-world",
@@ -151,11 +151,11 @@
         "sourceVerificationRequired": false,
         "canonicalPolicy": {
           "path": "docs/release-and-tags.md",
-          "sha256": "cb3a90b981711f7f10eb9ea399f00a831283fe8f83e6c7994168a7a96aae4d03"
+          "sha256": "edb466dc1bf0b61d8f3bb155f142c8b1e4fbb2ecf81a56bceb363e459cf0108e"
         },
         "registry": {
           "path": ".buildchain/kfd/kfd-3/surfaces.json",
-          "sha256": "4bb79ae4377b96cceb90d5768127da7bfdc8bcd6db611ce35db7aa4e4d0242d5"
+          "sha256": "3b587efcb8be71bba5e3acf2f465ec49ddf7e951b9e8d166193d1edf3a0ce179"
         },
         "surfaces": [
           {
@@ -177,9 +177,9 @@
           {
             "name": "release-and-tags",
             "sourcePath": "docs/release-and-tags.md",
-            "sourceSha256": "cb3a90b981711f7f10eb9ea399f00a831283fe8f83e6c7994168a7a96aae4d03",
+            "sourceSha256": "edb466dc1bf0b61d8f3bb155f142c8b1e4fbb2ecf81a56bceb363e459cf0108e",
             "artifactPath": "docs/release-and-tags.md",
-            "expectedSha256": "cb3a90b981711f7f10eb9ea399f00a831283fe8f83e6c7994168a7a96aae4d03",
+            "expectedSha256": "edb466dc1bf0b61d8f3bb155f142c8b1e4fbb2ecf81a56bceb363e459cf0108e",
             "byteForByte": true
           },
           {
@@ -193,9 +193,9 @@
           {
             "name": "image-lock",
             "sourcePath": "images.lock.json",
-            "sourceSha256": "e497fdc11be4457f35deb8a44a6708a68e5b6d4174df73f1b7cda204aedb31df",
+            "sourceSha256": "026edc6b2d27fbb964f017ffe5adc6bd4a4d17c8a83d223e7ca1bee56a1dce99",
             "artifactPath": "images.lock.json",
-            "expectedSha256": "e497fdc11be4457f35deb8a44a6708a68e5b6d4174df73f1b7cda204aedb31df",
+            "expectedSha256": "026edc6b2d27fbb964f017ffe5adc6bd4a4d17c8a83d223e7ca1bee56a1dce99",
             "byteForByte": true
           },
           {
@@ -306,7 +306,7 @@
         "schemaId": "https://kfd.libkungfu.dev/schemas/kfd-1/contract-world.schema.json",
         "path": "",
         "sha256": "",
-        "digest": "sha256:b81487ea72c27ef201f8dc6fc3290c11e6bd67cbbf152e8270e46c5d77601dc1"
+        "digest": "sha256:d0e692c34c89f60640b2149b961357c62d976ed318fba4ad4abff8521523af31"
       },
       "selfHostingBoundary": {
         "mode": "external-contract-world",
@@ -344,8 +344,8 @@
           {
             "name": "release-and-tags",
             "sourcePath": "docs/release-and-tags.md",
-            "expectedSha256": "cb3a90b981711f7f10eb9ea399f00a831283fe8f83e6c7994168a7a96aae4d03",
-            "actualSha256": "cb3a90b981711f7f10eb9ea399f00a831283fe8f83e6c7994168a7a96aae4d03",
+            "expectedSha256": "edb466dc1bf0b61d8f3bb155f142c8b1e4fbb2ecf81a56bceb363e459cf0108e",
+            "actualSha256": "edb466dc1bf0b61d8f3bb155f142c8b1e4fbb2ecf81a56bceb363e459cf0108e",
             "status": "passed",
             "reason": ""
           },
@@ -360,8 +360,8 @@
           {
             "name": "image-lock",
             "sourcePath": "images.lock.json",
-            "expectedSha256": "e497fdc11be4457f35deb8a44a6708a68e5b6d4174df73f1b7cda204aedb31df",
-            "actualSha256": "e497fdc11be4457f35deb8a44a6708a68e5b6d4174df73f1b7cda204aedb31df",
+            "expectedSha256": "026edc6b2d27fbb964f017ffe5adc6bd4a4d17c8a83d223e7ca1bee56a1dce99",
+            "actualSha256": "026edc6b2d27fbb964f017ffe5adc6bd4a4d17c8a83d223e7ca1bee56a1dce99",
             "status": "passed",
             "reason": ""
           },
@@ -428,10 +428,10 @@
           {
             "name": "release-and-tags",
             "sourcePath": "docs/release-and-tags.md",
-            "sourceSha256": "cb3a90b981711f7f10eb9ea399f00a831283fe8f83e6c7994168a7a96aae4d03",
+            "sourceSha256": "edb466dc1bf0b61d8f3bb155f142c8b1e4fbb2ecf81a56bceb363e459cf0108e",
             "artifactPath": "docs/release-and-tags.md",
-            "expectedSha256": "cb3a90b981711f7f10eb9ea399f00a831283fe8f83e6c7994168a7a96aae4d03",
-            "actualSha256": "cb3a90b981711f7f10eb9ea399f00a831283fe8f83e6c7994168a7a96aae4d03",
+            "expectedSha256": "edb466dc1bf0b61d8f3bb155f142c8b1e4fbb2ecf81a56bceb363e459cf0108e",
+            "actualSha256": "edb466dc1bf0b61d8f3bb155f142c8b1e4fbb2ecf81a56bceb363e459cf0108e",
             "byteForByte": true,
             "status": "passed",
             "reason": ""
@@ -450,10 +450,10 @@
           {
             "name": "image-lock",
             "sourcePath": "images.lock.json",
-            "sourceSha256": "e497fdc11be4457f35deb8a44a6708a68e5b6d4174df73f1b7cda204aedb31df",
+            "sourceSha256": "026edc6b2d27fbb964f017ffe5adc6bd4a4d17c8a83d223e7ca1bee56a1dce99",
             "artifactPath": "images.lock.json",
-            "expectedSha256": "e497fdc11be4457f35deb8a44a6708a68e5b6d4174df73f1b7cda204aedb31df",
-            "actualSha256": "e497fdc11be4457f35deb8a44a6708a68e5b6d4174df73f1b7cda204aedb31df",
+            "expectedSha256": "026edc6b2d27fbb964f017ffe5adc6bd4a4d17c8a83d223e7ca1bee56a1dce99",
+            "actualSha256": "026edc6b2d27fbb964f017ffe5adc6bd4a4d17c8a83d223e7ca1bee56a1dce99",
             "byteForByte": true,
             "status": "passed",
             "reason": ""

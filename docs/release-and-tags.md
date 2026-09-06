@@ -79,6 +79,25 @@ evidence; it may regenerate only publication and Buildchain-owned evidence.
 Complete anonymous digest readback is still required before accepting a new
 `images.lock.json`.
 
+Known limitation in Buildchain `4.0.2-alpha.47`: cross-runtime recovery can
+classify the selected runtime as a trusted router pin and skip the fresh
+authorization receipt required by candidate verification. The build-images dry
+runs [34055406287](https://github.com/kungfu-systems/build-images/actions/runs/34055406287)
+and [34055617305](https://github.com/kungfu-systems/build-images/actions/runs/34055617305)
+failed before publication; see [Buildchain issue 3581](https://github.com/kungfu-systems/buildchain/issues/3581).
+Do not waive that receipt. Until the upstream path is repaired, explicitly
+qualify a new protected alpha PR candidate using the current published runtime
+and use normal protected publication. Preserve the previous candidate and its
+evidence; a failed recovery must not silently trigger a rebuild.
+
+Next-development bookkeeping is separate from immutable publication completion.
+Buildchain `4.0.2-alpha.47` assumes a GitHub merge queue for that PR; a consumer
+branch using protected review-based merging can report an enqueue failure after
+a successful publication. See [Buildchain issue 3582](https://github.com/kungfu-systems/buildchain/issues/3582).
+Verify the public v4 settlement and OCI readback first, then review and merge the
+generated next-development PR with all required checks. Do not infer publication
+failure from that later queue error, or bypass branch protection to clear it.
+
 ## Exact Tags
 
 Exact repository tags map to exact image tags:
