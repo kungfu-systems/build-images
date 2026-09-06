@@ -16,7 +16,7 @@
       "id": "KFD-1",
       "label": "KFD-1",
       "title": "Facts must not drift",
-      "revision": 6,
+      "revision": 7,
       "status": "active"
     },
     "schemas": {
@@ -40,7 +40,16 @@
         "agentRuntimeAdapterRequest": "https://kfd.libkungfu.dev/schemas/kfd-agent-runtime/adapter-request.schema.json",
         "agentRuntimeAdapterResponse": "https://kfd.libkungfu.dev/schemas/kfd-agent-runtime/adapter-response.schema.json",
         "agentRuntimeSuite": "https://kfd.libkungfu.dev/schemas/kfd-agent-runtime/suite.schema.json",
-        "agentRuntimeReport": "https://kfd.libkungfu.dev/schemas/kfd-agent-runtime/report.schema.json"
+        "agentRuntimeReport": "https://kfd.libkungfu.dev/schemas/kfd-agent-runtime/report.schema.json",
+        "selfConformanceState": "https://kfd.libkungfu.dev/schemas/kfd-self-conformance/state.schema.json",
+        "selfConformanceBootstrapAnchor": "https://kfd.libkungfu.dev/schemas/kfd-self-conformance/bootstrap-anchor.schema.json",
+        "selfConformanceTransitionBundle": "https://kfd.libkungfu.dev/schemas/kfd-self-conformance/transition-bundle.schema.json",
+        "selfConformanceTransitionReport": "https://kfd.libkungfu.dev/schemas/kfd-self-conformance/transition-report.schema.json",
+        "selfConformancePackageManifest": "https://kfd.libkungfu.dev/schemas/kfd-self-conformance/package-manifest.schema.json",
+        "selfConformanceVectorRegistry": "https://kfd.libkungfu.dev/schemas/kfd-self-conformance/vector-registry.schema.json",
+        "selfConformanceLifecycleGateRequest": "https://kfd.libkungfu.dev/schemas/kfd-self-conformance/lifecycle-gate-request.schema.json",
+        "selfConformanceLifecycleGateReport": "https://kfd.libkungfu.dev/schemas/kfd-self-conformance/lifecycle-gate-report.schema.json",
+        "adopterConformanceManifest": "https://kfd.libkungfu.dev/schemas/kfd-adopter-conformance/manifest.schema.json"
       },
       "paths": {
         "metadata": "schemas/kfd-standards.schema.json",
@@ -62,7 +71,16 @@
         "agentRuntimeAdapterRequest": "schemas/kfd-agent-runtime/adapter-request.schema.json",
         "agentRuntimeAdapterResponse": "schemas/kfd-agent-runtime/adapter-response.schema.json",
         "agentRuntimeSuite": "schemas/kfd-agent-runtime/suite.schema.json",
-        "agentRuntimeReport": "schemas/kfd-agent-runtime/report.schema.json"
+        "agentRuntimeReport": "schemas/kfd-agent-runtime/report.schema.json",
+        "selfConformanceState": "schemas/kfd-self-conformance/state.schema.json",
+        "selfConformanceBootstrapAnchor": "schemas/kfd-self-conformance/bootstrap-anchor.schema.json",
+        "selfConformanceTransitionBundle": "schemas/kfd-self-conformance/transition-bundle.schema.json",
+        "selfConformanceTransitionReport": "schemas/kfd-self-conformance/transition-report.schema.json",
+        "selfConformancePackageManifest": "schemas/kfd-self-conformance/package-manifest.schema.json",
+        "selfConformanceVectorRegistry": "schemas/kfd-self-conformance/vector-registry.schema.json",
+        "selfConformanceLifecycleGateRequest": "schemas/kfd-self-conformance/lifecycle-gate-request.schema.json",
+        "selfConformanceLifecycleGateReport": "schemas/kfd-self-conformance/lifecycle-gate-report.schema.json",
+        "adopterConformanceManifest": "schemas/kfd-adopter-conformance/manifest.schema.json"
       },
       "metadata": {
         "id": "https://kfd.libkungfu.dev/schemas/kfd-standards.schema.json",
@@ -72,7 +90,7 @@
     },
     "package": {
       "name": "@kungfu-tech/kfd",
-      "version": "1.0.0-alpha.41",
+      "version": "1.0.0-alpha.62",
       "repository": "git+https://github.com/kungfu-systems/kfd.git"
     }
   },
@@ -88,14 +106,14 @@
       "standard": "KFD-1",
       "standardKey": "kfd-1",
       "result": "passed",
-      "preBuildWitnessSha256": "7cf08570d23bf6d962120447c6494774b7bcfdd2d95aaebbeb8f2828de7837db",
+      "preBuildWitnessSha256": "c50044602d56f2713cc24d9bde155513e3c531387ff633f03fb92923024c1f71",
       "sourceHashes": {
-        "sha256": "03bf23091b7207d20b3da66cc834dbc8b38527048a7872bb02b9c8248681f99e",
-        "surfaceCount": 6
+        "sha256": "f3e3d96f6d47567768ddf34689ac814914af1787ae918c5635144670f75f96d5",
+        "surfaceCount": 9
       },
       "artifactHashes": {
-        "sha256": "8625760329a75d054caa54a9dc9dad290a9d213c458b57104cc4bf0fae4ab4f4",
-        "surfaceCount": 6
+        "sha256": "3555287e6a85ba479a8d12d084d5b086d366c90df70915edba3257a013e864fc",
+        "surfaceCount": 9
       },
       "witness": {
         "schemaVersion": 1,
@@ -109,14 +127,14 @@
         },
         "contractWorld": {
           "schemaId": "https://kfd.libkungfu.dev/schemas/kfd-1/contract-world.schema.json",
-          "digest": "sha256:ac39ae6d692ab7c3006e937470a7b5b841469cdc971bca63978b95931e6bc6e7"
+          "digest": "sha256:a00ec18c639523647b45a830e836a78917cdde6d21d134103e4e3075f63624fe"
         },
         "standardContract": {
           "id": "",
           "schemaId": "https://kfd.libkungfu.dev/schemas/kfd-1/contract-world.schema.json",
           "path": "",
           "sha256": "",
-          "digest": "sha256:ac39ae6d692ab7c3006e937470a7b5b841469cdc971bca63978b95931e6bc6e7"
+          "digest": "sha256:a00ec18c639523647b45a830e836a78917cdde6d21d134103e4e3075f63624fe"
         },
         "selfHostingBoundary": {
           "mode": "external-contract-world",
@@ -133,19 +151,19 @@
         "sourceVerificationRequired": false,
         "canonicalPolicy": {
           "path": "docs/release-and-tags.md",
-          "sha256": "09141122e4ab8cc044cdcee2678aeec016706156aa197c794070b420ebe5e200"
+          "sha256": "39b784af24d84df0a80b135bebec1f39c198ba483d887e341677e55a666d5e54"
         },
         "registry": {
           "path": ".buildchain/kfd/kfd-3/surfaces.json",
-          "sha256": "7e3cee9ef60784e95273639e9f6c9437aab90a487df4ecc3e16ade95d17d3cee"
+          "sha256": "b8be223979cc4102265142167421033a020561a091dd5c8d73964e030228aa1a"
         },
         "surfaces": [
           {
             "name": "readme",
             "sourcePath": "README.md",
-            "sourceSha256": "a4fc0b80195f5ac88464da983610e32e85daab8708d868d94750430cf201e219",
+            "sourceSha256": "55d33639b779005473488a521b06176eff4560c3fadaea6cd1af488946d8e768",
             "artifactPath": "README.md",
-            "expectedSha256": "a4fc0b80195f5ac88464da983610e32e85daab8708d868d94750430cf201e219",
+            "expectedSha256": "55d33639b779005473488a521b06176eff4560c3fadaea6cd1af488946d8e768",
             "byteForByte": true
           },
           {
@@ -159,17 +177,17 @@
           {
             "name": "release-and-tags",
             "sourcePath": "docs/release-and-tags.md",
-            "sourceSha256": "09141122e4ab8cc044cdcee2678aeec016706156aa197c794070b420ebe5e200",
+            "sourceSha256": "39b784af24d84df0a80b135bebec1f39c198ba483d887e341677e55a666d5e54",
             "artifactPath": "docs/release-and-tags.md",
-            "expectedSha256": "09141122e4ab8cc044cdcee2678aeec016706156aa197c794070b420ebe5e200",
+            "expectedSha256": "39b784af24d84df0a80b135bebec1f39c198ba483d887e341677e55a666d5e54",
             "byteForByte": true
           },
           {
             "name": "runner-boundary",
             "sourcePath": "docs/runner-boundary.md",
-            "sourceSha256": "fb91b534ef1f7c4d516fd0d81be15f61619a13f8aacd58788289da7285df0eca",
+            "sourceSha256": "adfb83355a40b8a57725fc0c49430ae3a069786db7b1a0e01b7f1159fbc88f23",
             "artifactPath": "docs/runner-boundary.md",
-            "expectedSha256": "fb91b534ef1f7c4d516fd0d81be15f61619a13f8aacd58788289da7285df0eca",
+            "expectedSha256": "adfb83355a40b8a57725fc0c49430ae3a069786db7b1a0e01b7f1159fbc88f23",
             "byteForByte": true
           },
           {
@@ -187,12 +205,36 @@
             "artifactPath": "scripts/write-publish-evidence.py",
             "expectedSha256": "5a83822e234e8e7bf453b5e4a40b3c621e3f401b9ef956fda353cccfcee48272",
             "byteForByte": true
+          },
+          {
+            "name": "oci-candidate-builder",
+            "sourcePath": "scripts/build-oci-candidate.py",
+            "sourceSha256": "5bdd670479e017018d2e4d39acfa425375174735680ff336d1e641b28e1e758f",
+            "artifactPath": "scripts/build-oci-candidate.py",
+            "expectedSha256": "5bdd670479e017018d2e4d39acfa425375174735680ff336d1e641b28e1e758f",
+            "byteForByte": true
+          },
+          {
+            "name": "oci-candidate-sealer",
+            "sourcePath": "scripts/seal-oci-candidate.mjs",
+            "sourceSha256": "5789e9067d709c57283475d11a77b53d92d287f5ede3a610f68f9afb9a5ad53f",
+            "artifactPath": "scripts/seal-oci-candidate.mjs",
+            "expectedSha256": "5789e9067d709c57283475d11a77b53d92d287f5ede3a610f68f9afb9a5ad53f",
+            "byteForByte": true
+          },
+          {
+            "name": "oci-evidence-projection",
+            "sourcePath": "scripts/project-oci-evidence.py",
+            "sourceSha256": "526eb50b1fcf72412b8e1a098ff4a2ea22f5465ecb175f27ccd12942a5411173",
+            "artifactPath": "scripts/project-oci-evidence.py",
+            "expectedSha256": "526eb50b1fcf72412b8e1a098ff4a2ea22f5465ecb175f27ccd12942a5411173",
+            "byteForByte": true
           }
         ],
         "metadata": {
           "kfdPackage": {
             "name": "@kungfu-tech/kfd",
-            "version": "1.0.0-alpha.41",
+            "version": "1.0.0-alpha.62",
             "repository": "git+https://github.com/kungfu-systems/kfd.git"
           },
           "schemaIds": {
@@ -215,7 +257,16 @@
             "agentRuntimeAdapterRequest": "https://kfd.libkungfu.dev/schemas/kfd-agent-runtime/adapter-request.schema.json",
             "agentRuntimeAdapterResponse": "https://kfd.libkungfu.dev/schemas/kfd-agent-runtime/adapter-response.schema.json",
             "agentRuntimeSuite": "https://kfd.libkungfu.dev/schemas/kfd-agent-runtime/suite.schema.json",
-            "agentRuntimeReport": "https://kfd.libkungfu.dev/schemas/kfd-agent-runtime/report.schema.json"
+            "agentRuntimeReport": "https://kfd.libkungfu.dev/schemas/kfd-agent-runtime/report.schema.json",
+            "selfConformanceState": "https://kfd.libkungfu.dev/schemas/kfd-self-conformance/state.schema.json",
+            "selfConformanceBootstrapAnchor": "https://kfd.libkungfu.dev/schemas/kfd-self-conformance/bootstrap-anchor.schema.json",
+            "selfConformanceTransitionBundle": "https://kfd.libkungfu.dev/schemas/kfd-self-conformance/transition-bundle.schema.json",
+            "selfConformanceTransitionReport": "https://kfd.libkungfu.dev/schemas/kfd-self-conformance/transition-report.schema.json",
+            "selfConformancePackageManifest": "https://kfd.libkungfu.dev/schemas/kfd-self-conformance/package-manifest.schema.json",
+            "selfConformanceVectorRegistry": "https://kfd.libkungfu.dev/schemas/kfd-self-conformance/vector-registry.schema.json",
+            "selfConformanceLifecycleGateRequest": "https://kfd.libkungfu.dev/schemas/kfd-self-conformance/lifecycle-gate-request.schema.json",
+            "selfConformanceLifecycleGateReport": "https://kfd.libkungfu.dev/schemas/kfd-self-conformance/lifecycle-gate-report.schema.json",
+            "adopterConformanceManifest": "https://kfd.libkungfu.dev/schemas/kfd-adopter-conformance/manifest.schema.json"
           },
           "schemaPaths": {
             "metadata": "schemas/kfd-standards.schema.json",
@@ -237,7 +288,16 @@
             "agentRuntimeAdapterRequest": "schemas/kfd-agent-runtime/adapter-request.schema.json",
             "agentRuntimeAdapterResponse": "schemas/kfd-agent-runtime/adapter-response.schema.json",
             "agentRuntimeSuite": "schemas/kfd-agent-runtime/suite.schema.json",
-            "agentRuntimeReport": "schemas/kfd-agent-runtime/report.schema.json"
+            "agentRuntimeReport": "schemas/kfd-agent-runtime/report.schema.json",
+            "selfConformanceState": "schemas/kfd-self-conformance/state.schema.json",
+            "selfConformanceBootstrapAnchor": "schemas/kfd-self-conformance/bootstrap-anchor.schema.json",
+            "selfConformanceTransitionBundle": "schemas/kfd-self-conformance/transition-bundle.schema.json",
+            "selfConformanceTransitionReport": "schemas/kfd-self-conformance/transition-report.schema.json",
+            "selfConformancePackageManifest": "schemas/kfd-self-conformance/package-manifest.schema.json",
+            "selfConformanceVectorRegistry": "schemas/kfd-self-conformance/vector-registry.schema.json",
+            "selfConformanceLifecycleGateRequest": "schemas/kfd-self-conformance/lifecycle-gate-request.schema.json",
+            "selfConformanceLifecycleGateReport": "schemas/kfd-self-conformance/lifecycle-gate-report.schema.json",
+            "adopterConformanceManifest": "schemas/kfd-adopter-conformance/manifest.schema.json"
           }
         }
       },
@@ -246,7 +306,7 @@
         "schemaId": "https://kfd.libkungfu.dev/schemas/kfd-1/contract-world.schema.json",
         "path": "",
         "sha256": "",
-        "digest": "sha256:ac39ae6d692ab7c3006e937470a7b5b841469cdc971bca63978b95931e6bc6e7"
+        "digest": "sha256:a00ec18c639523647b45a830e836a78917cdde6d21d134103e4e3075f63624fe"
       },
       "selfHostingBoundary": {
         "mode": "external-contract-world",
@@ -268,8 +328,8 @@
           {
             "name": "readme",
             "sourcePath": "README.md",
-            "expectedSha256": "a4fc0b80195f5ac88464da983610e32e85daab8708d868d94750430cf201e219",
-            "actualSha256": "a4fc0b80195f5ac88464da983610e32e85daab8708d868d94750430cf201e219",
+            "expectedSha256": "55d33639b779005473488a521b06176eff4560c3fadaea6cd1af488946d8e768",
+            "actualSha256": "55d33639b779005473488a521b06176eff4560c3fadaea6cd1af488946d8e768",
             "status": "passed",
             "reason": ""
           },
@@ -284,16 +344,16 @@
           {
             "name": "release-and-tags",
             "sourcePath": "docs/release-and-tags.md",
-            "expectedSha256": "09141122e4ab8cc044cdcee2678aeec016706156aa197c794070b420ebe5e200",
-            "actualSha256": "09141122e4ab8cc044cdcee2678aeec016706156aa197c794070b420ebe5e200",
+            "expectedSha256": "39b784af24d84df0a80b135bebec1f39c198ba483d887e341677e55a666d5e54",
+            "actualSha256": "39b784af24d84df0a80b135bebec1f39c198ba483d887e341677e55a666d5e54",
             "status": "passed",
             "reason": ""
           },
           {
             "name": "runner-boundary",
             "sourcePath": "docs/runner-boundary.md",
-            "expectedSha256": "fb91b534ef1f7c4d516fd0d81be15f61619a13f8aacd58788289da7285df0eca",
-            "actualSha256": "fb91b534ef1f7c4d516fd0d81be15f61619a13f8aacd58788289da7285df0eca",
+            "expectedSha256": "adfb83355a40b8a57725fc0c49430ae3a069786db7b1a0e01b7f1159fbc88f23",
+            "actualSha256": "adfb83355a40b8a57725fc0c49430ae3a069786db7b1a0e01b7f1159fbc88f23",
             "status": "passed",
             "reason": ""
           },
@@ -312,6 +372,30 @@
             "actualSha256": "5a83822e234e8e7bf453b5e4a40b3c621e3f401b9ef956fda353cccfcee48272",
             "status": "passed",
             "reason": ""
+          },
+          {
+            "name": "oci-candidate-builder",
+            "sourcePath": "scripts/build-oci-candidate.py",
+            "expectedSha256": "5bdd670479e017018d2e4d39acfa425375174735680ff336d1e641b28e1e758f",
+            "actualSha256": "5bdd670479e017018d2e4d39acfa425375174735680ff336d1e641b28e1e758f",
+            "status": "passed",
+            "reason": ""
+          },
+          {
+            "name": "oci-candidate-sealer",
+            "sourcePath": "scripts/seal-oci-candidate.mjs",
+            "expectedSha256": "5789e9067d709c57283475d11a77b53d92d287f5ede3a610f68f9afb9a5ad53f",
+            "actualSha256": "5789e9067d709c57283475d11a77b53d92d287f5ede3a610f68f9afb9a5ad53f",
+            "status": "passed",
+            "reason": ""
+          },
+          {
+            "name": "oci-evidence-projection",
+            "sourcePath": "scripts/project-oci-evidence.py",
+            "expectedSha256": "526eb50b1fcf72412b8e1a098ff4a2ea22f5465ecb175f27ccd12942a5411173",
+            "actualSha256": "526eb50b1fcf72412b8e1a098ff4a2ea22f5465ecb175f27ccd12942a5411173",
+            "status": "passed",
+            "reason": ""
           }
         ]
       },
@@ -322,10 +406,10 @@
           {
             "name": "readme",
             "sourcePath": "README.md",
-            "sourceSha256": "a4fc0b80195f5ac88464da983610e32e85daab8708d868d94750430cf201e219",
+            "sourceSha256": "55d33639b779005473488a521b06176eff4560c3fadaea6cd1af488946d8e768",
             "artifactPath": "README.md",
-            "expectedSha256": "a4fc0b80195f5ac88464da983610e32e85daab8708d868d94750430cf201e219",
-            "actualSha256": "a4fc0b80195f5ac88464da983610e32e85daab8708d868d94750430cf201e219",
+            "expectedSha256": "55d33639b779005473488a521b06176eff4560c3fadaea6cd1af488946d8e768",
+            "actualSha256": "55d33639b779005473488a521b06176eff4560c3fadaea6cd1af488946d8e768",
             "byteForByte": true,
             "status": "passed",
             "reason": ""
@@ -344,10 +428,10 @@
           {
             "name": "release-and-tags",
             "sourcePath": "docs/release-and-tags.md",
-            "sourceSha256": "09141122e4ab8cc044cdcee2678aeec016706156aa197c794070b420ebe5e200",
+            "sourceSha256": "39b784af24d84df0a80b135bebec1f39c198ba483d887e341677e55a666d5e54",
             "artifactPath": "docs/release-and-tags.md",
-            "expectedSha256": "09141122e4ab8cc044cdcee2678aeec016706156aa197c794070b420ebe5e200",
-            "actualSha256": "09141122e4ab8cc044cdcee2678aeec016706156aa197c794070b420ebe5e200",
+            "expectedSha256": "39b784af24d84df0a80b135bebec1f39c198ba483d887e341677e55a666d5e54",
+            "actualSha256": "39b784af24d84df0a80b135bebec1f39c198ba483d887e341677e55a666d5e54",
             "byteForByte": true,
             "status": "passed",
             "reason": ""
@@ -355,10 +439,10 @@
           {
             "name": "runner-boundary",
             "sourcePath": "docs/runner-boundary.md",
-            "sourceSha256": "fb91b534ef1f7c4d516fd0d81be15f61619a13f8aacd58788289da7285df0eca",
+            "sourceSha256": "adfb83355a40b8a57725fc0c49430ae3a069786db7b1a0e01b7f1159fbc88f23",
             "artifactPath": "docs/runner-boundary.md",
-            "expectedSha256": "fb91b534ef1f7c4d516fd0d81be15f61619a13f8aacd58788289da7285df0eca",
-            "actualSha256": "fb91b534ef1f7c4d516fd0d81be15f61619a13f8aacd58788289da7285df0eca",
+            "expectedSha256": "adfb83355a40b8a57725fc0c49430ae3a069786db7b1a0e01b7f1159fbc88f23",
+            "actualSha256": "adfb83355a40b8a57725fc0c49430ae3a069786db7b1a0e01b7f1159fbc88f23",
             "byteForByte": true,
             "status": "passed",
             "reason": ""
@@ -381,6 +465,39 @@
             "artifactPath": "scripts/write-publish-evidence.py",
             "expectedSha256": "5a83822e234e8e7bf453b5e4a40b3c621e3f401b9ef956fda353cccfcee48272",
             "actualSha256": "5a83822e234e8e7bf453b5e4a40b3c621e3f401b9ef956fda353cccfcee48272",
+            "byteForByte": true,
+            "status": "passed",
+            "reason": ""
+          },
+          {
+            "name": "oci-candidate-builder",
+            "sourcePath": "scripts/build-oci-candidate.py",
+            "sourceSha256": "5bdd670479e017018d2e4d39acfa425375174735680ff336d1e641b28e1e758f",
+            "artifactPath": "scripts/build-oci-candidate.py",
+            "expectedSha256": "5bdd670479e017018d2e4d39acfa425375174735680ff336d1e641b28e1e758f",
+            "actualSha256": "5bdd670479e017018d2e4d39acfa425375174735680ff336d1e641b28e1e758f",
+            "byteForByte": true,
+            "status": "passed",
+            "reason": ""
+          },
+          {
+            "name": "oci-candidate-sealer",
+            "sourcePath": "scripts/seal-oci-candidate.mjs",
+            "sourceSha256": "5789e9067d709c57283475d11a77b53d92d287f5ede3a610f68f9afb9a5ad53f",
+            "artifactPath": "scripts/seal-oci-candidate.mjs",
+            "expectedSha256": "5789e9067d709c57283475d11a77b53d92d287f5ede3a610f68f9afb9a5ad53f",
+            "actualSha256": "5789e9067d709c57283475d11a77b53d92d287f5ede3a610f68f9afb9a5ad53f",
+            "byteForByte": true,
+            "status": "passed",
+            "reason": ""
+          },
+          {
+            "name": "oci-evidence-projection",
+            "sourcePath": "scripts/project-oci-evidence.py",
+            "sourceSha256": "526eb50b1fcf72412b8e1a098ff4a2ea22f5465ecb175f27ccd12942a5411173",
+            "artifactPath": "scripts/project-oci-evidence.py",
+            "expectedSha256": "526eb50b1fcf72412b8e1a098ff4a2ea22f5465ecb175f27ccd12942a5411173",
+            "actualSha256": "526eb50b1fcf72412b8e1a098ff4a2ea22f5465ecb175f27ccd12942a5411173",
             "byteForByte": true,
             "status": "passed",
             "reason": ""

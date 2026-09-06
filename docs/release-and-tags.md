@@ -1,3 +1,21 @@
+---
+status: active
+period: ongoing
+theme: build-images-v4-publication
+doc_type: technical-reference
+source_level: local-files
+confidence: high
+sensitivity: public
+evidence_grade: B
+review_state: unreviewed
+last_reviewed: 2026-09-06
+ai_provenance:
+  model_family: GPT-6
+  product: Codex
+  generated_at: 2026-09-06
+  invisible_context_boundary: Describes tracked publication contracts; does not assert a completed release.
+---
+
 # Release And Tags
 
 Build images use the repository release version as the first versioning layer.
@@ -6,41 +24,38 @@ proves that the image family needs separate release cadence.
 
 ## Buildchain Governance
 
-Buildchain v2 is the release authority for this repository. Day-to-day changes
-land on `dev/vN/vN.M`, reviewed channel promotion moves through
-`alpha/vN/vN.M` and `release/vN/vN.M`, and Buildchain creates the exact
-version-state commits plus exact/floating tags.
+Buildchain v4 is the alpha release authority for this repository. Changes land
+on `dev/v1/v1.3`, then a protected pull request targets `alpha/v1/v1.3`.
+`Verify` retains the required `check` status, while `Build` seals the complete
+OCI image family before any package write authority is available.
 
-The `Verify` workflow uses the stable `build.yml@v2` router with
-`buildchain-channel: auto`. Pull requests, development branches, and alpha
-promotion select `v2-alpha` plus `.buildchain/alpha-contract-lock.json`;
-release promotion selects stable `v2` plus `.buildchain/contract-lock.json`.
-Both locks use the `major-compatible` policy, so additive runtime movement is
-reported while incompatible contract drift fails before lifecycle work.
+For development delivery, a trusted `Verify` dispatch may supply
+`delivery-request-json` with the exact PR, source head, successful Verify run,
+and Buildchain source qualification roots. The public v4 development provider
+independently rechecks review and source evidence, obtains a qualified Delivery
+Warrant, and performs protected landing. This dispatch has its own serialized,
+non-cancelling lane; ordinary verification retains read-only repository access.
 
-Image publishing is a Buildchain publish transaction. The promotion workflow
-creates or resumes the release transaction, builds or reuses exact OCI image
-tags, writes publish evidence, and only then lets Buildchain move exact and
-floating Git refs.
+Tracked callers use `@v4-alpha` with the alpha contract lock. The stable v4
+contract lock is retained for production channel adoption. Temporary train
+validation uses only the trusted dispatch input; no train or exact runtime SHA
+is persisted in workflow source.
 
-Before the lifecycle runs, the workflow declares every manifest-defined OCI
-repository with the constrained `v{version}` exact-ref template. Buildchain
-resolves that template only after selecting or resuming the exact release
-version and exports the result through `BUILDCHAIN_REQUIRED_ARTIFACTS`. The
-publisher compares that resolved family with the image manifests before any
-registry side effect.
+The candidate contains the image layout, per-image smoke evidence, selective
+build plan, and `oci-family.json`. Built images bind the candidate source and
+version; reused images retain their original content provenance and digest.
+All images use normalized OCI platform names. Shared layout blobs are
+deduplicated, and new images are compressed for artifact transport.
 
-The publish command verifies that:
+After protected alpha Verify succeeds, the built-in v4 OCI provider checks the
+complete family, publishes only missing exact tags, and anonymously reads back
+every digest. A conflicting tag fails closed. Only complete public readback
+allows release Git refs and GitHub Release evidence to converge. No consumer
+publish shell hook is configured. Manual promotion is dry-run only.
 
-- every exact image tag is either newly pushed or already present with matching
-  Buildchain version/material labels;
-- published packages are public and anonymously pullable from GHCR;
-- `BUILDCHAIN_PUBLISH_EVIDENCE` contains every image digest before public Git
-  refs move;
-- manual workflow dispatch cannot push images.
-
-This keeps Docker credentials and Docker permissions inside the governed
-promotion job while preserving Buildchain's durable rerun/repair state.
+The promotion caller explicitly grants `packages: write`; candidate builds do
+not. Existing GHCR packages must allow repository-token writes and public pulls.
+The provider records public readback without changing package visibility.
 
 ## Exact Tags
 
@@ -103,28 +118,31 @@ current release binding:
 
 The digest summary is the rollback and audit anchor.
 
-The Buildchain publish command stores this summary next to
-`BUILDCHAIN_PUBLISH_EVIDENCE`; Buildchain persists the evidence into the durable
-release-state ref for fresh-runner reruns.
+The GitHub Release contains `oci-family.json`, the per-image smoke JSON files,
+`image-publish-plan.json`, and the provider's `oci-publication-readback.json`.
+These preserve the candidate bytes and distinguish public publication from a
+successful local build.
 
-The checked-in `images.lock.json` records the latest accepted alpha family,
-including every digest plus its content and release coordinates. It remains a
-reviewed consumer input, not an automatic publishing byproduct. Buildchain
-uploads the transaction `evidence.json` as a GitHub Release asset; each image's
-manifest and smoke evidence points back into that durable asset with a JSON
-Pointer. After reviewing the release and its workflow run, maintainers can
-project the public evidence without depending on the runner-local digest
-summary or inventing fields:
+The schema-1 digest evidence and accepted `images.lock.json` formats remain
+unchanged. After reading the exact release tag and publisher runtime from the
+successful protected run, project the public v4 evidence into that retained
+format:
 
 ```bash
+python3 scripts/project-oci-evidence.py \
+  --readback oci-publication-readback.json --family oci-family.json \
+  --release-sha RELEASE_SHA --tooling-sha PUBLISHER_RUNTIME_SHA \
+  --target-ref alpha/v1/v1.3 --output evidence.json
 python3 scripts/accept-image-summary.py \
   --evidence evidence.json \
   --publish-run https://github.com/kungfu-systems/build-images/actions/runs/RUN_ID \
   --output images.lock.json
 ```
 
-`--summary image-digests.json` remains available for pre-release inspection,
-but a reviewed lock update should use the GitHub Release `evidence.json` asset.
+Projection rejects missing, private, conflicting, or mismatched image records.
+Review the resulting lock through the normal development PR flow. The accepted
+lock remains a reviewed consumer input. Historical v2 `evidence.json` assets
+remain readable through the same acceptance command.
 
 ## Selective Build Planner
 
@@ -142,7 +160,7 @@ publisher/provenance code, workflows, image locks, empty baselines, and unknown
 paths conservatively select the full family. Every selected image includes a
 machine-readable direct, downstream, or global reason.
 
-The publish lifecycle uses the last commit that changed `images.lock.json` as
+The candidate builder uses the last commit that changed `images.lock.json` as
 the reviewed baseline. It proves that the lock's release source is an ancestor,
 allows only generated version-state and KFD/lock acceptance changes between the
 release source and that review point, then plans changes from the review point
@@ -157,10 +175,9 @@ Selected images and their downstream closure are built. Every other image is
 reused only when the lock has a complete public digest, platform, contract
 major, parent digest, smoke policy, content coordinate, and release coordinate.
 An incomplete or inconsistent baseline converts the whole plan to a full build.
-Reuse verifies the previous accepted exact tag and digest anonymously, refuses
-to overwrite a conflicting current exact tag, creates an immutable digest alias,
-then reruns the image smoke policy by digest. Built and reused members are both
-verified from the public current tag before evidence is written.
+Reuse verifies the accepted digest anonymously, exports its exact manifest
+bytes, and reruns the image smoke policy. The provider later creates the new
+exact tag and verifies public readback for built and reused members alike.
 
 The first release after publisher/provenance code changes is intentionally a
 full-family build because those files are global invalidators. A later
@@ -180,8 +197,8 @@ verification.
   `alpha/*`.
 - Buildchain promotion creates exact release tags such as `v1.0.0-alpha.0` or
   `v1.0.0` only after image evidence validates.
-- The image publish command runs inside `Buildchain Ref Promotion` with
-  `publish-transaction: "true"`.
+- Alpha pull requests run `Build` to produce the sealed OCI candidate.
+  `Buildchain Ref Promotion` uses `publish-artifact-kind: oci` to publish it.
 - Maintainers may run `Publish Images` manually with `publish=false` for a dry
   build, but manual publishing is rejected.
 - The promotion workflow runs on GitHub-hosted `ubuntu-24.04` and uses
@@ -189,8 +206,7 @@ verification.
 - Published GHCR packages are required to be public. The organization Packages
   policy must allow public package creation and avoid forcing private defaults.
   Docker push cannot declare package visibility, so the publish workflow fails
-  after push if any package is not `public` or if the tag cannot be resolved
-  through the anonymous GHCR pull path.
+  if the exact tag cannot be resolved through the anonymous GHCR pull path.
 - Consumer smoke intentionally pulls the locked images without GHCR login. This
   keeps the public-consumption contract covered by CI instead of relying only on
   package settings in the GitHub UI.
