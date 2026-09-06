@@ -21,6 +21,14 @@ on:
         description: "Temporary Buildchain train or exact SHA for trusted validation"
         required: false
         default: ""
+      delivery-request-json:
+        description: "Exact source-qualified development delivery request; empty runs verification"
+        required: false
+        default: ""
+      native-roots-json:
+        description: "Native sourceRoot binding for the development delivery request"
+        required: false
+        default: "{}"
 
 permissions:
   actions: read
@@ -29,11 +37,12 @@ permissions:
   id-token: write
 
 concurrency:
-  group: build-images-verify-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.event_name == 'workflow_dispatch' && inputs.delivery-request-json != '' && 'build-images-v4-dev-delivery' || format('build-images-verify-{0}', github.ref) }}
+  cancel-in-progress: ${{ !(github.event_name == 'workflow_dispatch' && inputs.delivery-request-json != '') }}
 
 jobs:
   opencode_ci:
+    if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.delivery-request-json != '') }}
     name: OpenCode CI deterministic fixture
     runs-on: ubuntu-24.04
     steps:
@@ -53,7 +62,8 @@ jobs:
         run: bash images/opencode-ci/tests/integration.sh
 
   buildchain:
-    uses: kungfu-systems/buildchain/.github/workflows/build.yml@v2
+    if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.delivery-request-json != '') }}
+    uses: kungfu-systems/buildchain/.github/workflows/build.yml@v4-alpha
     permissions:
       actions: read
       contents: read
@@ -88,7 +98,7 @@ jobs:
     needs:
       - buildchain
       - opencode_ci
-    if: ${{ always() }}
+    if: ${{ always() && !(github.event_name == 'workflow_dispatch' && inputs.delivery-request-json != '') }}
     runs-on: ubuntu-24.04
     steps:
       - name: Require Buildchain verification and expected channel
@@ -117,3 +127,35 @@ jobs:
             echo "::error::Buildchain channel was $RESOLVED_CHANNEL, expected $expected"
             exit 1
           fi
+
+  deliver:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.delivery-request-json != '' }}
+    uses: kungfu-systems/buildchain/.github/workflows/dev-pr-auto-merge.yml@v4-alpha
+    permissions:
+      actions: write
+      contents: write
+      pull-requests: write
+      checks: read
+      statuses: write
+    secrets:
+      github-token: ${{ secrets.BUILDCHAIN_PROMOTION_TOKEN }}
+    with:
+      buildchain-ref: ${{ inputs.buildchain-ref || 'v4-alpha' }}
+      target-branch: dev/v1/v1.3
+      expected-pr-number: ${{ fromJSON(inputs.delivery-request-json).pullRequestNumber }}
+      expected-head-sha: ${{ fromJSON(inputs.delivery-request-json).sourceHead }}
+      source-workflow-run-id: ${{ fromJSON(inputs.delivery-request-json).sourceWorkflowRunId }}
+      source-workflow-id: verify.yml
+      delivery-warrant-mode: required
+      delivery-class: non-native-fast
+      source-identity-root: ${{ fromJSON(inputs.delivery-request-json).sourceIdentityRoot }}
+      source-patch-root: ${{ fromJSON(inputs.delivery-request-json).sourcePatchRoot }}
+      plan-root: ${{ fromJSON(inputs.delivery-request-json).planRoot }}
+      closure-root: ${{ fromJSON(inputs.delivery-request-json).closureRoot }}
+      dependency-root: ${{ fromJSON(inputs.delivery-request-json).dependencyRoot }}
+      toolchain-root: ${{ fromJSON(inputs.delivery-request-json).toolchainRoot }}
+      affected-paths-json: ${{ toJSON(fromJSON(inputs.delivery-request-json).affectedPaths) }}
+      required-status-checks: check
+      ready-label: ready
+      landing-mode: auto
+      dry-run: false

@@ -7,23 +7,23 @@
   },
   "contractWorld": {
     "schemaId": "https://kfd.libkungfu.dev/schemas/kfd-1/contract-world.schema.json",
-    "digest": "sha256:ac39ae6d692ab7c3006e937470a7b5b841469cdc971bca63978b95931e6bc6e7"
+    "digest": "sha256:b8fb980ad88783d61e7daf668b78881ff330078df9b2ad3830c0ee6695bad20f"
   },
   "canonicalPolicy": {
     "path": "docs/release-and-tags.md",
-    "sha256": "09141122e4ab8cc044cdcee2678aeec016706156aa197c794070b420ebe5e200"
+    "sha256": "6dce3801fcf55fe541b06676b398b5afdcd618e87f57e8529a177068a3579a2a"
   },
   "registry": {
     "path": ".buildchain/kfd/kfd-3/surfaces.json",
-    "sha256": "7e3cee9ef60784e95273639e9f6c9437aab90a487df4ecc3e16ade95d17d3cee"
+    "sha256": "41361f979138ed9472c7f9e610ab3cf7fbbb8331571e7b6129202e088abd791d"
   },
   "surfaces": [
     {
       "name": "readme",
       "sourcePath": "README.md",
-      "sourceSha256": "a4fc0b80195f5ac88464da983610e32e85daab8708d868d94750430cf201e219",
+      "sourceSha256": "55d33639b779005473488a521b06176eff4560c3fadaea6cd1af488946d8e768",
       "artifactPath": "README.md",
-      "expectedSha256": "a4fc0b80195f5ac88464da983610e32e85daab8708d868d94750430cf201e219",
+      "expectedSha256": "55d33639b779005473488a521b06176eff4560c3fadaea6cd1af488946d8e768",
       "byteForByte": true
     },
     {
@@ -37,17 +37,17 @@
     {
       "name": "release-and-tags",
       "sourcePath": "docs/release-and-tags.md",
-      "sourceSha256": "09141122e4ab8cc044cdcee2678aeec016706156aa197c794070b420ebe5e200",
+      "sourceSha256": "6dce3801fcf55fe541b06676b398b5afdcd618e87f57e8529a177068a3579a2a",
       "artifactPath": "docs/release-and-tags.md",
-      "expectedSha256": "09141122e4ab8cc044cdcee2678aeec016706156aa197c794070b420ebe5e200",
+      "expectedSha256": "6dce3801fcf55fe541b06676b398b5afdcd618e87f57e8529a177068a3579a2a",
       "byteForByte": true
     },
     {
       "name": "runner-boundary",
       "sourcePath": "docs/runner-boundary.md",
-      "sourceSha256": "fb91b534ef1f7c4d516fd0d81be15f61619a13f8aacd58788289da7285df0eca",
+      "sourceSha256": "adfb83355a40b8a57725fc0c49430ae3a069786db7b1a0e01b7f1159fbc88f23",
       "artifactPath": "docs/runner-boundary.md",
-      "expectedSha256": "fb91b534ef1f7c4d516fd0d81be15f61619a13f8aacd58788289da7285df0eca",
+      "expectedSha256": "adfb83355a40b8a57725fc0c49430ae3a069786db7b1a0e01b7f1159fbc88f23",
       "byteForByte": true
     },
     {
@@ -64,6 +64,30 @@
       "sourceSha256": "5a83822e234e8e7bf453b5e4a40b3c621e3f401b9ef956fda353cccfcee48272",
       "artifactPath": "scripts/write-publish-evidence.py",
       "expectedSha256": "5a83822e234e8e7bf453b5e4a40b3c621e3f401b9ef956fda353cccfcee48272",
+      "byteForByte": true
+    },
+    {
+      "name": "oci-candidate-builder",
+      "sourcePath": "scripts/build-oci-candidate.py",
+      "sourceSha256": "994945f422244426c66c09a5949b799933600ee8a419bead32a344d182a3bd34",
+      "artifactPath": "scripts/build-oci-candidate.py",
+      "expectedSha256": "994945f422244426c66c09a5949b799933600ee8a419bead32a344d182a3bd34",
+      "byteForByte": true
+    },
+    {
+      "name": "oci-candidate-sealer",
+      "sourcePath": "scripts/seal-oci-candidate.mjs",
+      "sourceSha256": "5789e9067d709c57283475d11a77b53d92d287f5ede3a610f68f9afb9a5ad53f",
+      "artifactPath": "scripts/seal-oci-candidate.mjs",
+      "expectedSha256": "5789e9067d709c57283475d11a77b53d92d287f5ede3a610f68f9afb9a5ad53f",
+      "byteForByte": true
+    },
+    {
+      "name": "oci-evidence-projection",
+      "sourcePath": "scripts/project-oci-evidence.py",
+      "sourceSha256": "526eb50b1fcf72412b8e1a098ff4a2ea22f5465ecb175f27ccd12942a5411173",
+      "artifactPath": "scripts/project-oci-evidence.py",
+      "expectedSha256": "526eb50b1fcf72412b8e1a098ff4a2ea22f5465ecb175f27ccd12942a5411173",
       "byteForByte": true
     }
   ]

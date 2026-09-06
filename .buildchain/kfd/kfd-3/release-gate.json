@@ -43,7 +43,7 @@
       },
       "package": {
         "name": "@kungfu-tech/kfd",
-        "version": "1.0.0-alpha.41",
+        "version": "1.0.0-alpha.62",
         "repository": "git+https://github.com/kungfu-systems/kfd.git"
       }
     },
@@ -58,8 +58,8 @@
         "id": "Kungfu Build Images",
         "standard": "KFD-3",
         "standardKey": "kfd-3",
-        "preBuildWitnessSha256": "c86e3e94e3dfa4e1b3a99dfef03306cca7e2ac18ad7d7a5e3bae1acd9f390bd7",
-        "artifactWitnessSha256": "c0f3bb236c69813b3e8970ec944f96ff187b39ae1360b33ac836a42cea145025",
+        "preBuildWitnessSha256": "06c34eacb3e4754ec783ce76129897cd1e6e367d8323039a1bc3c880fe26bd7c",
+        "artifactWitnessSha256": "513a3e8ab4aefde330fab26d1da0525b3f697013e58641dab3f679d963464a9b",
         "prebuildWitness": {
           "schemaVersion": 1,
           "contract": "kungfu-buildchain-kfd-3-collaboration-interface-prebuild-witness",
@@ -71,20 +71,20 @@
             "cwd": "",
             "sourceSha": "",
             "registryPath": ".buildchain/kfd/kfd-3/surfaces.json",
-            "registryDigest": "sha256:0dcef81dc424aa6d8f4bb82baa0de1f7d2826658f25837ea6e68deab77afc8e7"
+            "registryDigest": "sha256:42e298db626a2da8936c5c1846f0c3cd66e786af71e81f464dbde46ee8f6d2c4"
           },
           "registry": {
             "id": "Kungfu Build Images",
             "version": "",
             "path": ".buildchain/kfd/kfd-3/surfaces.json",
-            "sha256": "7e3cee9ef60784e95273639e9f6c9437aab90a487df4ecc3e16ade95d17d3cee",
-            "digest": "sha256:7e3cee9ef60784e95273639e9f6c9437aab90a487df4ecc3e16ade95d17d3cee"
+            "sha256": "41361f979138ed9472c7f9e610ab3cf7fbbb8331571e7b6129202e088abd791d",
+            "digest": "sha256:41361f979138ed9472c7f9e610ab3cf7fbbb8331571e7b6129202e088abd791d"
           },
           "participantProfiles": [],
           "expectedArtifactVerification": {
             "command": ""
           },
-          "collaborationInterfaceDigest": "sha256:896dddc0db66bee073a16afaefdeaf5e76e777f85659e08096ac8926d32585cf",
+          "collaborationInterfaceDigest": "sha256:cc64a3033a87144ac8e489dac2cde8d29987b4856c8e7f46fa9570b0242f707b",
           "auditBoundary": {
             "mode": "closed-world",
             "scope": "KFD-3 registered product public surfaces detected by Buildchain",
@@ -153,7 +153,7 @@
           "metadata": {
             "kfdPackage": {
               "name": "@kungfu-tech/kfd",
-              "version": "1.0.0-alpha.41",
+              "version": "1.0.0-alpha.62",
               "repository": "git+https://github.com/kungfu-systems/kfd.git"
             },
             "schemaIds": {
@@ -184,10 +184,10 @@
             "id": "Kungfu Build Images",
             "version": "",
             "path": ".buildchain/kfd/kfd-3/surfaces.json",
-            "sha256": "7e3cee9ef60784e95273639e9f6c9437aab90a487df4ecc3e16ade95d17d3cee",
-            "digest": "sha256:7e3cee9ef60784e95273639e9f6c9437aab90a487df4ecc3e16ade95d17d3cee"
+            "sha256": "41361f979138ed9472c7f9e610ab3cf7fbbb8331571e7b6129202e088abd791d",
+            "digest": "sha256:41361f979138ed9472c7f9e610ab3cf7fbbb8331571e7b6129202e088abd791d"
           },
-          "collaborationInterfaceDigest": "sha256:896dddc0db66bee073a16afaefdeaf5e76e777f85659e08096ac8926d32585cf",
+          "collaborationInterfaceDigest": "sha256:cc64a3033a87144ac8e489dac2cde8d29987b4856c8e7f46fa9570b0242f707b",
           "exposedSurfaces": [
             {
               "id": "doc:docs/image-contract.md",
@@ -244,7 +244,7 @@
           "metadata": {
             "kfdPackage": {
               "name": "@kungfu-tech/kfd",
-              "version": "1.0.0-alpha.41",
+              "version": "1.0.0-alpha.62",
               "repository": "git+https://github.com/kungfu-systems/kfd.git"
             },
             "schemaIds": {
@@ -366,21 +366,21 @@
             "id": "Kungfu Build Images",
             "version": "",
             "path": ".buildchain/kfd/kfd-3/surfaces.json",
-            "sha256": "7e3cee9ef60784e95273639e9f6c9437aab90a487df4ecc3e16ade95d17d3cee",
-            "digest": "sha256:7e3cee9ef60784e95273639e9f6c9437aab90a487df4ecc3e16ade95d17d3cee"
+            "sha256": "41361f979138ed9472c7f9e610ab3cf7fbbb8331571e7b6129202e088abd791d",
+            "digest": "sha256:41361f979138ed9472c7f9e610ab3cf7fbbb8331571e7b6129202e088abd791d"
           },
-          "collaborationInterfaceDigest": "sha256:896dddc0db66bee073a16afaefdeaf5e76e777f85659e08096ac8926d32585cf"
+          "collaborationInterfaceDigest": "sha256:cc64a3033a87144ac8e489dac2cde8d29987b4856c8e7f46fa9570b0242f707b"
         },
         "witnessEvidence": {
           "prebuild": {
             "path": "",
             "sha256": "",
-            "canonicalSha256": "c86e3e94e3dfa4e1b3a99dfef03306cca7e2ac18ad7d7a5e3bae1acd9f390bd7"
+            "canonicalSha256": "06c34eacb3e4754ec783ce76129897cd1e6e367d8323039a1bc3c880fe26bd7c"
           },
           "artifact": {
             "path": "",
             "sha256": "",
-            "canonicalSha256": "c0f3bb236c69813b3e8970ec944f96ff187b39ae1360b33ac836a42cea145025"
+            "canonicalSha256": "513a3e8ab4aefde330fab26d1da0525b3f697013e58641dab3f679d963464a9b"
           },
           "artifactVerifyCommandSha256": ""
         },

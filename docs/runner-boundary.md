@@ -1,3 +1,21 @@
+---
+status: active
+period: ongoing
+theme: build-images-v4-publication
+doc_type: technical-reference
+source_level: local-files
+confidence: high
+sensitivity: public
+evidence_grade: B
+review_state: unreviewed
+last_reviewed: 2026-09-06
+ai_provenance:
+  model_family: GPT-6
+  product: Codex
+  generated_at: 2026-09-06
+  invisible_context_boundary: Describes tracked publication contracts; does not assert a completed release.
+---
+
 # Runner Boundary
 
 Image build and publish jobs are allowed to use Docker, but that permission must
@@ -33,7 +51,9 @@ from forks should only run read-only validation.
 
 The repository implements this by keeping normal `Verify` read-only and placing
 GHCR writes in the Buildchain promotion workflow. The promotion workflow runs
-only after protected alpha/release verification succeeds, enables
-`publish-transaction`, and writes evidence before public release refs move.
+only after protected alpha verification succeeds. Its built-in v4 OCI provider
+publishes the sealed candidate and anonymously verifies every image digest
+before public release refs move. Candidate Build jobs have no packages write
+permission.
 `Publish Images` remains a manual dry-build diagnostic surface and rejects
 manual pushes.

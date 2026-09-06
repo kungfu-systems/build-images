@@ -8,7 +8,7 @@
   "versionImpact": {
     "final": "minor",
     "source": "build-images-surface-review",
-    "rationale": "The release adds the consumer-neutral demo-renderer image contract and its deterministic ANSI style replay without changing existing image identities."
+    "rationale": "The release retains the additive demo-renderer contract and migrates alpha publication to Buildchain v4 sealed OCI candidates and public digest readback without changing existing image identities."
   },
   "surfaceImpacts": [
     {
@@ -36,7 +36,7 @@
       "id": "buildchain-dual-channel-consumer",
       "impact": "patch",
       "class": "release-governance",
-      "rationale": "The image family uses the standard Buildchain v2.14 alpha and stable router with separate channel contract locks and unchanged image identifiers.",
+      "rationale": "Verification uses the Buildchain v4 channel router and separate alpha/stable contract locks. Alpha publication uses the built-in sealed OCI family provider instead of a consumer publish hook, preserving image identifiers and schema-1 evidence compatibility.",
       "source": ".github/workflows/verify.yml"
     },
     {
