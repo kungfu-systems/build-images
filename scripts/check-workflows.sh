@@ -16,33 +16,22 @@ else
 fi
 
 promotion_workflow="$repo_root/.github/workflows/buildchain-ref-promotion.yml"
-if ! grep -Fq "uses: kungfu-systems/buildchain/actions/promote-buildchain-ref@v2-alpha" "$promotion_workflow" ||
-   ! grep -Fq "uses: kungfu-systems/buildchain/actions/promote-buildchain-ref@v2" "$promotion_workflow"; then
-  echo "Buildchain promotion must route alpha and stable channels to their matching action refs" >&2
+if ! grep -Fq 'release-candidate-promote.yml@v4-alpha' "$promotion_workflow" ||
+   ! grep -Fq 'publish-artifact-kind: oci' "$promotion_workflow" ||
+   ! grep -Fq 'declarative-release-tail: true' "$promotion_workflow" ||
+   ! grep -Fq 'publication-auto-admission: true' "$promotion_workflow" ||
+   ! grep -Fq 'publication-target: oci:ghcr.io/kungfu-systems/build-images' "$promotion_workflow" ||
+   ! grep -Fq 'packages: write' "$promotion_workflow"; then
+  echo "OCI publication must use the public v4 candidate provider with explicit registry authority" >&2
   exit 1
 fi
-# shellcheck disable=SC2016
-if ! grep -Fq "if: \${{ startsWith(steps.target_ref.outputs.target_ref, 'alpha/') }}" "$promotion_workflow" ||
-   ! grep -Fq "if: \${{ !startsWith(steps.target_ref.outputs.target_ref, 'alpha/') }}" "$promotion_workflow"; then
-  echo "Buildchain promotion action refs must be selected from the resolved target channel" >&2
+if grep -Eq 'publish-command:|actions/promote-buildchain-ref@|lifecycle.publish' "$promotion_workflow" "$repo_root/.buildchain/buildchain.toml"; then
+  echo "Consumer publication commands are not part of the v4 provider plane" >&2
   exit 1
 fi
-if [ "$(grep -Fc 'release-passport-impact-json: ".buildchain/release-impact.json"' "$promotion_workflow")" -ne 2 ]; then
-  echo "Buildchain promotion must supply the release passport impact ledger on both channels" >&2
-  exit 1
-fi
-# shellcheck disable=SC2016
-if [ "$(grep -Fc 'publish-required-artifacts-json: ${{ steps.required_artifacts.outputs.json }}' "$promotion_workflow")" -ne 2 ]; then
-  echo "Buildchain promotion must require the exact manifest-declared OCI family" >&2
-  exit 1
-fi
-# shellcheck disable=SC2016
-if ! grep -Fq 'python3 scripts/required-publish-artifacts.py --github-output "$GITHUB_OUTPUT"' "$promotion_workflow"; then
-  echo "Buildchain promotion must resolve image requirements from repository manifests" >&2
-  exit 1
-fi
-if ! grep -Fq 'fetch-depth: 0' "$promotion_workflow"; then
-  echo "Buildchain promotion must fetch history for the trusted lock acceptance baseline" >&2
+if ! grep -Fq 'build.yml@v4-alpha' "$repo_root/.github/workflows/build.yml" ||
+   ! grep -Fq 'release-candidate: true' "$repo_root/.github/workflows/build.yml"; then
+  echo "OCI images must be sealed by the public v4 build candidate workflow" >&2
   exit 1
 fi
 

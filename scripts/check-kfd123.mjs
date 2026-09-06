@@ -131,7 +131,7 @@ function checkContractLocks() {
     const stableEvaluation = evaluateBuildchainContractLock({
       lock: stableLock,
       current: stableCurrent,
-      runtimeRef: stableLock?.buildchain?.ref || "v2",
+      runtimeRef: stableLock?.buildchain?.ref || "v4",
       runtimeSha: stableLock?.buildchain?.resolvedSha || "",
       runtimeClass: "stable",
       compatibilityPolicy: stableLock?.buildchain?.compatibilityPolicy || "major-compatible",
@@ -140,7 +140,7 @@ function checkContractLocks() {
     const alphaEvaluation = evaluateBuildchainContractLock({
       lock: alphaLock,
       current: alphaCurrent,
-      runtimeRef: alphaLock?.buildchain?.ref || "v2-alpha",
+      runtimeRef: alphaLock?.buildchain?.ref || "v4-alpha",
       runtimeSha: alphaLock?.buildchain?.resolvedSha || "",
       runtimeClass: "alpha",
       compatibilityPolicy: alphaLock?.buildchain?.compatibilityPolicy || "major-compatible",
@@ -154,8 +154,8 @@ function checkContractLocks() {
       stableLock.buildchain.contractDigest === stableCurrent.contractDigest,
       "Stable Buildchain contract lock must match the installed stable Buildchain contract exactly",
     );
-    assertPassed(stableLock.buildchain.ref === "v2", `Stable Buildchain ref must be v2, got ${stableLock.buildchain.ref}`);
-    assertPassed(alphaLock.buildchain.ref === "v2-alpha", `Alpha Buildchain ref must be v2-alpha, got ${alphaLock.buildchain.ref}`);
+    assertPassed(stableLock.buildchain.ref === "v4", `Stable Buildchain ref must be v4, got ${stableLock.buildchain.ref}`);
+    assertPassed(alphaLock.buildchain.ref === "v4-alpha", `Alpha Buildchain ref must be v4-alpha, got ${alphaLock.buildchain.ref}`);
     assertPassed(alphaLock.buildchain.majorLine === stableLock.buildchain.majorLine, "Alpha and stable Buildchain locks must use the same major line");
     assertPassed(stableLock.buildchain.compatibilityPolicy === "major-compatible", "Stable Buildchain lock must use major-compatible policy");
     assertPassed(alphaLock.buildchain.compatibilityPolicy === "major-compatible", "Alpha Buildchain lock must use major-compatible policy");
@@ -174,6 +174,9 @@ function writeKfd1Witness() {
     contractSurface("docs/runner-boundary.md", "runner-boundary"),
     contractSurface("images.lock.json", "image-lock"),
     contractSurface("scripts/write-publish-evidence.py", "publish-evidence-writer"),
+    contractSurface("scripts/build-oci-candidate.py", "oci-candidate-builder"),
+    contractSurface("scripts/seal-oci-candidate.mjs", "oci-candidate-sealer"),
+    contractSurface("scripts/project-oci-evidence.py", "oci-evidence-projection"),
   ];
   const witness = {
     id: "build-images-release-contract-world",
@@ -268,6 +271,9 @@ function writeKfd2Claim({ kfd1Witness, upstreamFacts }) {
     artifacts: [
       { id: "oci-image-lock", path: "images.lock.json", sha256: sha256RepoFile("images.lock.json") },
       { id: "publish-evidence-writer", path: "scripts/write-publish-evidence.py", sha256: sha256RepoFile("scripts/write-publish-evidence.py") },
+      { id: "oci-candidate-builder", path: "scripts/build-oci-candidate.py", sha256: sha256RepoFile("scripts/build-oci-candidate.py") },
+      { id: "oci-candidate-sealer", path: "scripts/seal-oci-candidate.mjs", sha256: sha256RepoFile("scripts/seal-oci-candidate.mjs") },
+      { id: "oci-evidence-projection", path: "scripts/project-oci-evidence.py", sha256: sha256RepoFile("scripts/project-oci-evidence.py") },
     ],
     verification: {
       result: "passed",
@@ -275,7 +281,7 @@ function writeKfd2Claim({ kfd1Witness, upstreamFacts }) {
     },
     auditBoundary: {
       mode: "machine-bound-release-contract",
-      scope: "Build Images repository config, declared public surfaces, image lock, alpha/stable Buildchain runtime contract locks, and publish evidence writer.",
+      scope: "Build Images repository config, declared public surfaces, image lock, alpha/stable Buildchain runtime contract locks, OCI candidate construction and sealing, and publication evidence projection.",
     },
     responsibility: {
       owner: "Kungfu Build Images maintainers",

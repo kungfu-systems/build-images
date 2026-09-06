@@ -1,3 +1,21 @@
+---
+status: active
+period: ongoing
+theme: build-images-v4-publication
+doc_type: technical-reference
+source_level: local-files
+confidence: high
+sensitivity: public
+evidence_grade: B
+review_state: unreviewed
+last_reviewed: 2026-09-06
+ai_provenance:
+  model_family: GPT-6
+  product: Codex
+  generated_at: 2026-09-06
+  invisible_context_boundary: Describes tracked publication contracts; does not assert a completed release.
+---
+
 # Kungfu Build Images
 
 This repository is the source of truth for maintained Kungfu build container
@@ -59,21 +77,23 @@ contract needs the same Buildchain entry tools plus C++/Conan/CMake tooling.
 pnpm run check
 ```
 
-The default verification path calls Buildchain's `build.yml@v2` channel router
+The default verification path calls Buildchain's `build.yml@v4-alpha` channel router
 with `buildchain-channel: auto`. Development and prerelease work uses
-`v2-alpha` with `.buildchain/alpha-contract-lock.json`; stable release work uses
-`v2` with `.buildchain/contract-lock.json`. The lifecycle validates KFD-1/2/3
+`v4-alpha` with `.buildchain/alpha-contract-lock.json`; stable release work uses
+`v4` with `.buildchain/contract-lock.json`. The lifecycle validates KFD-1/2/3
 release evidence, image manifests, the image lock, workflow syntax, and shell
 syntax. It does not publish images and does not require a self-hosted runner.
 
-The GitHub `Verify` workflow exposes a `check` job so Buildchain v2 promotion
+The GitHub `Verify` workflow exposes a `check` job so Buildchain v4 promotion
 can use it as the protected release-line status check.
 
 ## Release Model
 
 The repository uses one Buildchain release version for the image family at
-first. Buildchain v2 owns channel promotion, image publish transactions, durable
-publish evidence, and exact release tags. Exact image tags mirror exact
+first. Buildchain v4 owns channel promotion, sealed OCI candidate publication,
+public digest readback, and exact release tags. The alpha candidate Build
+produces and smokes the complete image family without package write authority.
+The protected promotion publishes those exact bytes. Exact image tags mirror exact
 repository tags, for example:
 
 ```text
