@@ -3,7 +3,7 @@
   "contract": "kungfu-buildchain-dev-delivery-warrant-queue",
   "repository": "kungfu-systems/build-images",
   "protectedBase": "dev/v1/v1.3",
-  "generation": 15,
+  "generation": 16,
   "fencingCounter": 5,
   "policy": {
     "agingSeconds": 900,
@@ -12,43 +12,7 @@
     "emergencyPolicy": "reviewed-explicit-only",
     "minimumWriterProtocolRoot": "sha256:54a203cadf0b14d4e3c198a3cc3c177c42813aa1c0cca03e900df714b6ae5563"
   },
-  "activeWarrant": {
-    "schema": "kungfu.buildchain.dev-delivery-warrant/v1",
-    "repository": "kungfu-systems/build-images",
-    "protectedBase": "dev/v1/v1.3",
-    "candidateId": "sha256:4055d2d8d64ddacf83bd8f29ca1d2116efefb9a8fb924d476c0b0b426a1621ef",
-    "pullRequestNumber": 375,
-    "sourceHead": "f62667f95db764e26caf6cd8e55fa81c726b4d57",
-    "sourceRoot": "sha256:2f10ec11ad785d9fb5baae12de15696dedc44b7d83feb491f3e154b2d8614bb3",
-    "sourceIdentityRoot": "sha256:7c36c6b9d95ed16c3b1ccfade1e82c8994e31e88853216c4397c50a1f99ffa64",
-    "sourcePatchRoot": "sha256:506b0059a20fae3687fa08fc2b939cf6511ce7cde2b80635d8be4775ec54f07d",
-    "sourceProofRoot": "sha256:0ded35a989dd0b4dd7d3ee9dca78ddc73cc3bb2e90102607c9de8afe9fb0ec8d",
-    "planRoot": "sha256:f978d595c6f9b9d6749579ac062a51cdad1fd742c84e6e7ab9f8f28b6268ddd6",
-    "closureRoot": "sha256:1ea39fa787517f4d2e564197ab4c1d10408d42179cb292a8ac6688df3ddd1ee0",
-    "dependencyRoot": "sha256:b9a9c1a02948b9991a542b9fffc017ac9d339bd50606453807de6c3bc6268899",
-    "toolchainRoot": "sha256:b14bc5592d4f5fbb8160fa0b143c5a0f9721289dcfc979e01e24a09cb2aeccc8",
-    "affectedPaths": [
-      ".buildchain/kfd/kfd-1/build-images-contract-world.witness.json",
-      ".buildchain/kfd/kfd-1/release-gate.json",
-      ".buildchain/kfd/kfd-2/release-claims.json",
-      ".buildchain/kfd/kfd-3/collaboration-interface.artifact.json",
-      ".buildchain/kfd/kfd-3/collaboration-interface.prebuild.json",
-      ".buildchain/kfd/kfd-3/release-gate.json",
-      ".buildchain/kfd/kfd-3/surfaces.json",
-      "docs/release-and-tags.md",
-      "images.lock.json"
-    ],
-    "shardEvidenceRoots": [],
-    "sourceWorkflowRunId": 34057613165,
-    "deliveryClass": "non-native-fast",
-    "priority": "ordinary",
-    "generation": 5,
-    "expectedOldStateRoot": "sha256:317f1b8e34cbec96a219bf0bf57b606cfe0888d1aec31d3af7944da5233c4e9a",
-    "issuedAt": "2026-09-06T20:23:49.728Z",
-    "expiresAt": "2026-09-06T21:23:49.728Z",
-    "fencingToken": "sha256:762728d33f6595bb9a84fd7a16d55acc8c0effdbe46ad3102233097f708eb1a2",
-    "nextAction": "Replay on the exact current dev base, prove required checks, then enqueue the unchanged PR head."
-  },
+  "activeWarrant": null,
   "candidates": [
     {
       "repository": "kungfu-systems/build-images",
@@ -300,11 +264,19 @@
       "sourceWorkflowRunId": 34057613165,
       "priority": "ordinary",
       "enqueuedAt": "2026-09-06T20:23:47.731Z",
-      "updatedAt": "2026-09-06T20:23:49.728Z",
+      "updatedAt": "2026-09-06T20:25:46.718Z",
       "attempts": 1,
       "recoveries": 0,
-      "status": "selected",
-      "terminal": null,
+      "status": "merged",
+      "terminal": {
+        "outcome": "merged",
+        "reason": "Verified protected merge 5f291947730dcffbed99c25bb7d4fcda49acf493 and successful hosted delivery 34057844442",
+        "evidenceRoot": "sha256:8bfc9244b86c6a45c4e3f1cafdab51e0651fea913157f642f7f911e4051d2ae1",
+        "closedAt": "2026-09-06T20:25:46.718Z",
+        "fencingToken": "sha256:762728d33f6595bb9a84fd7a16d55acc8c0effdbe46ad3102233097f708eb1a2",
+        "leaseGeneration": 5,
+        "successorWake": null
+      },
       "affectedPaths": [
         ".buildchain/kfd/kfd-1/build-images-contract-world.witness.json",
         ".buildchain/kfd/kfd-1/release-gate.json",
@@ -319,6 +291,6 @@
       "shardEvidenceRoots": []
     }
   ],
-  "updatedAt": "2026-09-06T20:23:49.728Z",
-  "stateRoot": "sha256:a521ec835b780e3418bdc2592b93010a3445645123a1a26b2fdd2fd1b4c39bf7"
+  "updatedAt": "2026-09-06T20:25:46.718Z",
+  "stateRoot": "sha256:e75a5cd118e9dfc89fc1f865c53e35b6aa483e8f7340258679ec871f6d5cfd03"
 }
