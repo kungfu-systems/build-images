@@ -3,7 +3,7 @@
   "contract": "kungfu-buildchain-dev-delivery-warrant-queue",
   "repository": "kungfu-systems/build-images",
   "protectedBase": "dev/v1/v1.3",
-  "generation": 2,
+  "generation": 3,
   "fencingCounter": 1,
   "policy": {
     "agingSeconds": 900,
@@ -123,8 +123,44 @@
         "scripts/test-oci-evidence.py"
       ],
       "shardEvidenceRoots": []
+    },
+    {
+      "repository": "kungfu-systems/build-images",
+      "protectedBase": "dev/v1/v1.3",
+      "pullRequestNumber": 367,
+      "sourceRoot": "sha256:bce754be184253b09cc247d049cb941a909c72ea0ed3ef6921a244dca3b4f6ad",
+      "sourceIdentityRoot": "sha256:8ec00ae5e4cee3de73ea583b0aee2e2a814a0e7fef7d818aab41ec2273f10641",
+      "deliveryClass": "non-native-fast",
+      "candidateId": "sha256:57d53adbaada6d9c974c56df18ef6690682de0b610183676b0998506fc786120",
+      "sourceHead": "7e0a4eb0043c2c78c85d1cda527f878cf4c92c7c",
+      "sourcePatchRoot": "sha256:97f24928773a54cb8d8923e9b5cf522acbbd1a4fc5085aa1d0765a8b27b01f8e",
+      "sourceProofRoot": "sha256:80b5169a9399be6cdba6c12c7f136eb52b3d6cb748fa74a2b29c09374412461e",
+      "planRoot": "sha256:66af6c3f390424658a45bb77eea9926158d5bba4ff098cd780b51fc9a0c7e5fa",
+      "closureRoot": "sha256:4dc9afd12d266f54a37d70a9168f1d3f82d519d0bd17cee19a1b44d83d4f48fc",
+      "dependencyRoot": "sha256:fc9ad29fa9fdaeff9c24794a5684c45e28649813aa3b3258dcecf76a74ffec0f",
+      "toolchainRoot": "sha256:0414258db187cf3aa22fb11fda13b8bd7f58148091f462f891350cade9a51693",
+      "sourceWorkflowRunId": 34046523335,
+      "priority": "ordinary",
+      "enqueuedAt": "2026-09-06T16:52:46.328Z",
+      "updatedAt": "2026-09-06T16:52:46.328Z",
+      "attempts": 1,
+      "recoveries": 0,
+      "status": "queued",
+      "terminal": null,
+      "affectedPaths": [
+        ".buildchain/alpha-contract-lock.json",
+        ".buildchain/contract-lock.json",
+        ".buildchain/kfd/kfd-2/kfd-aggregate.json",
+        ".buildchain/kfd/kfd-2/kfd-upstream-aggregate.json",
+        ".buildchain/kfd/kfd-2/release-claims.json",
+        ".buildchain/kfd/kfd123-summary.json",
+        ".buildchain/release-impact.json",
+        "package.json",
+        "pnpm-lock.yaml"
+      ],
+      "shardEvidenceRoots": []
     }
   ],
-  "updatedAt": "2026-09-06T16:30:11.478Z",
-  "stateRoot": "sha256:7a9b55423dadd5aa69f3577a5d9187d57c04bb1dc05442bd9945139aafb2f1ff"
+  "updatedAt": "2026-09-06T16:52:46.328Z",
+  "stateRoot": "sha256:72c27b0d95feec9a66463a3f1d8d0ac35998d4a78e8af4aa83ade4d6fbb65fff"
 }
